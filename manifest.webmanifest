@@ -1,0 +1,24 @@
+{
+  "name": "Faces & Heels: Iso Action Figures",
+  "short_name": "Faces & Heels",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#050A12",
+  "theme_color": "#050A12",
+  "orientation": "any",
+  "id": "./",
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "matches": 1000,
+  "completed": 1000,
+  "stoneWins": 544,
+  "viperWins": 456,
+  "averageSteps": 29.1,
+  "maximumSteps": 204,
+  "averagePinAttempts": 6.27,
+  "averageReactions": 3.80,
+  "reactionSuccesses": 2179,
+  "reactionFailures": 1618,
+  "averageControlChanges": 4.56,
+  "averageNeutralRolls": 2.50,
+  "averageRecoveryActions": 0.90,
+  "averagePostKickoutScrambles": 5.91,
+  "kickoutsAt1": 2914,
+  "kickoutsAt2": 1527,
+  "kickoutsAt3": 830,
+  "crowdRollBoostSpends": 2727,
+  "crowdStaminaRecoverySpends": 866,
+  "bodyMarksAdded": 1889,
+  "result": "PASS"
+}

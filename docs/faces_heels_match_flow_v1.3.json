@@ -1,0 +1,41 @@
+{
+  "version": "1.3.0",
+  "principles": [
+    "Facts are labels. Decisions are buttons.",
+    "Keep control until the opponent steals it."
+  ],
+  "phases": [
+    "NEUTRAL_ROLL",
+    "ACTION_SELECT",
+    "TARGET_CHOICE",
+    "MOVE_ROLL",
+    "REACTION",
+    "DAMAGE_RESOLUTION",
+    "PIN_OPPORTUNITY",
+    "PIN",
+    "MATCH_COMPLETE"
+  ],
+  "control": {
+    "normalSuccess": "current H remains H",
+    "normalFailure": "L may Reaction",
+    "reactionSuccess": "reactor becomes H; original H becomes L",
+    "reactionFailureOrPass": "existing H/L remains",
+    "kickout": "both N; previously pinned wrestler gets next action",
+    "neutralRoll": "winner becomes H; loser becomes L"
+  },
+  "pin": {
+    "eligibility": "successful move ends move taker prone",
+    "counts": 3,
+    "kickout": "pinned wrestler wins any opposed BGD count",
+    "tie": "count continues",
+    "pinningPenalty": "Core body marks",
+    "pinnedPenalty": "all body marks",
+    "success": "MATCH_COMPLETE"
+  },
+  "simulationGate": {
+    "minimumMatches": 500,
+    "defaultMatches": 1000,
+    "stepCap": 600,
+    "allMustReachWinner": true
+  }
+}

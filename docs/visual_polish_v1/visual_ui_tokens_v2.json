@@ -1,0 +1,139 @@
+{
+  "version": "2.0",
+  "visualDirection": "Stylized Arcade Wrestling Figures",
+  "colors": {
+    "bg.game": "#050A12",
+    "bg.chrome": "#07101B",
+    "surface.base": "#0C1725",
+    "surface.raised": "#132236",
+    "line.subtle": "#263A52",
+    "text.primary": "#F5F8FC",
+    "text.secondary": "#A3B4C8",
+    "text.muted": "#71849A",
+    "accent.grapple": "#2DBBFF",
+    "accent.strike": "#FF405F",
+    "accent.submission": "#A65CFF",
+    "accent.opportunity": "#FFC72C",
+    "accent.success": "#38D996",
+    "accent.warning": "#FF9F43",
+    "accent.disabled": "#526174"
+  },
+  "buttons": {
+    "primary": {
+      "height": [
+        56,
+        64
+      ],
+      "radius": 14,
+      "fillRole": "accent.grapple",
+      "border": "none_or_subtle"
+    },
+    "move": {
+      "height": [
+        64,
+        76
+      ],
+      "radius": 14,
+      "accentRailPx": [
+        3,
+        4
+      ],
+      "fullCategoryFill": false
+    },
+    "choice": {
+      "minHeight": 56,
+      "radius": 14,
+      "equalWeight": true
+    },
+    "secondary": {
+      "minHeight": 48,
+      "radius": 12,
+      "fill": "transparent_or_surface"
+    },
+    "opportunity": {
+      "minHeight": 58,
+      "radius": 14,
+      "fillRole": "accent.opportunity"
+    },
+    "reaction": {
+      "minHeight": 56,
+      "radius": 14
+    },
+    "locked": {
+      "opacity": 0.55,
+      "glow": false
+    }
+  },
+  "type": {
+    "eventPx": [
+      32,
+      48
+    ],
+    "selectedMovePx": [
+      20,
+      26
+    ],
+    "moveTitlePx": [
+      15,
+      17
+    ],
+    "hudNamePx": [
+      14,
+      16
+    ],
+    "metadataPx": [
+      11,
+      13
+    ],
+    "criticalMinimumPx": 11
+  },
+  "character": {
+    "renderSupersampling": [
+      3,
+      4
+    ],
+    "standardFrame": [
+      512,
+      512
+    ],
+    "complexFrame": [
+      768,
+      768
+    ],
+    "bootOversizePercent": [
+      5,
+      8
+    ],
+    "handOversizePercent": [
+      5,
+      10
+    ],
+    "outlineFinalPx": [
+      1,
+      2
+    ],
+    "shading": "three_tone_plus_contact_shadow_plus_rim"
+  },
+  "review": {
+    "scoreMinKeyScreens": 4,
+    "scoreTargetAverage": 4,
+    "viewports": [
+      [
+        390,
+        844
+      ],
+      [
+        844,
+        390
+      ],
+      [
+        1194,
+        834
+      ],
+      [
+        1440,
+        900
+      ]
+    ]
+  }
+}

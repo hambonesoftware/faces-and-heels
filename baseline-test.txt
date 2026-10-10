@@ -1,0 +1,19 @@
+
+> faces-and-heels-pwa@1.3.0 test
+> node test-flow.mjs && node test-v11.mjs && node test-v13.mjs && node test-simulations.mjs
+
+Smart Flow tests passed.
+v1.1 identity/contact-anchor tests passed.
+v1.3 complete-match-loop unit tests passed.
+Full-match simulations passed: 1000
+Wins: Stone 544, Viper 456
+Average steps: 29.1 (max 204)
+Average pin attempts: 6.27
+Average reactions: 3.80 (2179 success / 1618 fail total)
+Average control changes: 4.56
+Average neutral rolls: 2.50
+Average recovery actions: 0.90
+Average post-kickout scrambles: 5.91
+Kickouts by count: 1=2914, 2=1527, 3=830
+Crowd spends: roll boosts=2727, stamina recovery=866
+Body marks added: 1889

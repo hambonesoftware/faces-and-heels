@@ -1,0 +1,24 @@
+{
+  "name": "Faces & Heels PWA",
+  "version": "1.5.0",
+  "build": "Iso Action Figures",
+  "basedOn": "v1.4 Televised Arena",
+  "defaultRenderer": "iso",
+  "fallbackRenderer": "sprites",
+  "gameplayMathChanged": false,
+  "verification": {
+    "npmTest": "PASS",
+    "completeSimulations": 1000,
+    "validWinners": 1000,
+    "stoneWins": 544,
+    "viperWins": 456,
+    "browserCapture": "UNVERIFIED_ENVIRONMENT_LIMIT",
+    "dockerRuntime": "UNVERIFIED_ENVIRONMENT_LIMIT"
+  },
+  "newFiles": [
+    "iso-stage.js",
+    "test-v15.mjs",
+    "docs/V1.5_ISO_ACTION_FIGURES.md"
+  ],
+  "launch": "Start-FH.bat"
+}

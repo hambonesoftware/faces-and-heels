@@ -1,0 +1,114 @@
+{
+  "version": "1.0",
+  "principle": "Facts are labels. Decisions are buttons.",
+  "states": [
+    {
+      "id": "TURN_START",
+      "automatic": true,
+      "next": "ACTION_SELECT"
+    },
+    {
+      "id": "ACTION_SELECT",
+      "automatic": false,
+      "transitions": {
+        "no_unresolved_choices": "RESOLUTION_READY",
+        "has_unresolved_choices": "CHOICE_REQUIRED"
+      }
+    },
+    {
+      "id": "CHOICE_REQUIRED",
+      "automatic": false,
+      "policy": {
+        "zero": "invalid_or_hide",
+        "one": "auto_select",
+        "two_to_four": "direct_buttons",
+        "five_plus": "drawer_or_carousel"
+      },
+      "next": "RESOLUTION_READY"
+    },
+    {
+      "id": "RESOLUTION_READY",
+      "automatic": false,
+      "next": "ROLLING"
+    },
+    {
+      "id": "ROLLING",
+      "automatic": true,
+      "next": "ANIMATING"
+    },
+    {
+      "id": "ANIMATING",
+      "automatic": true,
+      "next": "IMPACT"
+    },
+    {
+      "id": "IMPACT",
+      "automatic": true,
+      "transitions": {
+        "opportunity_created": "OPPORTUNITY",
+        "reaction_created": "REACTION",
+        "otherwise": "TURN_HANDOFF"
+      }
+    },
+    {
+      "id": "OPPORTUNITY",
+      "automatic": false,
+      "next": "TURN_HANDOFF"
+    },
+    {
+      "id": "REACTION",
+      "automatic": false,
+      "next": "TURN_HANDOFF"
+    },
+    {
+      "id": "TURN_HANDOFF",
+      "automatic": true,
+      "next": "TURN_START"
+    }
+  ],
+  "examples": {
+    "forearm_smash": {
+      "targetChoices": [
+        "head"
+      ],
+      "uiTargetBehavior": "auto_select_and_label",
+      "flow": [
+        "ACTION_SELECT",
+        "RESOLUTION_READY",
+        "ROLLING",
+        "ANIMATING",
+        "IMPACT"
+      ]
+    },
+    "dragon_screw_two_legs": {
+      "targetChoices": [
+        "left_leg",
+        "right_leg"
+      ],
+      "uiTargetBehavior": "direct_buttons",
+      "flow": [
+        "ACTION_SELECT",
+        "CHOICE_REQUIRED",
+        "RESOLUTION_READY",
+        "ROLLING",
+        "ANIMATING",
+        "IMPACT"
+      ]
+    },
+    "vertical_suplex_pin": {
+      "flow": [
+        "ACTION_SELECT",
+        "RESOLUTION_READY",
+        "ROLLING",
+        "ANIMATING",
+        "IMPACT",
+        "OPPORTUNITY",
+        "TURN_HANDOFF"
+      ],
+      "opportunity": [
+        "pin_now",
+        "continue"
+      ]
+    }
+  }
+}

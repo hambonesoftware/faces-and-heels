@@ -1,0 +1,8 @@
+*.zip
+.git
+.gitignore
+__pycache__
+*.pyc
+.DS_Store
+Thumbs.db
+docker-data

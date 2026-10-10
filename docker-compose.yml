@@ -1,0 +1,9 @@
+services:
+  faces-and-heels:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: faces-and-heels
+    ports:
+      - "${FH_PORT:-8080}:80"
+    restart: unless-stopped

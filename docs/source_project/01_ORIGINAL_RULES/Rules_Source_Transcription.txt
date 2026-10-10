@@ -1,0 +1,175 @@
+Match Start
+Roll Off using Big Gold Dice (d20) to Determine Neutral Move
+Winner Chooses Neutral/Neutral Move
+Roll Neutral with Modifier using BGD
+Winner is (H) Wrestler
+
+Loser is (L) Wrestler
+
+(H) Wrestler attempts move - states the move to attempt
+- Body position requirement for move must match current Match body positions.
+Remove Stamina
+-5 cost for a common
+-10 cost for a legendary and body part cost
+Move Succeeds
+Roll Damage
+Adjust Body Positions
+Adjust (H/N/L)
+Move Fails
+(L) Wrestler Attempts Reaction Move taker roles against move maker Con
+Remove Stamina
+Reaction Succeeds
+Roll Damage
+Adjust Body Positions
+Adjust (H/N/L)
+Reaction Fails
+
+Move
+Body Requirement Modifier (per body part)(move maker)
+Body Position Requirement (move taker & move maker)
+Will cost stamina to perform move
+- body points per Body Part
+-10 legendary
+-5 reaction
+Move Attempt
+Move Success
+Stamina Dice assigned
+- full roll to move taker
+Joint Assignment Threshold Check (move taker)
+Move Failure
+Move Taker Attempts Reaction Move
+Reaction Failuire
+-maintain existing (H/N/L)
+
+Will Give End Body Positions (move taker & move maker)
+Common Move: List of 20 moves all wrestlers can choose from
+Legendary Move: Style dependent list of 8-10 moves the wrestler will choose from
+Bonus Action: A move maker can reposition themselves or the move taker once during a move
+Moves have a Match level requirement
+
+Reactions
+Reactions are moves that a move taker can make if a move maker fails to make a move.
+Reactions do not have a bonus action and do not allow for any repositioning
+Reaction moves are chosen from the wrestlers common move list
+
+Body
+Parts
+Head
+Threshold: 4
+Core
+Threshold: 7
+Arm left
+Threshold: 5
+Wrist left
+Threshold: 4
+Arm right
+Threshold: 5
+Wrist right
+Threshold: 4
+Leg right
+Threshold: 6
+Ankle right
+Threshold: 5
+Leg left
+Threshold: 6
+Ankle left
+Threshold: 5
+Each body part has its own threshold. After a player successfully lands a move, they roll their damage dice. The defender
+then compares the result to their own threshold for the body part targeted by the move. If the damage dice exceed the
+threshold for that specific body part, the defender gains a body point mark on that part.
+Every move also has one or more body parts required to perform it. When a player uses a move, they must add their own
+
+Heat / Pop Dice
+Heat or Pop Dice are determined by your player Attitude
+-Player Attitude is choosing Face or Heel
+- Faces get Pop Dice
+- Heels get Heat Dice
+
+Heat / Pop Dice are gained during
+- Promo’s
+- Some Common Moves
+- All Legendary Moves
+Heat / Pop Dice can be added to any roll
+Heat / Pop Dice can be spent at any time on your turn to gain +10 Stamina
+
+Promo’s
+Promos happen before a match and give a wrestler the time to amp up the crowd and, state their goals for the match, and
+gain some additional heat pop dice
+Promo’s use 3 Big Gold Dice
+each dice roll has the ability to gain 1 Heat/Pop dice
+The wrestler must roll at or below their level to receive a Heat / Pop dice
+
+Pin/Submission Mechanics
+If a move taker body position ends prone, the move maker can attempt a Pin
+A pin consists of 3 head to head rolls of the BGD
+Each wrestler rolls the BGD
+Pinning
+The pinning wrestler subtracts their core body points
+The pinned wrestler subtracts all of their body points
+Submission
+The (L) wrestler subtracts their body points associated with the move assignment
+Kickout/Submission Escape
+If the pinned wrestler wins any roll, then the match is neurtral neutral with both players prone.
+The previously pinned wrestler now gets to make a move
+The previously pinned character gains +10 Stamina
+If the pinned wrestler does not win any of the three rolls the match is over
+Finisher Move to Pin
+-Every Finisher move can immediately go into a pin roll mechanic on success
+
+Stamina
+Stamina is the main energy of each player
+Moves cost stamina to make
+Moves take away stamina from the targeted player
+If a player reaches 0 Stamina, the (H) wrestler must make a pin or submission move
+Players regain +10 Stamina during every move at turn starting at neutral position
+Both players gain stamina on (N/N) rolls
+
+Leveling Up
+Hitting The Gym
+Hitting the gym allows the wrestler to add to their Core Stats
+Players get two +1’s to add to any Core Stat
+Hitting The Mat
+Hitting The Mat is adding moves and increasing body part threshold / Making it harder to get hit
+Players get to add 1 legendary move from their style
+
+Players get one +1 to increase the threshold for any body part
+Limits
+The user has 10 Gym Passes and 10 Mat Passes.
+Each can be used at any time and in any order
+
+Player Character
+Main Stats
+Power
+Promo
+Agility
+Acrobatics
+Fortitude
+- For each stat value, roll 2d12 dice and add together.
+- Each stat has no max value
+- The stat modifier is the (Stat MOD 5)
+Stamina
+Stamina is the total of all Main Stats
+Conditioning (CON)
+Conditioning is 10 + characters Fortitude
+Conditioning reflects how resistant the character is to being hurt.
+Conditioning is the defensive stat that offensive players role against.
+Attitude
+Face
+Heel
+Style
+Powerhouse
+Showman
+Daredevil
+Mat Technician
+Ironheart
+Common Moves
+Maximum 20 common moves
+Legendary Moves
+Maximum 4 Legendary moves
+
+Match Level
+Match level is the level a player is at during a match
+Level 0 is the outside of the ring
+Level 1 is the ring
+Level 2 is the ropes
+Players must meet the match level requirement of a move to make any specific move.

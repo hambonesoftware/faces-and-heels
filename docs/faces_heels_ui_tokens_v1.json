@@ -1,0 +1,104 @@
+{
+  "version": "1.0",
+  "foundation": {
+    "bg.game": "#050A12",
+    "bg.arenaChrome": "#08111D",
+    "surface.1": "#0C1725",
+    "surface.2": "#132236",
+    "line.subtle": "#263A52",
+    "text.primary": "#F5F8FC",
+    "text.secondary": "#A3B4C8",
+    "text.muted": "#71849A"
+  },
+  "gameplay": {
+    "face.blue": "#2DBBFF",
+    "heel.red": "#FF405F",
+    "spotlight.gold": "#FFC72C",
+    "success.green": "#38D996",
+    "warning.orange": "#FF9F43",
+    "submission.purple": "#A65CFF",
+    "critical.white": "#FFFFFF",
+    "disabled.gray": "#526174"
+  },
+  "layout": {
+    "touchTargetMin": 48,
+    "primaryActionHeight": [
+      54,
+      64
+    ],
+    "moveCardHeightPortrait": [
+      68,
+      86
+    ],
+    "portraitReference": [
+      390,
+      844
+    ],
+    "landscapePhoneReference": [
+      844,
+      390
+    ],
+    "tabletLandscapeReference": [
+      1194,
+      834
+    ],
+    "desktopReference": [
+      1440,
+      900
+    ]
+  },
+  "motionMs": {
+    "buttonPress": [
+      70,
+      100
+    ],
+    "dockChange": [
+      160,
+      220
+    ],
+    "drawer": [
+      220,
+      300
+    ],
+    "turnPulse": [
+      250,
+      450
+    ],
+    "diceRoll": [
+      300,
+      550
+    ],
+    "hitStop": [
+      60,
+      90
+    ],
+    "cameraShake": [
+      120,
+      220
+    ],
+    "minorEvent": [
+      400,
+      750
+    ],
+    "majorEvent": [
+      700,
+      1200
+    ]
+  },
+  "sprite": {
+    "artFpsPreferred": 15,
+    "artFpsRange": [
+      12,
+      18
+    ],
+    "frameCanvasMobile": [
+      512,
+      512
+    ],
+    "frameCanvasHighDetail": [
+      768,
+      768
+    ],
+    "runtimeCompositor": "requestAnimationFrame / Canvas 2D"
+  }
+}
