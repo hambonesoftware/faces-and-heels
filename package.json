@@ -1,17 +1,18 @@
 {
   "name": "faces-and-heels-pwa",
-  "version": "1.6.0",
+  "version": "1.9.0",
   "type": "module",
   "private": true,
-  "description": "Faces & Heels v1.6.0 Ringside broadcast interface with original vector move art",
+  "description": "Faces & Heels v1.9.0 Neon Showdown with coordinated transition wrestling animations",
   "scripts": {
-    "test": "node test-flow.mjs && node test-v11.mjs && node test-v13.mjs && node test-presentation.mjs && node test-simulations.mjs && node test-isometric.mjs && node test-block-model.mjs && node test-package.cjs",
+    "test": "node test-flow.mjs && node test-v11.mjs && node test-v13.mjs && node test-presentation.mjs && node test-simulations.mjs && node test-isometric.mjs && node test-transition-choreography.mjs && node test-move-transitions.mjs && node test-block-model.mjs && node test-package.cjs",
     "test:flow": "node test-flow.mjs",
     "test:v11": "node test-v11.mjs",
     "test:v13": "node test-v13.mjs",
     "test:sim": "node test-simulations.mjs",
     "sprites": "python art_pipeline/generate_match_sprites.py",
-    "start": "node serve.cjs"
+    "start": "node serve.cjs",
+    "test:animation": "node test-isometric.mjs && node test-transition-choreography.mjs"
   },
   "facesAndHeels": {
     "uxSpec": "docs/Faces_and_Heels_Match_UX_HUD_Spec_v1.0.md",
