@@ -1,4 +1,5 @@
 import { demoMoves, demoState, reactionMove } from './moves.js';
+import {isLegendaryLearnable,MAX_LEGENDARY_MOVES,getLegendaryCandidate} from './legendary-catalog.js';
 import { isMoveLegal, resolveTargetDecision } from './flow-engine.js';
 
 export const CROWD_CAP = 5;
@@ -125,10 +126,37 @@ export function resolveNeutralRoll(state, stoneRoll, viperRoll) {
   return { tie: false, winnerId, stoneRoll, viperRoll, stoneTotal, viperTotal };
 }
 
+// Each wrestler has a selected Common Move repertoire, universal setup
+// actions, and at most four personally learned style-Legendary finishers.
+export function isMoveKnown(wrestlerState,move){
+  if(!wrestlerState||!move)return false;
+  if(move.category==='setup')return true;
+  if(move.legendary||move.category==='special'){
+    const selected=wrestlerState.legendaryMoves||[];
+    const candidate=getLegendaryCandidate(wrestlerState.style,move.id);
+    return selected.length<=MAX_LEGENDARY_MOVES
+      &&selected.includes(move.id)
+      &&candidate?.status==='playable'
+      &&(!candidate.signatureFor||candidate.signatureFor===wrestlerState.id)
+      &&move.legendaryStyle===wrestlerState.style;
+  }
+  return (wrestlerState.commonMoves||[]).includes(move.id);
+}
+export function setLegendaryLoadout(state,id,ids){
+  const w=wrestler(state,id);
+  if(!w||!Array.isArray(ids)||new Set(ids).size!==ids.length||ids.length>MAX_LEGENDARY_MOVES)
+    return {ok:false,reason:'Invalid legendary loadout'};
+  if(!ids.every(moveId=>isLegendaryLearnable(w.style,moveId) &&
+    (!getLegendaryCandidate(w.style,moveId).signatureFor||getLegendaryCandidate(w.style,moveId).signatureFor===id)))
+    return {ok:false,reason:'Unlearnable, wrong-style or signature-locked Legendary Move'};
+  w.legendaryMoves=ids.slice();
+  return {ok:true,ids:w.legendaryMoves};
+}
+
 export function getLegalMoves(state, actorId = state.activeWrestlerId) {
   if (!actorId || state.winnerId) return [];
   const perspective = perspectiveState(state, actorId);
-  let moves = demoMoves.filter(move => isMoveLegal(move, perspective));
+  let moves = demoMoves.filter(move => isMoveKnown(perspective.attacker,move) && isMoveLegal(move, perspective));
   const defender = perspective.defender;
   if (state.mustFinishTargetId === defender.id && defender.stamina <= 0 && defender.posture !== 'prone') {
     moves = moves.filter(move => move.category !== 'setup' && move.result?.defenderPosture === 'prone' && move.staminaDamage > 0);
@@ -204,7 +232,7 @@ export function resolveMoveAttempt(state, {
   const attacker = wrestler(state, attackerId);
   const defender = wrestler(state, defenderId);
   const perspective = perspectiveState(state, attackerId);
-  if (!isMoveLegal(move, perspective)) throw new Error(`${move.name} is not legal in the current state.`);
+  if (!isMoveKnown(attacker,move) || !isMoveLegal(move, perspective)) throw new Error(`${move.name} is not learned or legal for ${attacker.name}.`);
 
   const targetDecision = resolveTargetDecision(move, perspective);
   let resolvedTarget = target;
