@@ -159,7 +159,7 @@ function statusWarning(w) {
 
 function renderFighterHud(w, side) {
   const role = roleFor(state, w.id);
-  const active = state.activeWrestlerId === w.id;
+  const active = turnDecision().actorId === w.id;
   const roleText=role==='H'?'IN CONTROL':role==='L'?'DEFENDING':'NEUTRAL';
   const now=pct(w.stamina,w.maxStamina);
   if(trailing[w.id]===null)trailing[w.id]=now;
@@ -205,6 +205,12 @@ function renderArenaOverlay() {
   }
   if (state.winnerId) {
     return `<div class="event-overlay event-overlay--spectacle"><small>WINNER</small><strong>${escapeHtml(wrestler(state,state.winnerId).name)}</strong><span>${state.winMethod==='submission'?'SUBMISSION':'PINFALL'} VICTORY</span></div>`;
+  }
+  const decision=turnDecision();
+  if (['interrupt','hold-defense','pin-defense'].includes(decision.kind) && decision.actorId){
+    const defending=wrestler(state,decision.actorId),holder=decision.controlId?wrestler(state,decision.controlId):null;
+    const labels={'interrupt':'COUNTER WINDOW','hold-defense':'ESCAPE THE HOLD','pin-defense':'ROLL TO KICK OUT'};
+    return `<div class="turn-chip turn-chip--defense"><span>${escapeHtml(defending.name)} · ${roleFor(state,defending.id)} · DEFENDING</span><strong>${labels[decision.kind]}</strong><span>${holder?escapeHtml(holder.name)+' · HIGH CONTROL':''}</span></div>`;
   }
   const actor = currentActor();
   const defender = currentDefender();
