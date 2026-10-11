@@ -1,3 +1,4 @@
+import {ACTION_IDS} from './turn-controller.js?v=1.17.0';
 import { animationByMove } from './combat-animation-map.js?v=1.16.0';
 import { portrait, moveArt, damageDiagram } from './ui-art.js?v=1.16.0';
 import { emptyProgress, loadProgress, saveProgress, recordResult, resetProgress } from './progression.js?v=1.16.0';
@@ -34,7 +35,10 @@ import {
   setLegendaryLoadout,
   maintainHold,
   escapeHold,
-  releaseHold
+  releaseHold,
+  getAvailableActions,
+  validateCombatAction,
+  checkCombatFlow
 } from './match-engine.js?v=1.16.0';
 
 const app = document.querySelector('#app');
@@ -63,6 +67,7 @@ let ui = {
   railOffset: 0,
   pinCount: 0,
   pinRolls: null,
+  pinInfo: null,
   neutralRolls: null
 };
 
@@ -115,15 +120,20 @@ function log(entry) {
   if (/control|counter|kickout|pinfall|mark|finisher|reversal/i.test(entry)) highlights.push(entry);
 }
 
+// One shared combat flow policy powers both the UI and the match engine.
+function turnDecision(){return getAvailableActions(state);}
+function permitted(actionId,actorId=turnDecision().actorId){
+  const check=validateCombatAction(state,actionId,actorId);
+  if(!check.ok){log('Action unavailable: '+check.reason);announce('NOT AVAILABLE',check.reason,'danger',false,650);return false;}
+  return true;
+}
 function syncUiToEngine() {
-  if (['ROLLING','ANIMATING','PIN'].includes(ui.phase)) return;
-  if (state.phase === 'NEUTRAL_ROLL') ui.phase = 'NEUTRAL_ROLL';
-  else if (state.phase === 'HOLD') ui.phase = 'HOLD';
-  else if (state.phase === 'HOLD_ESCAPE') ui.phase = 'HOLD_ESCAPE';
-  else if (state.phase === 'PIN_OPPORTUNITY') ui.phase = 'OPPORTUNITY';
-  else if (state.phase === 'REACTION') ui.phase = 'REACTION';
-  else if (state.phase === 'MATCH_COMPLETE') ui.phase = 'MATCH_COMPLETE';
-  else if (state.phase === 'ACTION_SELECT' && !['TARGET_CHOICE','SELECTED','ROLLING','ANIMATING'].includes(ui.phase)) ui.phase = 'ACTION_SELECT';
+  if (['ROLLING','ANIMATING'].includes(ui.phase)) return;
+  const turn=turnDecision();
+  if (turn.phase==='ACTION_SELECT' && ['TARGET_CHOICE','SELECTED'].includes(ui.phase)) return;
+  ui.phase=({NEUTRAL_ROLL:'NEUTRAL_ROLL',ACTION_SELECT:'ACTION_SELECT',
+    HOLD:'HOLD',HOLD_ESCAPE:'HOLD_ESCAPE',PIN_OPPORTUNITY:'OPPORTUNITY',
+    PIN:'PIN_DEFENSE',REACTION:'REACTION',MATCH_COMPLETE:'MATCH_COMPLETE'}[turn.phase])||'ACTION_SELECT';
 }
 
 function currentActor() {
@@ -183,7 +193,7 @@ function renderArenaOverlay() {
   if (ui.phase === 'ROLLING') {
     return `<div class="dice-overlay"><small>${escapeHtml(ui.rollLabel || ui.selectedMove?.name || 'ROLL')}</small><div class="die">${ui.roll ?? '•'}</div><strong>${ui.roll ? 'LOCKED' : 'ROLLING'}</strong></div>`;
   }
-  if (ui.phase === 'PIN') {
+  if (ui.phase === 'PIN' || ui.phase === 'PIN_DEFENSE') {
     const detail = ui.pinRolls ? `${ui.pinRolls.pinningTotal} vs ${ui.pinRolls.pinnedTotal}` : 'OPPOSED BGD';
     return `<div class="pin-overlay"><small>PIN ATTEMPT</small><strong>${ui.pinCount || '!'}</strong><span>${escapeHtml(detail)}</span></div>`;
   }
@@ -245,9 +255,10 @@ function renderMoveCards() {
   const actor = currentActor();
   const defender = currentDefender();
   if (!actor || !defender) return renderNeutral();
+  const turn=turnDecision();
   const allLegal = getLegalMoves(state);
   if (!allLegal.length) {
-    const canScramble = actor.posture === 'prone';
+    const canScramble = turn.actions.some(action=>action.id===ACTION_IDS.SCRAMBLE&&action.enabled);
     return `
       <section class="decision-panel decision-panel--recovery">
         <div class="opportunity-copy"><small>${canScramble ? 'MAT SCRAMBLE' : 'NO LEGAL MOVE'}</small><strong>${escapeHtml(actor.name)} ${canScramble ? 'can get back to a base' : 'needs a reset'}</strong><span>${canScramble ? 'Kickouts leave both wrestlers prone. Stand up without surrendering the next-action right, then choose a legal move.' : 'Spend crowd energy for stamina if available, or Catch Breath to reset the match to Neutral.'}</span></div>
@@ -281,8 +292,10 @@ function renderMoveCards() {
       </button>`;
   }).join('');
 
-  const recoverButton = actor.crowdResource > 0 && actor.stamina <= actor.maxStamina - 5
+  const recoverButton = turn.actions.some(action=>action.id===ACTION_IDS.RECOVER&&action.enabled) && actor.stamina <= actor.maxStamina - 5
     ? `<button class="recover-mini" data-recover type="button">+10 STA · 1 ${escapeHtml(actor.crowdResourceName)}</button>` : '';
+  const standButton=turn.actions.some(action=>action.id===ACTION_IDS.SCRAMBLE&&action.enabled)
+    ? '<button class="recover-mini" data-scramble-up type="button">STAND UP</button>' : '';
   const finishNotice = state.mustFinishTargetId === defender.id && defender.stamina <= 0
     ? `<div class="finish-required">FINISH REQUIRED · ${escapeHtml(defender.name)} IS OUT OF STAMINA</div>` : '';
 
@@ -293,7 +306,7 @@ function renderMoveCards() {
         <div class="action-ribbon-title">
           <strong><span class="action-live-dot"></span>${escapeHtml(actor.name)} <span class="action-initiative">· ${roleFor(state,actor.id) === 'N' ? 'NEUTRAL' : 'IN CONTROL'}</span></strong>
         </div>
-        <div class="action-ribbon-tools">${recoverButton}<span class="action-available">${moves.length} MOVES</span></div>
+        <div class="action-ribbon-tools">${standButton}${recoverButton}<span class="action-available">${moves.length} MOVES</span></div>
       </div>
       <div class="action-ribbon-controls">
         <div class="action-category-tabs" role="group" aria-label="Move type">
@@ -362,6 +375,22 @@ function renderOpportunity() {
     <section class="decision-panel decision-panel--opportunity">
       <div class="opportunity-copy"><small>${forced ? 'FINISH REQUIRED' : 'PIN OPPORTUNITY'}</small><strong>${escapeHtml(pinned.name)} is prone</strong><span>${forced ? `${pinned.name} has 0 STA. The H wrestler must attempt a finish.` : 'Three opposed BGD counts. Body damage makes kickouts harder.'}</span></div>
       <div class="opportunity-actions"><button class="pin-button" data-pin>PIN NOW</button>${forced ? '' : '<button class="continue-button" data-continue>CONTINUE</button>'}</div>
+    </section>`;
+}
+
+function renderPinDefense() {
+  const turn=turnDecision(),pinned=wrestler(state,turn.actorId);
+  const pinning=turn.controlId?wrestler(state,turn.controlId):null;
+  const next=Math.min(3,(ui.pinInfo?.count||0)+1);
+  const last=ui.pinRolls;
+  return `
+    <section class="decision-panel decision-panel--pin-defense">
+      <div class="pin-defense-copy"><small>DEFENSIVE TURN · ${pinned?escapeHtml(pinned.name):'PINNED WRESTLER'}</small>
+        <strong>KICK OUT — COUNT ${next}</strong>
+        <span>${pinning?escapeHtml(pinning.name)+' controls the pin. ':''}Opposed d20 dice determine whether the shoulders stay down.</span>
+        ${last?`<span>PREVIOUS: ${last.pinnedTotal} vs ${last.pinningTotal}</span>`:''}
+      </div>
+      <button type="button" class="pin-defense-button" data-pin-defense>ROLL KICKOUT <small>BIG GOLD DICE · D20</small></button>
     </section>`;
 }
 
@@ -438,6 +467,7 @@ function renderDecisionDock() {
   if (ui.phase === 'SELECTED') return renderSelectedMove();
   if (ui.phase === 'OPPORTUNITY') return renderOpportunity();
   if (ui.phase === 'REACTION') return renderReaction();
+  if (ui.phase === 'PIN_DEFENSE') return renderPinDefense();
   if (ui.phase === 'MATCH_COMPLETE') return renderMatchComplete();
   if (['ROLLING','ANIMATING','PIN'].includes(ui.phase)) return '';
   return renderMoveCards();
@@ -805,51 +835,47 @@ function passReaction() {
 }
 
 async function runPin() {
-  const pin = startPin(state);
-  ui.phase = 'PIN';
-  ui.pinCount = 0;
-  ui.pinRolls = null;
-  stage.playPin({ pinningId: pin.pinningId });
+  if(!permitted(ACTION_IDS.PIN,state.pinningWrestlerId))return;
+  const pin=startPin(state);
+  ui.pinInfo={...pin,count:0};
+  ui.pinCount=0;ui.pinRolls=null;ui.phase='PIN_DEFENSE';
+  stage.playPin({pinningId:pin.pinningId});
+  log(`${wrestler(state,pin.pinningId).name} hooks a pin. ${wrestler(state,pin.pinnedId).name} gets a roll on every count.`);
   render();
-  log(`${wrestler(state,pin.pinningId).name} attempts a pin on ${wrestler(state,pin.pinnedId).name}.`);
+}
 
-  for (const count of [1,2,3]) {
-    await wait(450);
-    const pinningRoll = rollDie(20);
-    const pinnedRoll = rollDie(20);
-    const result = resolvePinCount(state, { pinningId: pin.pinningId, count, pinningRoll, pinnedRoll });
-    audio.cue('count');
-    ui.pinCount = count;
-    ui.pinRolls = result;
+async function rollPinDefense(){
+  const pin=ui.pinInfo;
+  if(!pin||!permitted(ACTION_IDS.COUNT_PIN,pin.pinnedId))return;
+  const count=pin.count+1;
+  const pinningRoll=rollDie(20),pinnedRoll=rollDie(20);
+  await rollingVisual(`${wrestler(state,pin.pinnedId).name} · KICK OUT ${count}`,pinnedRoll);
+  const result=resolvePinCount(state,{pinningId:pin.pinningId,count,pinningRoll,pinnedRoll});
+  pin.count=count;ui.pinCount=count;ui.pinRolls=result;
+  audio.cue('count');
+  log(`Count ${count}: ${wrestler(state,pin.pinnedId).name} rolls ${pinnedRoll} - ${result.pinnedPenalty} = ${result.pinnedTotal}; ${wrestler(state,pin.pinningId).name} rolls ${pinningRoll} - ${result.pinningPenalty} = ${result.pinningTotal}.`);
+  if(result.kickout){
+    audio.cue('reversal');
+    ui.event={title:`KICKOUT AT ${count}!`,detail:`${wrestler(state,pin.pinnedId).name} breaks the pin · +10 STA`,kind:'spectacle',impact:true};
     render();
-    log(`Pin count ${count}: ${wrestler(state,pin.pinningId).name} ${result.pinningRoll}-${result.pinningPenalty}=${result.pinningTotal}; ${wrestler(state,pin.pinnedId).name} ${result.pinnedRoll}-${result.pinnedPenalty}=${result.pinnedTotal}.`);
-    await wait(520);
-    if (result.kickout) {
-      audio.cue('reversal');
-      ui.event = { title:`KICKOUT AT ${count}!`, detail:`${wrestler(state,pin.pinnedId).name} wins the count · +10 STA · next move`, kind:'spectacle', impact:true };
-      render();
-      await stage.playKickout({ pinnedId: pin.pinnedId, onImpact: () => stage.pulseImpact('kickout') });
-      log(`${wrestler(state,pin.pinnedId).name} kicks out at ${count}. Both are prone, N/N, and ${wrestler(state,pin.pinnedId).name} receives the next move.`);
-      await wait(500);
-      ui.event = null;
-      ui.pinCount = 0;
-      ui.pinRolls = null;
-      ui.phase = 'ACTION_SELECT';
-      stage.resetPositions();
-      stage.setRestingState({ postures: { stone: wrestler(state,'stone').posture, viper: wrestler(state,'viper').posture } });
-      render();
-      return;
-    }
-    if (result.pinfall) {
-      audio.cue('victory');
-      if(!resultRecorded){progression=recordResult(progression,pin.pinningId,pin.pinnedId,state.turnCounter,highlights);saveProgress(localStorage,progression);resultRecorded=true;}
-      ui.event = { title:'PINFALL!', detail:`${wrestler(state,pin.pinningId).name} wins the match`, kind:'spectacle', impact:true };
-      log(`${wrestler(state,pin.pinningId).name} wins by pinfall.`);
-      ui.phase = 'MATCH_COMPLETE';
-      render();
-      return;
-    }
+    await stage.playKickout({pinnedId:pin.pinnedId,onImpact:()=>stage.pulseImpact('kickout')});
+    ui.pinInfo=null;ui.pinCount=0;ui.pinRolls=null;ui.event=null;
+    ui.phase='ACTION_SELECT';
+    stage.resetPositions();
+    stage.setRestingState({postures:{stone:wrestler(state,'stone').posture,viper:wrestler(state,'viper').posture}});
+    render();
+    return;
   }
+  if(result.pinfall){
+    audio.cue('victory');
+    if(!resultRecorded){progression=recordResult(progression,pin.pinningId,pin.pinnedId,state.turnCounter,highlights);saveProgress(localStorage,progression);resultRecorded=true;}
+    log(`${wrestler(state,pin.pinningId).name} wins by pinfall.`);
+    ui.pinInfo=null;ui.phase='MATCH_COMPLETE';render();
+    return;
+  }
+  ui.phase='PIN_DEFENSE';
+  announce(`COUNT ${count}!`,`${wrestler(state,pin.pinnedId).name} still needs a kickout`,'major',false,750);
+  render();
 }
 
 function recoverWithCrowd() {
@@ -924,23 +950,24 @@ app.addEventListener('click', event => {
   if (!el) return;
   if (['ROLLING','ANIMATING','PIN'].includes(ui.phase) && !el.dataset.renderer && !el.dataset.drawer && el.dataset.closeDrawer===undefined) return;
   if (el.dataset.startMatch !== undefined) { introOpen=false; audio.cue('bell'); render(); document.querySelector('[data-neutral-roll]')?.focus(); return; }
-  if (el.dataset.neutralRoll !== undefined) { rollNeutral(); return; }
-  if (el.dataset.move) { const move = demoMoves.find(m => m.id === el.dataset.move); if (move) selectMove(move); return; }
+  if (el.dataset.neutralRoll !== undefined) { if(permitted(ACTION_IDS.NEUTRAL,null))rollNeutral(); return; }
+  if (el.dataset.move) { const move = demoMoves.find(m => m.id === el.dataset.move); if (move&&permitted(ACTION_IDS.MOVE,state.activeWrestlerId)) selectMove(move); return; }
   if (el.dataset.renderer) {rendererMode=el.dataset.renderer;try{localStorage.setItem('fh-renderer-v15',rendererMode)}catch{} render();return;}
   if (el.dataset.target) { ui.selectedTarget = el.dataset.target; log(`${currentActor().name} chose ${bodyLabel(ui.selectedTarget)} for ${ui.selectedMove.name}.`); ui.phase = 'SELECTED'; render(); return; }
-  if (el.dataset.roll !== undefined) { rollMove(); return; }
+  if (el.dataset.roll !== undefined) { if(permitted(ACTION_IDS.MOVE,state.activeWrestlerId)) rollMove(); return; }
   if (el.dataset.boost !== undefined) { const actor=currentActor(); ui.spendCrowd = ui.spendCrowd ? 0 : (actor?.crowdResource > 0 ? 1 : 0); render(); return; }
   if (el.dataset.back !== undefined) { resetSelection(); return; }
-  if (el.dataset.holdSqueeze !== undefined) { performHoldPressure(); return; }
-  if (el.dataset.holdRelease !== undefined) { performHoldRelease(); return; }
-  if (el.dataset.holdEscape !== undefined) { performHoldEscape(); return; }
+  if (el.dataset.holdSqueeze !== undefined) { if(permitted(ACTION_IDS.HOLD_SQUEEZE,state.activeHold?.holderId))performHoldPressure(); return; }
+  if (el.dataset.holdRelease !== undefined) { if(permitted(ACTION_IDS.HOLD_RELEASE,state.activeHold?.holderId))performHoldRelease(); return; }
+  if (el.dataset.holdEscape !== undefined) { if(permitted(ACTION_IDS.HOLD_ESCAPE,state.activeHold?.defenderId))performHoldEscape(); return; }
   if (el.dataset.pin !== undefined) { runPin(); return; }
-  if (el.dataset.continue !== undefined) { const result=skipPin(state); if (!result.ok) { announce('FINISH REQUIRED','0 STA opponent must be pinned or submitted','danger',false,850); return; } ui.phase='ACTION_SELECT'; render(); return; }
-  if (el.dataset.reaction !== undefined) { runReaction(); return; }
-  if (el.dataset.passReaction !== undefined) { passReaction(); return; }
-  if (el.dataset.recover !== undefined) { recoverWithCrowd(); return; }
-  if (el.dataset.scrambleUp !== undefined) { scrambleUpAction(); return; }
-  if (el.dataset.catchBreath !== undefined) { catchBreath(); return; }
+  if (el.dataset.pinDefense !== undefined) { rollPinDefense(); return; }
+  if (el.dataset.continue !== undefined) { if(!permitted(ACTION_IDS.SKIP_PIN,state.pinningWrestlerId))return; const result=skipPin(state); if (!result.ok) { announce('FINISH REQUIRED','0 STA opponent must be pinned or submitted','danger',false,850); return; } ui.phase='ACTION_SELECT'; render(); return; }
+  if (el.dataset.reaction !== undefined) { if(permitted(ACTION_IDS.REACT,state.pendingFailure?.defenderId))runReaction(); return; }
+  if (el.dataset.passReaction !== undefined) { if(permitted(ACTION_IDS.PASS_REACTION,state.pendingFailure?.defenderId))passReaction(); return; }
+  if (el.dataset.recover !== undefined) { if(permitted(ACTION_IDS.RECOVER,state.activeWrestlerId))recoverWithCrowd(); return; }
+  if (el.dataset.scrambleUp !== undefined) { if(permitted(ACTION_IDS.SCRAMBLE,state.activeWrestlerId))scrambleUpAction(); return; }
+  if (el.dataset.catchBreath !== undefined) { if(permitted(ACTION_IDS.BREATH,state.activeWrestlerId))catchBreath(); return; }
   if(el.dataset.toggleCareer!==undefined){progression.mode=progression.mode==='championship'?'quick':'championship';saveProgress(localStorage,progression);render();return;}
   if(el.dataset.resetProgress!==undefined){if(confirm('Reset all local championship results and rewards?')){progression=resetProgress(localStorage);render();}return;}
   if (el.dataset.newMatch !== undefined) { location.href='./?fhbuild=1.16.0&t='+Date.now(); return; }
