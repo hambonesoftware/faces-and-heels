@@ -17,7 +17,7 @@ export const MOVE_ART_TIMES=Object.freeze({
   'knee-drop':.7,'leg-drop':.75,'armbar':.6,'ankle-lock':.56,
   'forearm-smash':.5,'running-clothesline':.56,'vertical-suplex':.55,
   'body-slam':.55,'dragon-screw':.58,'ground-headlock':.57,
-  'flash-finisher':.55,'shove-counter':.49
+  'flash-finisher':.55,'viper-bite':.61,'shove-counter':.49
 });
 const colorGroups={
   setup:{top:'#154b59',bottom:'#0d223f',bright:'#3ef4c2',accent:'#75dcff'},
