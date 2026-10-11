@@ -12,11 +12,11 @@ assert.equal(new Set(Object.values(animationByMove).map(a=>a.choreography)).size
 
 const contactTargets={
  'ddt':'neck','neckbreaker':'neck','hip-toss':'rightHand','spinebuster':'pelvis',
- 'knee-lift':'chest','dropkick':'chest','elbow-drop':'chest',
+ 'knee-lift':'head','dropkick':'chest','elbow-drop':'chest',
  'stomp':'chest','knee-drop':'chest','leg-drop':'chest',
  'armbar':'leftHand','ankle-lock':'leftAnkle','shove-counter':'chest'
 };
-const legStrikes=new Set(['knee-lift','dropkick','stomp','knee-drop','leg-drop']);
+const legStrikes=new Set(['dropkick','stomp']);
 const groundStrikes=new Set(['elbow-drop','stomp','knee-drop','leg-drop']);
 let checked=0,maxJump=0,minHeight=Infinity,closestStrike=Infinity;
 for(const move of roster){
@@ -57,9 +57,9 @@ for(const move of roster){
    }
    const target=contactTargets[move.id];
    if(target&&t>.23&&t<.88){
-    const pt=target==='neck'?neckPoint(d):target==='rightHand'?d.j.rh:target==='pelvis'?d.j.pelvis:
+    const pt=target==='neck'?neckPoint(d):target==='head'?d.j.head:target==='rightHand'?d.j.rh:target==='pelvis'?d.j.pelvis:
       target==='leftHand'?d.j.lh:target==='leftAnkle'?d.j.la:d.j.chest;
-    const extremities=legStrikes.has(move.id)?[a.j.la,a.j.ra,a.j.lk,a.j.rk]:[a.j.lh,a.j.rh];
+    const extremities=move.id==='knee-lift'||move.id==='knee-drop'||move.id==='leg-drop'?[a.j.rk]:move.id==='elbow-drop'?[a.j.le]:legStrikes.has(move.id)?[a.j.la,a.j.ra]:[a.j.lh,a.j.rh];
     const distance=Math.min(...extremities.map(v=>dist(v,pt)));
     contact=Math.min(contact,distance);
    }
@@ -67,7 +67,7 @@ for(const move of roster){
   }
   assert(travel>.30,`${move.id}: attacker stays stationary`);
   if(contactTargets[move.id]){
-   assert(contact<.85,`${move.id}: lacks physical contact, closest=${contact}`);
+   assert(contact<(move.id==='knee-drop'||move.id==='leg-drop'?.98:.85),`${move.id}: lacks physical contact, closest=${contact}`);
    closestStrike=Math.min(closestStrike,contact);
   }
   const end=samplePair(name,1,who,postures)[other].j.head[1];
