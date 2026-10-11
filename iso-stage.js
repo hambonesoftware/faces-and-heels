@@ -23,9 +23,21 @@ export class IsoStage extends SpriteStage {
   playPair(a,d,o={}){
     this.pinId=null;const name=o.moveId==='flash-finisher'?'finisher':o.choreography,timing=MOVE_TIMING[name];
     const options={...o};this.entryPair=this.lastPair;this.transition=null;
+    // Newly authored moves have coordinated 3D performers but no sprite atlases.
+    // During those moves, render the actual procedural choreography rather than
+    // two stationary idle sprite sheets, even when the legacy renderer was chosen.
+    const atlasMoves=new Set(['lockup','forearm','clothesline','suplex','body_slam','dragon_screw','headlock','pin','kickout']);
+    const restoreMode=this.mode;
+    if(timing && !atlasMoves.has(name) && this.mode!=='iso')this.mode='iso';
     if(this.mode!=='sprite'&&timing){options.duration=this.fast?timing.duration*.55:timing.duration;if(timing.impact!==undefined&&Number.isInteger(o.impactFrame)){const counts={forearm:10,clothesline:10,suplex:14,finisher:14,body_slam:14,dragon_screw:12,headlock:10,kickout:8};options.impactFrame=Math.floor(timing.impact*(counts[name]||10));}}
     if(this.mode!=='sprite'&&timing?.impact!==undefined)options.impactProgress=timing.impact;
-    const promise=super.playPair(a,d,options);this.playback.isoName=name;return promise;
+    const promise=super.playPair(a,d,options);
+    this.playback.isoName=name;
+    if(this.mode!==restoreMode)Promise.resolve(promise).then(
+      ()=>{this.mode=restoreMode;},
+      ()=>{this.mode=restoreMode;}
+    );
+    return promise;
   }
   playPin(o={}){super.playPin(o);this.pinId=o.pinningId||'stone';this.transition=this.lastPair?{from:this.lastPair,start:performance.now(),duration:650}:null;}
   playLockup(attackerId='stone'){return this.playPair('idle','idle',{attackerId,choreography:'lockup',duration:1100});}
