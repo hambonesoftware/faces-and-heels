@@ -253,7 +253,7 @@ function renderMoveCards() {
 
   // Only legal moves appear; the ribbon contains the entire contextual roster.
   const categories = ['all','strike','grapple','setup','special'];
-  const labels = {all:'ALL',strike:'STRIKES',grapple:'GRAPPLES',setup:'SETUPS',special:'FINISHERS'};
+  const labels = {all:'ALL',strike:'HITS',grapple:'GRABS',setup:'SETUP',special:'FINISH'};
   const present = categories.filter(category => category === 'all' || allLegal.some(move => move.category === category));
   // A new posture can invalidate a previous category (for example, pickup
   // ends the ground-attack list). Always show legal actions after the turn.
@@ -263,15 +263,13 @@ function renderMoveCards() {
   const cards = moves.map((move, index) => {
     const decision = resolveTargetDecision(move, perspectiveState(state));
     const target = decision.kind === 'choice' ? 'CHOOSE TARGET' : resolvedTargetLabel(move);
-    const tactic = tacticalLabel(move);
     const categoryName = labels[move.category] || move.category.toUpperCase();
     return `
-      <button class="action-slot action-slot--${escapeHtml(move.category)}" data-move="${escapeHtml(move.id)}" aria-label="${escapeHtml(move.name)}, costs ${move.staminaCost} stamina, removes up to ${move.staminaDamage} opponent stamina on success, ${escapeHtml(target)}" type="button">
+      <button class="action-slot action-slot--${escapeHtml(move.category)}" data-move="${escapeHtml(move.id)}" aria-label="${escapeHtml(move.name)}, costs ${move.staminaCost} stamina, removes up to ${move.staminaDamage} opponent stamina on success, ${escapeHtml(target)}" type="button" title="${escapeHtml(move.name)} · ${move.staminaCost} stamina cost · ${move.staminaDamage} opponent stamina loss">
         <span class="action-slot-art">${moveArt(move.id)}</span>
         <span class="action-slot-index" aria-hidden="true">${String(index+1).padStart(2,'0')}</span>
-        <span class="action-slot-heading"><span class="action-slot-category">${escapeHtml(categoryName)}</span><strong>${escapeHtml(move.name)}</strong></span>
-        <span class="action-slot-foot"><span class="action-slot-target">${escapeHtml(target)}</span><span class="action-slot-cost"><b>${move.staminaCost}</b><small>STA</small></span></span>
-        <span class="action-slot-tactic"><b>−${move.staminaDamage} OPP STA</b><span>${escapeHtml(tactic)}</span></span>
+        <span class="action-slot-heading"><strong>${escapeHtml(move.name)}</strong><small class="action-slot-category">${escapeHtml(categoryName)} · ${escapeHtml(target)}</small></span>
+        <span class="action-slot-foot"><span class="action-slot-cost">−${move.staminaCost} <small>STA</small></span><span class="action-slot-effect">−${move.staminaDamage} <small>OPP</small></span></span>
       </button>`;
   }).join('');
 
@@ -285,10 +283,9 @@ function renderMoveCards() {
       ${finishNotice}
       <div class="action-ribbon-heading">
         <div class="action-ribbon-title">
-          <small><span class="action-live-dot"></span>${roleFor(state,actor.id) === 'N' ? 'NEUTRAL' : 'HIGH CONTROL'} / ${escapeHtml(actor.name)}</small>
-          <strong>CHOOSE YOUR NEXT MOVE</strong>
+          <strong><span class="action-live-dot"></span>${escapeHtml(actor.name)} <span class="action-initiative">· ${roleFor(state,actor.id) === 'N' ? 'NEUTRAL' : 'IN CONTROL'}</span></strong>
         </div>
-        <div class="action-ribbon-tools">${recoverButton}<span class="action-available">${String(moves.length).padStart(2,'0')} READY</span></div>
+        <div class="action-ribbon-tools">${recoverButton}<span class="action-available">${moves.length} MOVES</span></div>
       </div>
       <div class="action-ribbon-controls">
         <div class="action-category-tabs" role="group" aria-label="Move type">
@@ -307,7 +304,7 @@ function renderMoveCards() {
       </div>
       <div class="action-ribbon-footer">
         <span class="action-ribbon-progress" aria-hidden="true"><i data-rail-progress></i></span>
-        <span>SWIPE / SCROLL TO BROWSE <span aria-hidden="true">→</span> TAP TO INSPECT</span>
+        <span>SWIPE MOVES → TAP TO ATTACK</span>
       </div>
     </section>`;
 }
