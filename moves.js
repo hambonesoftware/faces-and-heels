@@ -448,6 +448,7 @@ export const demoMoves = [
         "leftArm"
       ]
     },
+    "sustained": {"tickCost":2,"tickDamage":4,"escapeCost":2,"holdStat":"Agility"},
     "result": {
       "defenderPosture": "prone"
     }
@@ -477,6 +478,7 @@ export const demoMoves = [
         "leftLeg"
       ]
     },
+    "sustained": {"tickCost":2,"tickDamage":4,"escapeCost":2,"holdStat":"Power"},
     "result": {
       "defenderPosture": "prone"
     }
@@ -581,6 +583,7 @@ export const demoMoves = [
       defenderPostures: ['prone']
     },
     targeting: { mode: 'fixed', bodyParts: ['head'] },
+    sustained: { tickCost:2, tickDamage:4, escapeCost:2, holdStat:'Power' },
     result: { defenderPosture: 'prone' }
   },
   {
@@ -663,6 +666,7 @@ export const demoState = {
   winnerId: null,
   turnCounter: 0,
   pendingFailure: null,
+  activeHold: null,
   mustFinishTargetId: null,
   legalBodyTargets: ['head', 'core', 'leftArm', 'rightArm', 'leftLeg', 'rightLeg'],
   wrestlers: {
