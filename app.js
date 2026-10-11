@@ -714,8 +714,8 @@ function performHoldPressure(){
     stage?.setRestingState({postures:{stone:wrestler(state,'stone').posture,viper:wrestler(state,'viper').posture}});
     log(`${trapped.name} submits to ${holder.name}!`);
     audio.cue('victory');
-    if(!resultRecorded){progression=recordResult(progression,result.holderId,result.defenderId,state.turnCounter,highlights);saveProgress(localStorage,progression);resultRecorded=true;}
     highlights.push(`${holder.name} forces ${trapped.name} to submit.`);
+    if(!resultRecorded){progression=recordResult(progression,result.holderId,result.defenderId,state.turnCounter,highlights);saveProgress(localStorage,progression);resultRecorded=true;}
     announce('SUBMISSION!',`${holder.name} WINS`,'spectacle',false,1200);
   }else{
     stage?.setHold(state.activeHold);
