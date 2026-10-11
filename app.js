@@ -31,7 +31,10 @@ import {
   catchBreathToNeutral,
   scrambleUp,
   totalBodyMarks,
-  setLegendaryLoadout
+  setLegendaryLoadout,
+  maintainHold,
+  escapeHold,
+  releaseHold
 } from './match-engine.js?v=1.14.0';
 
 const app = document.querySelector('#app');
@@ -115,6 +118,8 @@ function log(entry) {
 function syncUiToEngine() {
   if (['ROLLING','ANIMATING','PIN'].includes(ui.phase)) return;
   if (state.phase === 'NEUTRAL_ROLL') ui.phase = 'NEUTRAL_ROLL';
+  else if (state.phase === 'HOLD') ui.phase = 'HOLD';
+  else if (state.phase === 'HOLD_ESCAPE') ui.phase = 'HOLD_ESCAPE';
   else if (state.phase === 'PIN_OPPORTUNITY') ui.phase = 'OPPORTUNITY';
   else if (state.phase === 'REACTION') ui.phase = 'REACTION';
   else if (state.phase === 'MATCH_COMPLETE') ui.phase = 'MATCH_COMPLETE';
@@ -387,13 +392,47 @@ function renderMatchComplete() {
   const winner = wrestler(state, state.winnerId);
   return `
     <section class="decision-panel decision-panel--winner"><div class="winner-portrait">${portrait(winner.id)}</div>
-      <div class="opportunity-copy"><small>MATCH COMPLETE</small><strong>${escapeHtml(winner.name)} WINS</strong><span>Pinfall · ${state.turnCounter} resolved actions · ${highlights.length} highlights</span><div class="result-record">STONE ${progression.wins.stone} — ${progression.wins.viper} VIPER</div><p class="result-highlight">${escapeHtml(highlights.at(-1) || 'The final three-count settles the match.')}</p></div>
+      <div class="opportunity-copy"><small>MATCH COMPLETE</small><strong>${escapeHtml(winner.name)} WINS</strong><span>${state.winMethod==='submission'?'Submission':'Pinfall'} · ${state.turnCounter} resolved actions · ${highlights.length} highlights</span><div class="result-record">STONE ${progression.wins.stone} — ${progression.wins.viper} VIPER</div><p class="result-highlight">${escapeHtml(highlights.at(-1) || 'The final three-count settles the match.')}</p></div>
       <div class="victory-actions"><button class="pin-button" data-new-match>REMATCH</button><button class="continue-button" data-drawer="highlights">HIGHLIGHTS</button><button class="continue-button" data-drawer="progress">CAREER</button></div>
+    </section>`;
+}
+
+function renderHoldDock() {
+  const hold=state.activeHold;
+  if(!hold)return renderMoveCards();
+  const move=demoMoves.find(m=>m.id===hold.moveId);
+  if(!move||!move.sustained)return '';
+  const holder=wrestler(state,hold.holderId);
+  const trapped=wrestler(state,hold.defenderId);
+  const spec=move.sustained;
+  const defending=state.phase==='HOLD_ESCAPE';
+  const able=holder.stamina>=spec.tickCost;
+  return `
+    <section class="decision-panel decision-panel--hold ${defending?'is-escape':'is-holder'}" aria-label="Active wrestling submission">
+      <div class="hold-ribbon-head">
+        <span class="hold-live">● ${defending?'ESCAPE WINDOW':'SUBMISSION LOCKED'}</span>
+        <strong>${escapeHtml(move.name.toUpperCase())}</strong>
+        <span class="hold-count">${hold.ticks} PRESSURE ${hold.ticks===1?'TURN':'TURNS'}</span>
+      </div>
+      <div class="hold-ribbon-body">
+        <div class="hold-figure">${moveArt(move.id)}</div>
+        <div class="hold-ribbon-copy"><strong>${escapeHtml(holder.name)} ${defending?'MAINTAINS THE HOLD':'HAS CONTROL'}</strong>
+          <span>${defending?escapeHtml(trapped.name)+' can fight free with Agility against the hold.':'Apply pressure to drain more stamina, or release to attempt a pin.'}</span>
+          <div class="hold-stat-line"><b>${escapeHtml(trapped.name)}: ${trapped.stamina} STA</b><span>${escapeHtml(holder.name)}: ${holder.stamina} STA</span></div>
+        </div>
+        <div class="hold-ribbon-actions">
+          ${defending
+            ?`<button type="button" class="hold-primary hold-escape" data-hold-escape>ESCAPE <small>d20 + AGI · −${spec.escapeCost} STA</small></button>`
+            :`<button type="button" class="hold-primary" data-hold-squeeze ${able?'':'disabled'}>TIGHTEN <small>−${spec.tickCost} STA / −${spec.tickDamage} OPP</small></button>
+              <button type="button" class="hold-secondary" data-hold-release>RELEASE HOLD <small>${trapped.posture==='prone'?'PIN AVAILABLE':'KEEP CONTROL'}</small></button>`}
+        </div>
+      </div>
     </section>`;
 }
 
 function renderDecisionDock() {
   if (ui.phase === 'NEUTRAL_ROLL') return renderNeutral();
+  if (ui.phase === 'HOLD' || ui.phase === 'HOLD_ESCAPE') return renderHoldDock();
   if (ui.phase === 'TARGET_CHOICE') return renderTargetChoice();
   if (ui.phase === 'SELECTED') return renderSelectedMove();
   if (ui.phase === 'OPPORTUNITY') return renderOpportunity();
@@ -483,7 +522,7 @@ function render() {
   }
   const rail=app.querySelector('[data-action-rail]');
   if(rail){rail.scrollLeft=ui.railOffset;updateActionRail(rail);}
-  stage.mode=rendererMode;stage.fast=settings.fast;stage.reducedMotion=settings.reducedMotion;stage.reducedFlash=settings.reducedFlash;
+  stage.mode=state.activeHold?'iso':rendererMode;stage.fast=settings.fast;stage.reducedMotion=settings.reducedMotion;stage.reducedFlash=settings.reducedFlash;
 
 }
 
@@ -614,11 +653,12 @@ async function playSuccessfulMove(move, result) {
   });
   stage.resetPositions();
   ui.event = null;
-  stage.setRestingState({ postures: { stone: wrestler(state,'stone').posture, viper: wrestler(state,'viper').posture } });
+  if(state.activeHold)stage.setHold(state.activeHold);
+  else stage.setRestingState({ postures: { stone: wrestler(state,'stone').posture, viper: wrestler(state,'viper').posture } });
   ui.selectedMove = null;
   ui.selectedTarget = null;
   ui.spendCrowd = 0;
-  ui.phase = state.pinEligible ? 'OPPORTUNITY' : 'ACTION_SELECT';
+  ui.phase = state.activeHold?'HOLD':(state.pinEligible ? 'OPPORTUNITY' : 'ACTION_SELECT');
   ui.railOffset=0;ui.filter='all';
   render();
   if (move.category === 'setup') announce(move.name.toUpperCase(), `OPPONENT −${result.staminaDamage} STA · CONTROL RETAINED`, 'major', false, 720);
@@ -659,6 +699,56 @@ async function rollMove() {
   log(`${move.name} connects. ${damageSummary} ${wrestler(state,result.defenderId).name} loses ${result.staminaDamage} STA.${result.crowdGained ? ` ${wrestler(state,result.attackerId).name} gains ${result.crowdGained} ${wrestler(state,result.attackerId).crowdResourceName}.` : ''}`);
   if (result.pinEligible) log(`${wrestler(state,result.defenderId).name} ends prone: pin opportunity created${result.forcedPin ? ' and is mandatory at 0 STA' : ''}.`);
   await playSuccessfulMove(move, result);
+}
+
+
+function performHoldPressure(){
+  if(state.phase!=='HOLD'||ui.phase!=='HOLD')return;
+  const result=maintainHold(state);
+  if(!result.ok){announce('CANNOT MAINTAIN',result.reason,'danger',false,750);return;}
+  const holder=wrestler(state,result.holderId),trapped=wrestler(state,result.defenderId);
+  log(`${holder.name} tightens the hold: -${result.cost} STA to maintain, -${result.staminaDamage} STA to ${trapped.name}.`);
+  ui.phase=state.phase;
+  if(result.submitted){
+    stage?.setHold(null);
+    stage?.setRestingState({postures:{stone:wrestler(state,'stone').posture,viper:wrestler(state,'viper').posture}});
+    log(`${trapped.name} submits to ${holder.name}!`);
+    audio.cue('finisher');
+    announce('SUBMISSION!',`${holder.name} WINS`,'spectacle',false,1200);
+  }else{
+    stage?.setHold(state.activeHold);
+    announce('HOLD TIGHTENS',`${trapped.name} -${result.staminaDamage} STA · escape window`,'major',false,720);
+  }
+  render();
+}
+function performHoldRelease(){
+  if(state.phase!=='HOLD'||ui.phase!=='HOLD')return;
+  const result=releaseHold(state);
+  if(!result.ok)return;
+  stage?.setHold(null);
+  stage?.setRestingState({postures:{stone:wrestler(state,'stone').posture,viper:wrestler(state,'viper').posture}});
+  ui.phase=result.pinEligible?'OPPORTUNITY':'ACTION_SELECT';
+  log(`${wrestler(state,result.holderId).name} releases the submission, retaining control.`);
+  announce('HOLD RELEASED',result.pinEligible?'PIN OPPORTUNITY':'HIGH CONTROL RETAINED','major',false,800);
+}
+async function performHoldEscape(){
+  if(state.phase!=='HOLD_ESCAPE'||ui.phase!=='HOLD_ESCAPE')return;
+  const defender=wrestler(state,state.activeHold.defenderId),roll=rollDie(20);
+  await rollingVisual(`${defender.name} · ESCAPE HOLD`,roll);
+  const result=escapeHold(state,{escapeRoll:roll});
+  if(!result.ok)return;
+  const name=wrestler(state,result.defenderId).name;
+  log(`${name} escape: d20 ${result.escapeRoll} +${result.modifier} = ${result.total} vs ${result.targetNumber}. ${result.success?'Hold broken.':'Still trapped.'}`);
+  if(result.success){
+    stage?.setHold(null);
+    stage?.setRestingState({postures:{stone:wrestler(state,'stone').posture,viper:wrestler(state,'viper').posture}});
+    ui.phase='NEUTRAL_ROLL';
+    announce('ESCAPED!',`${name} breaks free · neutral restart`,'major',false,900);
+  }else{
+    stage?.setHold(state.activeHold);
+    ui.phase='HOLD';
+    announce('NO ESCAPE',`${name} is still trapped`,'danger',false,750);
+  }
 }
 
 async function runReaction() {
@@ -829,6 +919,9 @@ app.addEventListener('click', event => {
   if (el.dataset.roll !== undefined) { rollMove(); return; }
   if (el.dataset.boost !== undefined) { const actor=currentActor(); ui.spendCrowd = ui.spendCrowd ? 0 : (actor?.crowdResource > 0 ? 1 : 0); render(); return; }
   if (el.dataset.back !== undefined) { resetSelection(); return; }
+  if (el.dataset.holdSqueeze !== undefined) { performHoldPressure(); return; }
+  if (el.dataset.holdRelease !== undefined) { performHoldRelease(); return; }
+  if (el.dataset.holdEscape !== undefined) { performHoldEscape(); return; }
   if (el.dataset.pin !== undefined) { runPin(); return; }
   if (el.dataset.continue !== undefined) { const result=skipPin(state); if (!result.ok) { announce('FINISH REQUIRED','0 STA opponent must be pinned or submitted','danger',false,850); return; } ui.phase='ACTION_SELECT'; render(); return; }
   if (el.dataset.reaction !== undefined) { runReaction(); return; }
