@@ -734,3 +734,46 @@ footer{grid-column:1;grid-row:4}
 .legendary-catalog-list>div{display:flex;justify-content:space-between;gap:9px;padding:7px;background:#273653;color:#d8e4f6;font-size:11px}
 .legendary-catalog-list em{font-style:normal;color:#93b7dd;font-size:9px;font-weight:900;white-space:nowrap}
 .legendary-catalog-list>div:has(em:first-child){color:#fff}
+
+
+/* v1.15 Sustained Grapples: a short combat command strip under the visible ring */
+.decision-panel--hold{
+  padding:9px 12px 10px!important;max-height:none!important;
+  background:linear-gradient(138deg,#18243b,#2b2442)!important;
+  border-top:3px solid #ad80fc!important;
+  border-radius:0 0 7px 7px!important;
+}
+.decision-panel--hold.is-escape{border-top-color:#fa6388!important}
+.hold-ribbon-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px}
+.hold-live{font:900 9px/1 system-ui,sans-serif;letter-spacing:.11em;color:#b597fd;white-space:nowrap}
+.is-escape .hold-live{color:#ff849c}
+.hold-ribbon-head>strong{font:900 17px/1 Impact,"Arial Narrow",system-ui,sans-serif;color:#fff}
+.hold-count{font:800 9px/1 system-ui,sans-serif;color:#acbad7;white-space:nowrap}
+.hold-ribbon-body{display:grid;grid-template-columns:100px minmax(0,1fr) auto;align-items:center;gap:12px}
+.hold-figure{border:1px solid #5b4a9f;background:#20284a;overflow:hidden}
+.hold-figure svg{display:block;width:100%;height:73px}
+.hold-ribbon-copy{display:flex;flex-direction:column;gap:5px;min-width:0}
+.hold-ribbon-copy>strong{color:#f5f0ff;font:900 12px/1.15 system-ui,sans-serif}
+.hold-ribbon-copy>span{color:#bcc9e1;font:600 11px/1.3 system-ui,sans-serif}
+.hold-stat-line{display:flex;gap:12px;align-items:center;font:900 10px/1.1 system-ui,sans-serif}
+.hold-stat-line b{color:#ffbd85}.hold-stat-line span{color:#9defd0}
+.hold-ribbon-actions{display:flex;flex-direction:column;gap:6px;min-width:145px}
+.hold-ribbon-actions button{border-radius:3px;padding:9px 14px;border:1px solid #dab6ff;display:flex;flex-direction:column;gap:4px;text-align:center;align-items:center;cursor:pointer;font:900 13px/1 Impact,"Arial Narrow",sans-serif;letter-spacing:.06em;min-height:40px}
+.hold-ribbon-actions button small{font:800 9px/1 system-ui,sans-serif;letter-spacing:0}
+.hold-primary{background:linear-gradient(#ae88fc,#6044a6);color:#fff;border-bottom:3px solid #382879!important}
+.hold-primary.hold-escape{background:linear-gradient(#ff768d,#be3a61);border-color:#ffb2c3!important;border-bottom-color:#802544!important}
+.hold-secondary{background:#283851;color:#e8f1ff;border-color:#738bb5!important}
+.hold-ribbon-actions button:disabled{opacity:.45;cursor:not-allowed}
+.hold-ribbon-actions button:focus-visible{outline:3px solid #fff7a8}
+@media(max-width:540px){
+  .decision-panel--hold{padding:7px 8px!important}
+  .hold-ribbon-head>strong{font-size:14px}
+  .hold-live,.hold-count{font-size:7px;letter-spacing:.04em}
+  .hold-ribbon-body{grid-template-columns:54px minmax(0,1fr);grid-template-areas:"art copy" "actions actions";gap:7px}
+  .hold-figure{grid-area:art}.hold-figure svg{height:56px}
+  .hold-ribbon-copy{grid-area:copy;gap:3px}.hold-ribbon-copy>strong{font-size:11px}.hold-ribbon-copy>span{font-size:9px}
+  .hold-stat-line{font-size:9px;gap:8px}
+  .hold-ribbon-actions{grid-area:actions;flex-direction:row;min-width:0}
+  .hold-ribbon-actions button{flex:1;min-width:0;min-height:38px;padding:6px;font-size:11px}
+  .hold-ribbon-actions button small{font-size:8px}
+}
