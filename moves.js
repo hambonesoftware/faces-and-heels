@@ -52,6 +52,429 @@ export const wrestlerDefinitions = {
 
 export const demoMoves = [
   {
+    "id": "pick-up-opponent",
+    "name": "Pick Up Opponent",
+    "category": "setup",
+    "stat": "Power",
+    "staminaCost": 2,
+    "staminaDamage": 0,
+    "damageDie": 4,
+    "crowdGain": 0,
+    "description": "Pull a downed rival to their feet while maintaining High control.",
+    "requirements": {
+      "attackerPostures": [
+        "standing",
+        "kneeling"
+      ],
+      "defenderPostures": [
+        "prone"
+      ]
+    },
+    "targeting": {
+      "mode": "none",
+      "bodyParts": []
+    },
+    "result": {
+      "defenderPosture": "standing"
+    },
+    "automatic": true
+  },
+  {
+    "id": "pull-to-knees",
+    "name": "Pull to Knees",
+    "category": "setup",
+    "stat": "Power",
+    "staminaCost": 1,
+    "staminaDamage": 0,
+    "damageDie": 4,
+    "crowdGain": 0,
+    "description": "Haul the opponent upright to a kneeling position.",
+    "requirements": {
+      "attackerPostures": [
+        "standing"
+      ],
+      "defenderPostures": [
+        "prone"
+      ]
+    },
+    "targeting": {
+      "mode": "none",
+      "bodyParts": []
+    },
+    "result": {
+      "defenderPosture": "kneeling"
+    },
+    "automatic": true
+  },
+  {
+    "id": "snap-down",
+    "name": "Snap Down",
+    "category": "setup",
+    "stat": "Power",
+    "staminaCost": 2,
+    "staminaDamage": 0,
+    "damageDie": 4,
+    "crowdGain": 0,
+    "description": "Pull the opponent down onto the canvas without releasing control.",
+    "requirements": {
+      "attackerPostures": [
+        "standing"
+      ],
+      "defenderPostures": [
+        "standing",
+        "kneeling"
+      ]
+    },
+    "targeting": {
+      "mode": "none",
+      "bodyParts": []
+    },
+    "result": {
+      "defenderPosture": "prone"
+    },
+    "automatic": true
+  },
+  {
+    "id": "knee-lift",
+    "name": "Knee Lift",
+    "category": "strike",
+    "stat": "Power",
+    "staminaCost": 4,
+    "staminaDamage": 4,
+    "damageDie": 8,
+    "crowdGain": 0,
+    "description": "Drive a knee up and leave the opponent kneeling.",
+    "requirements": {
+      "attackerPostures": [
+        "standing"
+      ],
+      "defenderPostures": [
+        "standing",
+        "kneeling"
+      ]
+    },
+    "targeting": {
+      "mode": "fixed",
+      "bodyParts": [
+        "head"
+      ]
+    },
+    "result": {
+      "defenderPosture": "kneeling"
+    }
+  },
+  {
+    "id": "dropkick",
+    "name": "Dropkick",
+    "category": "strike",
+    "stat": "Acrobatics",
+    "staminaCost": 5,
+    "staminaDamage": 5,
+    "damageDie": 8,
+    "crowdGain": 0,
+    "description": "Launch both boots into the opponent and knock them flat.",
+    "requirements": {
+      "attackerPostures": [
+        "standing"
+      ],
+      "defenderPostures": [
+        "standing"
+      ]
+    },
+    "targeting": {
+      "mode": "fixed",
+      "bodyParts": [
+        "head"
+      ]
+    },
+    "result": {
+      "defenderPosture": "prone"
+    }
+  },
+  {
+    "id": "ddt",
+    "name": "DDT",
+    "category": "grapple",
+    "stat": "Power",
+    "staminaCost": 6,
+    "staminaDamage": 7,
+    "damageDie": 10,
+    "crowdGain": 0,
+    "description": "Hook the head and plant the opponent into the mat.",
+    "requirements": {
+      "attackerPostures": [
+        "standing"
+      ],
+      "defenderPostures": [
+        "standing",
+        "kneeling"
+      ]
+    },
+    "targeting": {
+      "mode": "fixed",
+      "bodyParts": [
+        "head"
+      ]
+    },
+    "result": {
+      "defenderPosture": "prone"
+    }
+  },
+  {
+    "id": "neckbreaker",
+    "name": "Neckbreaker",
+    "category": "grapple",
+    "stat": "Agility",
+    "staminaCost": 5,
+    "staminaDamage": 5,
+    "damageDie": 8,
+    "crowdGain": 0,
+    "description": "Twist the neck and drive the opponent down.",
+    "requirements": {
+      "attackerPostures": [
+        "standing"
+      ],
+      "defenderPostures": [
+        "standing"
+      ]
+    },
+    "targeting": {
+      "mode": "fixed",
+      "bodyParts": [
+        "head"
+      ]
+    },
+    "result": {
+      "defenderPosture": "prone"
+    }
+  },
+  {
+    "id": "hip-toss",
+    "name": "Hip Toss",
+    "category": "grapple",
+    "stat": "Agility",
+    "staminaCost": 4,
+    "staminaDamage": 4,
+    "damageDie": 8,
+    "crowdGain": 0,
+    "description": "Redirect the opponent over the hip.",
+    "requirements": {
+      "attackerPostures": [
+        "standing"
+      ],
+      "defenderPostures": [
+        "standing"
+      ]
+    },
+    "targeting": {
+      "mode": "fixed",
+      "bodyParts": [
+        "core"
+      ]
+    },
+    "result": {
+      "defenderPosture": "prone"
+    }
+  },
+  {
+    "id": "spinebuster",
+    "name": "Spinebuster",
+    "category": "grapple",
+    "stat": "Power",
+    "staminaCost": 7,
+    "staminaDamage": 8,
+    "damageDie": 12,
+    "crowdGain": 0,
+    "description": "Lift and drive the opponent flat onto the canvas.",
+    "requirements": {
+      "attackerPostures": [
+        "standing"
+      ],
+      "defenderPostures": [
+        "standing"
+      ]
+    },
+    "targeting": {
+      "mode": "fixed",
+      "bodyParts": [
+        "core"
+      ]
+    },
+    "result": {
+      "defenderPosture": "prone"
+    }
+  },
+  {
+    "id": "elbow-drop",
+    "name": "Elbow Drop",
+    "category": "strike",
+    "stat": "Power",
+    "staminaCost": 4,
+    "staminaDamage": 5,
+    "damageDie": 8,
+    "crowdGain": 0,
+    "description": "Drop an elbow across a grounded rival.",
+    "requirements": {
+      "attackerPostures": [
+        "standing"
+      ],
+      "defenderPostures": [
+        "prone"
+      ]
+    },
+    "targeting": {
+      "mode": "fixed",
+      "bodyParts": [
+        "core"
+      ]
+    },
+    "result": {
+      "defenderPosture": "prone"
+    }
+  },
+  {
+    "id": "stomp",
+    "name": "Stomp",
+    "category": "strike",
+    "stat": "Power",
+    "staminaCost": 3,
+    "staminaDamage": 3,
+    "damageDie": 6,
+    "crowdGain": 0,
+    "description": "Stomp a grounded rival.",
+    "requirements": {
+      "attackerPostures": [
+        "standing"
+      ],
+      "defenderPostures": [
+        "prone"
+      ]
+    },
+    "targeting": {
+      "mode": "fixed",
+      "bodyParts": [
+        "core"
+      ]
+    },
+    "result": {
+      "defenderPosture": "prone"
+    }
+  },
+  {
+    "id": "knee-drop",
+    "name": "Knee Drop",
+    "category": "strike",
+    "stat": "Power",
+    "staminaCost": 4,
+    "staminaDamage": 5,
+    "damageDie": 8,
+    "crowdGain": 0,
+    "description": "Land a driving knee onto the opponent.",
+    "requirements": {
+      "attackerPostures": [
+        "standing"
+      ],
+      "defenderPostures": [
+        "prone"
+      ]
+    },
+    "targeting": {
+      "mode": "fixed",
+      "bodyParts": [
+        "core"
+      ]
+    },
+    "result": {
+      "defenderPosture": "prone"
+    }
+  },
+  {
+    "id": "leg-drop",
+    "name": "Leg Drop",
+    "category": "strike",
+    "stat": "Power",
+    "staminaCost": 5,
+    "staminaDamage": 6,
+    "damageDie": 10,
+    "crowdGain": 0,
+    "description": "Drop a heavy leg across the upper body.",
+    "requirements": {
+      "attackerPostures": [
+        "standing"
+      ],
+      "defenderPostures": [
+        "prone"
+      ]
+    },
+    "targeting": {
+      "mode": "fixed",
+      "bodyParts": [
+        "core"
+      ]
+    },
+    "result": {
+      "defenderPosture": "prone"
+    }
+  },
+  {
+    "id": "armbar",
+    "name": "Armbar",
+    "category": "grapple",
+    "stat": "Agility",
+    "staminaCost": 5,
+    "staminaDamage": 5,
+    "damageDie": 8,
+    "crowdGain": 0,
+    "description": "Work the opponent's arm on the canvas.",
+    "requirements": {
+      "attackerPostures": [
+        "standing",
+        "kneeling"
+      ],
+      "defenderPostures": [
+        "prone"
+      ]
+    },
+    "targeting": {
+      "mode": "fixed",
+      "bodyParts": [
+        "leftArm"
+      ]
+    },
+    "result": {
+      "defenderPosture": "prone"
+    }
+  },
+  {
+    "id": "ankle-lock",
+    "name": "Ankle Lock",
+    "category": "grapple",
+    "stat": "Power",
+    "staminaCost": 5,
+    "staminaDamage": 5,
+    "damageDie": 8,
+    "crowdGain": 0,
+    "description": "Torque the ankle while controlling a downed opponent.",
+    "requirements": {
+      "attackerPostures": [
+        "standing",
+        "kneeling"
+      ],
+      "defenderPostures": [
+        "prone"
+      ]
+    },
+    "targeting": {
+      "mode": "fixed",
+      "bodyParts": [
+        "leftLeg"
+      ]
+    },
+    "result": {
+      "defenderPosture": "prone"
+    }
+  },
+  {
     id: 'forearm-smash',
     name: 'Forearm Smash',
     category: 'strike',
