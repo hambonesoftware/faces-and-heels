@@ -41,4 +41,12 @@ assert(use(s, 'pull-to-knees').success);
 assert.equal(viper.posture, 'kneeling');
 assert.equal(s.activeWrestlerId, 'stone');
 assert(getLegalMoves(s).some(m => m.id === 'knee-lift'));
+assert(getLegalMoves(s).some(m => m.id === 'snap-down'));
+assert(use(s, 'snap-down').success);
+assert.equal(viper.posture, 'prone');
+assert.equal(s.activeWrestlerId, 'stone');
+assert.equal(s.roles.stone, 'H');
+assert.equal(s.pinEligible, false);
+assert(getLegalMoves(s).some(m => m.id === 'pick-up-opponent'));
+
 console.log('Move transitions and High/Low control: PASS');
