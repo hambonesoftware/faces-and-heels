@@ -41,6 +41,9 @@ const trailing={stone:null,viper:null};
 const state = cloneInitialState();
 
 const animationByMove = {
+  'pick-up-opponent': {attacker:'idle',defender:'idle',choreography:'pick_up',kind:'setup'},
+  'pull-to-knees': {attacker:'idle',defender:'idle',choreography:'pull_to_knees',kind:'setup'},
+  'snap-down': {attacker:'idle',defender:'idle',choreography:'snap_down',kind:'setup'},
   'forearm-smash': { attacker:'forearm', defender:'forearm_hit', choreography:'forearm', impactFrame:5, kind:'strike' },
   'running-clothesline': { attacker:'clothesline', defender:'clothesline_hit', choreography:'clothesline', impactFrame:5, kind:'strike', hitStopMs:84 },
   'vertical-suplex': { attacker:'suplex', defender:'suplex_taken', choreography:'suplex', impactFrame:9, kind:'slam' },
@@ -304,6 +307,15 @@ function renderTargetChoice() {
 
 function renderSelectedMove() {
   const move = ui.selectedMove;
+  if (move.automatic) {
+    return `
+      <section class="decision-panel decision-panel--selected">
+        <div class="selected-title"><button class="back-mini" data-back aria-label="Back">‹</button><div><small>POSITIONING / SETUP</small><strong>${escapeHtml(move.name)}</strong></div><span>${move.staminaCost} STA</span></div>
+        <div class="selected-illustration">${moveArt(move.id)}<p>${escapeHtml(move.description)}</p></div>
+        <div class="move-meta-line"><b>RETAINS HIGH CONTROL</b><i>·</i><span>NO DAMAGE</span><i>·</i><span>NO ATTACK ROLL</span></div>
+        <div class="primary-row"><button class="roll-button" data-roll><strong>PERFORM SETUP</strong><small>KEEP CONTROL · ${move.staminaCost} STA</small></button></div>
+      </section>`;
+  }
   const actor = currentActor();
   const defender = currentDefender();
   const decision = resolveTargetDecision(move, perspectiveState(state));
@@ -524,6 +536,7 @@ async function playSuccessfulMove(move, result) {
     return;
   }
   if(move.category==='special')audio.cue('finisher');
+  if(move.category==='setup')audio.cue('select');
   await stage.playPair(anim.attacker, anim.defender, {
     attackerId: result.attackerId,
     moveId: move.id,
@@ -532,6 +545,7 @@ async function playSuccessfulMove(move, result) {
     impactKind: anim.kind,
     hitStopMs: anim.hitStopMs,
     onImpact: () => {
+      if (move.category === 'setup') return;
       audio.cue(anim.kind==='slam'?'heavy':'light');
       const arena = document.querySelector('.arena-shell');
       const ring = document.querySelector('.ring-stage');
@@ -551,11 +565,25 @@ async function playSuccessfulMove(move, result) {
   ui.spendCrowd = 0;
   ui.phase = state.pinEligible ? 'OPPORTUNITY' : 'ACTION_SELECT';
   render();
+  if (move.category === 'setup') announce(move.name.toUpperCase(), 'POSITION SECURED · HIGH CONTROL', 'major', false, 720);
 }
 
 async function rollMove() {
   const move = ui.selectedMove;
   if (!move) return;
+  if (move.automatic) {
+    // Setup actions are uncontested while High control is held. The engine
+    // applies stamina and posture rules, then the paired choreography plays.
+    const result = resolveMoveAttempt(state, {
+      moveId: move.id,
+      attackRoll: 20,
+      damageRoll: 0,
+      crowdSpend: 0
+    });
+    log(`${wrestler(state,result.attackerId).name} performs ${move.name}; ${wrestler(state,result.defenderId).name} becomes ${wrestler(state,result.defenderId).posture}. High control retained.`);
+    await playSuccessfulMove(move, result);
+    return;
+  }
   const attackRoll = rollDie(20);
   const damageRoll = rollDie(move.damageDie || 4);
   await rollingVisual(`${currentActor().name} · ${move.name}`, attackRoll);
