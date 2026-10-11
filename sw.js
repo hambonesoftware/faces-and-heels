@@ -1,4 +1,4 @@
-const CACHE = 'faces-heels-v1.17.0-central-combat-flow';
+const CACHE = 'faces-heels-v1.17.0-central-combat-flow-r2';
 const CORE = [
   './index.html?v=1.17.0',
   './styles.css?v=1.17.0',
