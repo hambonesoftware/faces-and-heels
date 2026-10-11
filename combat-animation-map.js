@@ -23,5 +23,6 @@ export const animationByMove = Object.freeze({
   "dragon-screw":Object.freeze({attacker:"dragon_screw",defender:"dragon_screw_taken",choreography:"dragon_screw",kind:"slam",impactFrame:7,hitStopMs:100}),
   "ground-headlock":Object.freeze({attacker:"headlock",defender:"headlock_taken",choreography:"headlock",kind:"grapple",impactFrame:5}),
   "flash-finisher":Object.freeze({attacker:"suplex",defender:"suplex_taken",choreography:"finisher",kind:"slam",impactFrame:9,hitStopMs:100}),
+  "viper-bite":Object.freeze({attacker:"idle",defender:"idle",choreography:"viper_bite",kind:"slam",impactFrame:9,hitStopMs:120}),
   "shove-counter":Object.freeze({attacker:"idle",defender:"idle",choreography:"shove_counter",kind:"strike",impactFrame:6})
 });
