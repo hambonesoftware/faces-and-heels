@@ -662,6 +662,7 @@ export const demoState = {
   roles: { stone: 'N', viper: 'N' },
   pinEligible: false,
   pinningWrestlerId: null,
+  pinCount: 0,
   neutralAction: false,
   winnerId: null,
   turnCounter: 0,
