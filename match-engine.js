@@ -311,11 +311,14 @@ export function resolveMoveAttempt(state, {
   if (move.sustained) {
     state.activeHold={
       moveId:move.id,holderId:attackerId,defenderId,
-      target:resolvedTarget,ticks:0,escapes:0
+      target:resolvedTarget,ticks:0,escapes:0,
+      // Every successful grapple immediately grants its defender an escape roll.
+      // Even a zero-stamina rival can attempt one final escape before a tapout.
+      finishPending:defender.stamina===0
     };
     state.pinEligible=false;state.pinningWrestlerId=null;
     result.activeHold=structuredClone(state.activeHold);
-    state.phase='HOLD';
+    state.phase='HOLD_ESCAPE';
     return result;
   }
   state.pinEligible = defender.posture === 'prone' && move.category !== 'setup';
@@ -344,17 +347,14 @@ export function maintainHold(state){
   hold.ticks++;
   state.turnCounter++;
   holder.condition=deriveCondition(holder);defender.condition=deriveCondition(defender);
-  // A sustained submission can actually finish the match. The opponent has
-  // survived an entry and every intervening contested escape opportunity.
-  if(defender.stamina===0){
-    state.winnerId=hold.holderId;
-    state.winMethod='submission';
-    state.activeHold=null;
-    state.phase='MATCH_COMPLETE';
-    return {ok:true,submitted:true,moveId:move.id,holderId:hold.holderId,defenderId:hold.defenderId,cost:spec.tickCost,staminaDamage:actual};
-  }
+  // Pressure never removes the opponent's defensive turn. When exhausted,
+  // the next failed escape check ends the match by submission; a good roll
+  // still breaks the hold regardless of High/Low status.
+  if(defender.stamina===0)hold.finishPending=true;
   state.phase='HOLD_ESCAPE';
-  return {ok:true,submitted:false,moveId:move.id,holderId:hold.holderId,defenderId:hold.defenderId,cost:spec.tickCost,staminaDamage:actual,ticks:hold.ticks};
+  return {ok:true,submitted:false,finishPending:Boolean(hold.finishPending),moveId:move.id,
+    holderId:hold.holderId,defenderId:hold.defenderId,cost:spec.tickCost,
+    staminaDamage:actual,ticks:hold.ticks};
 }
 export function releaseHold(state){
   const hold=state.activeHold;
@@ -386,7 +386,19 @@ export function escapeHold(state,{escapeRoll}={}){
   if(success){
     state.activeHold=null;
     beginNeutral(state,{resetPostures:true});
+    state.mustFinishTargetId=null;
     return {ok:true,success:true,escapeRoll,modifier,total,targetNumber,staminaCost:before-defender.stamina,defenderId:hold.defenderId};
+  }
+  if(hold.finishPending){
+    // The defender DID receive the final escape roll; only its failure forces
+    // submission. This roll is available even with zero remaining stamina.
+    state.winnerId=hold.holderId;
+    state.winMethod='submission';
+    state.activeWrestlerId=null;
+    state.activeHold=null;
+    state.phase='MATCH_COMPLETE';
+    return {ok:true,success:false,submitted:true,escapeRoll,modifier,total,targetNumber,
+      staminaCost:before-defender.stamina,defenderId:hold.defenderId,holderId:hold.holderId};
   }
   state.phase='HOLD';
   state.activeWrestlerId=hold.holderId;
