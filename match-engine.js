@@ -95,6 +95,8 @@ export function beginNeutral(state, { resetPostures = false } = {}) {
   state.pinningWrestlerId = null;
   state.pendingFailure = null;
   state.activeHold = null;
+  state.pinCount = 0;
+  state.mustFinishTargetId = null;
   setRoles(state, null);
   if (resetPostures) {
     state.wrestlers.stone.posture = 'standing';
@@ -111,6 +113,7 @@ export function recover(wrestlerState, amount) {
 }
 
 export function resolveNeutralRoll(state, stoneRoll, viperRoll) {
+  requireCombatAction(state,ACTION_IDS.NEUTRAL,null);
   const s = wrestler(state, 'stone');
   const v = wrestler(state, 'viper');
   recover(s, 10);
@@ -508,6 +511,7 @@ export function startPin(state) {
   requireCombatAction(state,ACTION_IDS.PIN,state.pinningWrestlerId);
   if (!state.pinEligible || !state.pinningWrestlerId) throw new Error('No pin opportunity is available.');
   state.phase = 'PIN';
+  state.pinCount = 0;
   return {
     pinningId: state.pinningWrestlerId,
     pinnedId: opponentId(state.pinningWrestlerId),
@@ -519,6 +523,9 @@ export function resolvePinCount(state, { pinningId, count, pinningRoll, pinnedRo
   if(pinningId!==state.pinningWrestlerId)throw new Error('Wrong pinning wrestler.');
   const pinnedId = opponentId(pinningId);
   requireCombatAction(state,ACTION_IDS.COUNT_PIN,pinnedId);
+  if(count!==Number(state.pinCount||0)+1 || count<1 || count>3)throw new Error('Pin counts must resolve in order');
+  if(![pinningRoll,pinnedRoll].every(n=>Number.isInteger(n)&&n>=1&&n<=20))throw new Error('Invalid opposed pin rolls');
+  state.pinCount=count;
   const pinning = wrestler(state, pinningId);
   const pinned = wrestler(state, pinnedId);
   const pinningPenalty = pinning.bodyDamage.core || 0;
@@ -544,6 +551,7 @@ export function resolvePinCount(state, { pinningId, count, pinningRoll, pinnedRo
   if (kickout) {
     state.pinEligible = false;
     state.pinningWrestlerId = null;
+    state.pinCount=0;
     state.mustFinishTargetId = null;
     pinning.posture = 'prone';
     pinned.posture = 'prone';
@@ -560,6 +568,8 @@ export function resolvePinCount(state, { pinningId, count, pinningRoll, pinnedRo
   if (count >= 3) {
     result.pinfall = true;
     state.winnerId = pinningId;
+    state.pinCount=0;
+    state.winMethod='pinfall';
     state.phase = 'MATCH_COMPLETE';
     state.activeWrestlerId = null;
     return result;
