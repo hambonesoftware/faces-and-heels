@@ -1,22 +1,23 @@
-const CACHE = 'faces-heels-v1.9.0-transition-choreography';
+const CACHE = 'faces-heels-v1.10.0-full-paired-choreography';
 const CORE = [
-  './index.html?v=1.9.0',
-  './styles.css?v=1.9.0',
-  './app.js?v=1.9.0',
-  './ui-art.js?v=1.9.0',
-  './moves.js?v=1.9.0',
-  './flow-engine.js?v=1.9.0',
-  './match-engine.js?v=1.9.0',
-  './sprite-stage.js?v=1.9.0',
-  './iso-stage.js?v=1.9.0',
-  './block-model.js?v=1.9.0',
-  './mesh-renderer.js?v=1.9.0',
-  './choreography.js?v=1.9.0',
+  './index.html?v=1.10.0',
+  './styles.css?v=1.10.0',
+  './app.js?v=1.10.0',
+  './combat-animation-map.js?v=1.10.0',
+  './ui-art.js?v=1.10.0',
+  './moves.js?v=1.10.0',
+  './flow-engine.js?v=1.10.0',
+  './match-engine.js?v=1.10.0',
+  './sprite-stage.js?v=1.10.0',
+  './iso-stage.js?v=1.10.0',
+  './block-model.js?v=1.10.0',
+  './mesh-renderer.js?v=1.10.0',
+  './choreography.js?v=1.10.0',
   './motion-lab.html',
-  './motion-lab.js?v=1.9.0',
-  './manifest.webmanifest?v=1.9.0',
-  './presentation.js?v=1.9.0',
-  './progression.js?v=1.9.0',
+  './motion-lab.js?v=1.10.0',
+  './manifest.webmanifest?v=1.10.0',
+  './presentation.js?v=1.10.0',
+  './progression.js?v=1.10.0',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/sprites/generated/manifest.json',
@@ -74,7 +75,7 @@ self.addEventListener('fetch', event => {
 
   // Always prefer the running Docker build for page navigations.
   if (req.mode === 'navigate') {
-    const pageKey = url.pathname.endsWith('/motion-lab.html') ? './motion-lab.html' : './index.html?v=1.9.0';
+    const pageKey = url.pathname.endsWith('/motion-lab.html') ? './motion-lab.html' : './index.html?v=1.10.0';
     event.respondWith((async () => {
       try {
         const fresh = await fetch(req, { cache: 'no-store' });
@@ -89,7 +90,7 @@ self.addEventListener('fetch', event => {
   }
 
   // Versioned code files should come from network first during development.
-  if (url.searchParams.get('v') === '1.9.0' || /\.(?:js|css|json|webmanifest)$/.test(url.pathname)) {
+  if (url.searchParams.get('v') === '1.10.0' || /\.(?:js|css|json|webmanifest)$/.test(url.pathname)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(req, { cache: 'no-store' });
