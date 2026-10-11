@@ -1,4 +1,4 @@
-const CACHE = 'faces-heels-v1.10.0-full-paired-choreography';
+const CACHE = 'faces-heels-v1.10.0-full-paired-choreography-motionlab-fix';
 const CORE = [
   './index.html?v=1.10.0',
   './styles.css?v=1.10.0',
