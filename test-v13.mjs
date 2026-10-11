@@ -101,7 +101,7 @@ assert.equal(pinState.wrestlers.viper.posture, 'prone');
 assert.equal(getLegalMoves(pinState).length, 0, 'limited demo move list intentionally needs the post-kickout scramble bridge');
 assert.equal(scrambleUp(pinState, 'viper').ok, true);
 assert.equal(pinState.wrestlers.viper.posture, 'standing');
-assert.ok(getLegalMoves(pinState).some(move => move.id === 'ground-headlock'));
+assert.ok(getLegalMoves(pinState).some(move => move.id === 'armbar'), 'Viper can use a learned ground grapple after kickout');
 
 // Pinfall completes the match if the defender never wins a count.
 const pinfallState = cloneInitialState();
