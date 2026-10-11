@@ -12,7 +12,7 @@ const allMoves=[...demoMoves,reactionMove];
 const moveIds=new Set(allMoves.map(move=>move.id));
 assert.equal(moveIds.size,23,'Every move ID must be unique');
 assert.equal(Object.keys(animationByMove).length,allMoves.length,'Every move requires choreography');
-assert.equal(Object.keys(MOVE_ART_TIMES).length,demoMoves.length,'Every selectable move needs art');
+assert.equal(Object.keys(MOVE_ART_TIMES).length,allMoves.length,'Every move including the counter needs art');
 
 let frames=0;
 for(const move of allMoves){
@@ -21,7 +21,12 @@ for(const move of allMoves){
   const anim=animationByMove[move.id];
   assert(anim,move.id+': missing choreography entry');
 
-  if(move===reactionMove)continue;
+  if(move===reactionMove){
+    const preview=moveArt(move.id);
+    assert(preview.includes('data-choreography="shove_counter"'),'Counter preview does not depict shove');
+    assert.equal((preview.match(/data-wrestler=/g)||[]).length,2,'Counter art must show both wrestlers');
+    continue;
+  }
   assert(move.automatic===true || move.category!=='setup',move.id+': setup moves should not require a d20');
   const state=cloneInitialState();
   giveControl(state,'stone');
@@ -69,6 +74,16 @@ for(const move of allMoves){
  assert.equal(originalBefore-originalAttacker.stamina,reactionMove.staminaDamage,'wrong reaction damage');
  assert.equal(reactorBefore-reactor.stamina,reactionMove.staminaCost,'wrong reaction cost');
  assert(reaction.staminaDamage>reactionMove.staminaCost,'reaction fails requested imbalance');
+}
+
+// A kneeling opponent remains kneeling after being struck by a forearm.
+{
+ const state=cloneInitialState();
+ giveControl(state,'stone');
+ wrestler(state,'viper').posture='kneeling';
+ const impact=resolveMoveAttempt(state,{moveId:'forearm-smash',target:'head',attackRoll:20,damageRoll:7});
+ assert(impact.success);
+ assert.equal(wrestler(state,'viper').posture,'kneeling');
 }
 
 // Clamp actual stamina loss to remaining stamina, but retain nominal values.
