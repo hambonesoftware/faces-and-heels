@@ -26,7 +26,9 @@ const dependencies={
   perspectiveState:()=>({}),
   resolvedTargetLabel:()=> 'CORE',
   tacticalLabel:()=> 'CONTROL',
-  moveArt
+  moveArt,
+  turnDecision:()=>({actions:[]}),
+  ACTION_IDS:{RECOVER:'crowd-recover',SCRAMBLE:'scramble-up'}
 };
 const render=new Function(...Object.keys(dependencies),fragment+';return renderMoveCards;')(...Object.values(dependencies));
 let output=render();
