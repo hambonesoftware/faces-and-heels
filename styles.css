@@ -450,3 +450,263 @@ footer{grid-column:1;grid-row:4}
  .decision-panel--reaction .reaction-performance .move-resource-trade{gap:3px}
  .decision-panel--reaction .reaction-performance .move-resource-trade>span{padding:5px 6px;font-size:8px}
 }
+
+
+/* v1.13 — RINGSIDE COMPACT: game first, controls below the ring.
+   The menu is now a normal second row, never an overlay across the wrestlers. */
+.game-shell {
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:40px 70px minmax(0,1fr) 24px;
+  gap:7px;
+  min-height:100dvh;
+}
+.fighter-strip{grid-column:1;grid-row:2}
+.arena-combat-zone {
+  grid-column:1;grid-row:3;
+  display:grid;grid-template-columns:minmax(0,1fr);
+  grid-template-rows:minmax(270px,1fr) auto;
+  position:relative;min-height:0;
+  gap:0;isolation:isolate;
+}
+.arena-combat-zone>.arena-shell {
+  position:relative;inset:auto;grid-column:1;grid-row:1;
+  min-height:270px;height:auto;width:100%;
+  border-radius:7px 7px 0 0;
+  border:1px solid #56769e;
+  box-shadow:0 7px 20px #04091365;
+}
+.arena-combat-zone>.arena-shell:has(+ .tactical-menu-anchor:empty){
+  border-radius:7px;
+}
+.tactical-menu-anchor {
+  position:relative;left:auto;bottom:auto;transform:none;
+  grid-column:1;grid-row:2;z-index:18;
+  width:100%;min-width:0;pointer-events:none;
+  margin:0;
+}
+.tactical-menu-anchor:empty{display:none}
+.tactical-menu-anchor>.decision-panel {
+  pointer-events:auto;
+  width:100%;max-height:none;
+  overflow:visible;overscroll-behavior:contain;
+  border-radius:0 0 7px 7px;
+  border:1px solid #536c92;
+  border-top:2px solid #ffc94a;
+  background:linear-gradient(125deg,#151c30,#1e2d49);
+  box-shadow:0 7px 15px #04071485;
+  backdrop-filter:none;
+}
+.tactical-menu-anchor>.decision-panel--moves {
+  padding:6px 9px 7px;
+  border:1px solid #536c92;
+  border-top:2px solid #ffc94a;
+  border-radius:0 0 7px 7px;
+  box-shadow:0 7px 15px #04071485;
+  background:linear-gradient(140deg,#121b30,#242d48);
+}
+.tactical-menu-anchor>.decision-panel--moves:before{height:0}
+.action-ribbon-heading{min-height:20px;gap:8px}
+.action-ribbon-title strong{
+  display:flex;gap:7px;align-items:center;
+  color:#fafcff;font:900 13px/1 Impact,"Arial Narrow",system-ui,sans-serif;
+  letter-spacing:.08em;text-shadow:none;
+}
+.action-ribbon-title small{display:none}
+.action-initiative {
+  color:#ffcc48;
+  font:800 9px/1 system-ui,sans-serif;
+  letter-spacing:.08em;
+}
+.action-ribbon-tools{gap:5px}
+.action-available{
+  color:#ffda76;font:900 9px/1 system-ui,sans-serif;
+  padding:3px 6px;border-left:2px solid #ffce4d;
+}
+.action-ribbon-tools .recover-mini{min-height:22px;padding:3px 8px;font-size:9px}
+.action-ribbon-controls {
+  margin-top:4px;gap:8px;align-items:center;
+  border-bottom:0;min-height:25px;
+}
+.action-category-tabs{flex:1}
+.action-category {
+  font:900 9px/1 system-ui,sans-serif;
+  padding:6px 8px;
+  border-bottom-width:2px;
+}
+.action-ribbon-navigation{padding-bottom:0}
+.action-ribbon-count{font-size:9px}
+.action-ribbon-arrow{width:25px;height:24px;font-size:19px}
+.action-ribbon-window{margin-top:4px}
+.action-ribbon-window:after{width:10px}
+.action-ribbon-track{gap:7px;padding:2px 2px 4px}
+.action-slot{
+  flex:0 0 126px;width:126px;height:92px;
+  display:grid;grid-template-columns:43px minmax(0,1fr);
+  grid-template-rows:minmax(0,1fr) 21px;
+  border-radius:2px;border-top-width:2px;
+  transition:filter .12s ease,transform .12s ease;
+}
+.action-slot-art {
+  height:auto;min-height:0;flex-basis:auto;
+  grid-column:1;grid-row:1/3;
+  border:0;border-right:1px solid #94acdb41;
+  background:#273756;
+}
+.action-slot-art svg {width:100%;height:100%;object-fit:cover}
+.action-slot-index {
+  left:4px;top:3px;font-size:10px;
+  background:#0b152b99;padding:2px;
+}
+.action-slot:after{display:none}
+.action-slot-heading{
+  grid-column:2;grid-row:1;
+  padding:7px 4px 1px;gap:5px;
+  min-height:0;
+}
+.action-slot-heading strong{
+  font-size:12px;line-height:1.03;
+  min-height:0;max-height:30px;
+  overflow:hidden;-webkit-line-clamp:2;
+}
+.action-slot-category{
+  font:800 8px/1.15 system-ui,sans-serif;
+  letter-spacing:0;color:var(--slot-accent);
+  max-height:20px;overflow:hidden;
+}
+.action-slot-foot{
+  grid-column:2;grid-row:2;display:flex;
+  align-items:center;justify-content:space-between;
+  gap:1px;padding:1px 3px 3px;
+  border-top:1px solid #ffffff20;
+}
+.action-slot-cost,.action-slot-effect{
+  font:900 11px/1 Impact,"Arial Narrow",system-ui,sans-serif;
+  white-space:nowrap;
+}
+.action-slot-cost{color:#ffd580}
+.action-slot-effect{color:#75eccb}
+.action-slot-cost small,.action-slot-effect small{
+  font:800 7px/1 system-ui,sans-serif;
+}
+.action-slot .action-slot-tactic{display:none}
+.action-ribbon-footer{margin-top:2px;font-size:8px;min-height:7px;gap:9px}
+.action-ribbon-progress{height:2px}
+.action-ribbon-footer>span:last-child{color:#90a4c5;letter-spacing:.05em}
+.tactical-menu-anchor>.decision-panel--selected,
+.tactical-menu-anchor>.decision-panel--opportunity,
+.tactical-menu-anchor>.decision-panel--reaction,
+.tactical-menu-anchor>.decision-panel--recovery,
+.tactical-menu-anchor>.decision-panel--neutral{
+  max-height:42dvh;overflow-y:auto;
+  border-radius:0 0 7px 7px;
+}
+.tactical-menu-anchor>.decision-panel--selected{padding:9px 12px}
+.tactical-menu-anchor>.decision-panel--selected .selected-title strong{
+  font-size:22px;
+}
+.tactical-menu-anchor>.decision-panel--selected .selected-illustration{
+  margin-top:6px;grid-template-columns:78px minmax(0,1fr);
+  gap:8px;padding:5px;
+}
+.tactical-menu-anchor>.decision-panel--selected .selected-illustration svg{height:62px}
+.tactical-menu-anchor>.decision-panel--selected .selected-illustration p{
+  font-size:11px;line-height:1.25;
+}
+.tactical-menu-anchor>.decision-panel--selected .move-meta-line{
+  margin:6px 0 3px;padding:5px 0;font-size:10px;gap:4px;
+}
+.tactical-menu-anchor>.decision-panel--selected .move-resource-trade{margin-top:5px;gap:5px}
+.tactical-menu-anchor>.decision-panel--selected .move-resource-trade>span{
+  padding:6px;font-size:9px;
+}
+.tactical-menu-anchor>.decision-panel--selected .move-resource-trade b{font-size:10px}
+.tactical-menu-anchor>.decision-panel--selected .primary-row{margin-top:6px}
+.tactical-menu-anchor>.decision-panel--selected .roll-button,
+.tactical-menu-anchor>.decision-panel--selected .boost-button{min-height:39px;padding:6px 9px}
+.tactical-menu-anchor>.decision-panel--selected .connect-meter{margin-top:3px}
+.tactical-menu-anchor>.decision-panel--selected .probability-note{
+  font-size:10px;line-height:1.1;margin:3px 0;
+}
+.game-shell footer{grid-column:1;grid-row:4}
+@media(min-width:851px){
+  .game-shell{grid-template-rows:40px 74px minmax(530px,1fr) 24px}
+  .arena-combat-zone{grid-template-rows:minmax(410px,1fr) auto}
+  .action-slot{flex-basis:145px;width:145px;height:101px;grid-template-columns:53px minmax(0,1fr)}
+  .action-slot-heading strong{font-size:13px}
+}
+@media(max-width:850px){
+  .game-shell{grid-template-columns:1fr;grid-template-rows:38px 70px minmax(0,1fr) 23px;gap:6px}
+  .arena-combat-zone{grid-column:1;grid-row:3;min-height:0;grid-template-rows:minmax(285px,1fr) auto}
+  .arena-combat-zone>.arena-shell{min-height:285px}
+  .tactical-menu-anchor{width:100%;bottom:auto}
+  .tactical-menu-anchor>.decision-panel{max-height:42dvh}
+  .tactical-menu-anchor>.decision-panel--moves{max-height:none;padding:6px 8px 7px}
+  .action-slot{flex-basis:132px;width:132px;height:94px;grid-template-columns:46px minmax(0,1fr)}
+  .action-slot-art{height:auto;flex-basis:auto}
+}
+@media(max-width:540px){
+  .game-shell{
+    padding-inline:5px;gap:5px;
+    grid-template-rows:34px 65px minmax(0,1fr) 20px;
+  }
+  .arena-combat-zone{
+    min-height:0;
+    grid-template-rows:minmax(255px,1fr) auto;
+  }
+  .arena-combat-zone>.arena-shell{min-height:255px}
+  .tactical-menu-anchor{bottom:auto;width:100%}
+  .tactical-menu-anchor>.decision-panel{max-height:42dvh;padding:8px}
+  .tactical-menu-anchor>.decision-panel--moves{
+    max-height:none;padding:5px 5px 6px;
+  }
+  .action-ribbon-heading{min-height:16px}
+  .action-ribbon-title strong{font-size:11px}
+  .action-initiative{font-size:8px}
+  .action-available{font-size:8px}
+  .action-ribbon-tools .recover-mini{min-height:20px;font-size:8px;padding:3px 5px}
+  .action-ribbon-controls{margin-top:3px;min-height:21px;gap:3px}
+  .action-category{padding:5px 5px;font-size:8px}
+  .action-ribbon-arrow{width:22px;height:22px}
+  .action-ribbon-window{margin-top:2px}
+  .action-ribbon-track{gap:6px}
+  .action-slot{
+    flex:0 0 118px;width:118px;height:87px;
+    grid-template-columns:38px minmax(0,1fr);
+  }
+  .action-slot-art{height:auto;flex-basis:auto}
+  .action-slot-heading{padding:6px 3px 2px;gap:3px}
+  .action-slot-heading strong{font-size:11px;max-height:28px;min-height:0}
+  .action-slot-category{font-size:7px}
+  .action-slot-foot{padding:1px 2px 3px}
+  .action-slot-cost,.action-slot-effect{font-size:10px}
+  .action-slot-cost small,.action-slot-effect small{font-size:6.5px}
+  .action-ribbon-footer{margin-top:1px;font-size:7px;gap:6px}
+  .tactical-menu-anchor>.decision-panel--selected{
+    padding:7px;max-height:38dvh;
+  }
+  .tactical-menu-anchor>.decision-panel--selected .selected-illustration{
+    grid-template-columns:66px minmax(0,1fr);padding:3px;
+  }
+  .tactical-menu-anchor>.decision-panel--selected .selected-illustration svg{height:58px}
+  .tactical-menu-anchor>.decision-panel--selected .selected-title strong{font-size:18px}
+  .tactical-menu-anchor>.decision-panel--selected .selected-illustration p{font-size:10px}
+  .tactical-menu-anchor>.decision-panel--selected .move-resource-trade{grid-template-columns:1fr 1fr}
+  .tactical-menu-anchor>.decision-panel--selected .move-resource-trade>span{flex-direction:column;align-items:start;gap:3px;padding:4px;font-size:7px}
+  .tactical-menu-anchor>.decision-panel--selected .move-resource-trade b{font-size:9px}
+  .tactical-menu-anchor>.decision-panel--selected .move-meta-line{font-size:9px}
+  .tactical-menu-anchor>.decision-panel--selected .primary-row{margin-top:4px}
+  .tactical-menu-anchor>.decision-panel--selected .roll-button,
+  .tactical-menu-anchor>.decision-panel--selected .boost-button{min-height:34px;padding:4px 7px}
+}
+@media(orientation:landscape) and (max-height:600px){
+  .game-shell{grid-template-rows:31px 55px minmax(0,1fr) 19px}
+  .arena-combat-zone{grid-template-rows:minmax(200px,1fr) auto;min-height:0}
+  .arena-combat-zone>.arena-shell{min-height:200px}
+  .tactical-menu-anchor{bottom:auto;width:100%}
+  .tactical-menu-anchor>.decision-panel{max-height:35dvh}
+  .action-slot{flex-basis:118px;width:118px;height:75px;grid-template-columns:36px minmax(0,1fr)}
+  .action-ribbon-heading{min-height:15px}
+  .action-category{padding:4px 7px;font-size:8px}
+  .action-ribbon-window{margin-top:2px}
+  .action-ribbon-footer{display:none}
+}
