@@ -70,6 +70,20 @@ self.addEventListener('activate', event => {
   })());
 });
 
+// Source files import some dependencies without a version query. On the
+// first offline launch, reuse the matching versioned precache entries rather
+// than failing despite having the exact source file cached already.
+async function cachedModuleResponse(req){
+  const exact=await caches.match(req);
+  if(exact)return exact;
+  const url=new URL(req.url);
+  if(/\.(?:js|css|json|webmanifest)$/.test(url.pathname)){
+    url.searchParams.set('v','1.17.0');
+    return caches.match(url.toString());
+  }
+  return undefined;
+}
+
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const req = event.request;
@@ -100,7 +114,7 @@ self.addEventListener('fetch', event => {
         cache.put(req, fresh.clone());
         return fresh;
       } catch (e) {
-        return (await caches.match(req)) || Response.error();
+        return (await cachedModuleResponse(req)) || Response.error();
       }
     })());
     return;
