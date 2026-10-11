@@ -77,6 +77,7 @@ export const demoMoves = [
       "bodyParts": []
     },
     "result": {
+      "attackerPosture": "standing",
       "defenderPosture": "standing"
     },
     "automatic": true
@@ -174,7 +175,7 @@ export const demoMoves = [
     "staminaDamage": 7,
     "damageDie": 8,
     "crowdGain": 0,
-    "description": "Launch both boots into the opponent and knock them flat.",
+    "description": "Launch both boots into the opponent\u0027s upper body and knock them flat.",
     "requirements": {
       "attackerPostures": [
         "standing"
@@ -186,7 +187,7 @@ export const demoMoves = [
     "targeting": {
       "mode": "fixed",
       "bodyParts": [
-        "head"
+        "core"
       ]
     },
     "result": {
@@ -575,7 +576,7 @@ export const demoMoves = [
       attackerPostures: ['standing', 'kneeling'],
       defenderPostures: ['prone']
     },
-    targeting: { mode: 'fixed', bodyParts: ['core'] },
+    targeting: { mode: 'fixed', bodyParts: ['head'] },
     result: { defenderPosture: 'prone' }
   },
   {
