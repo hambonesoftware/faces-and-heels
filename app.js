@@ -406,18 +406,19 @@ function renderHoldDock() {
   const trapped=wrestler(state,hold.defenderId);
   const spec=move.sustained;
   const defending=state.phase==='HOLD_ESCAPE';
+  const finalAttempt=Boolean(hold.finishPending);
   const able=holder.stamina>=spec.tickCost;
   return `
     <section class="decision-panel decision-panel--hold ${defending?'is-escape':'is-holder'}" aria-label="Active wrestling submission">
       <div class="hold-ribbon-head">
-        <span class="hold-live">● ${defending?'ESCAPE WINDOW':'SUBMISSION LOCKED'}</span>
+        <span class="hold-live">● ${defending?(finalAttempt?'LAST-CHANCE ESCAPE':'ESCAPE WINDOW'):'SUBMISSION LOCKED'}</span>
         <strong>${escapeHtml(move.name.toUpperCase())}</strong>
         <span class="hold-count">${hold.ticks} PRESSURE ${hold.ticks===1?'TURN':'TURNS'}</span>
       </div>
       <div class="hold-ribbon-body">
         <div class="hold-figure">${moveArt(move.id)}</div>
         <div class="hold-ribbon-copy"><strong>${escapeHtml(holder.name)} ${defending?'MAINTAINS THE HOLD':'HAS CONTROL'}</strong>
-          <span>${defending?escapeHtml(trapped.name)+' can fight free with Agility against the hold.':'Apply pressure to drain more stamina, or release to attempt a pin.'}</span>
+          <span>${defending?(finalAttempt?'FINAL ESCAPE: a failed roll means submission.':'ESCAPE NOW: roll Agility even while your opponent has High control.'):'Apply pressure to drain more stamina, or release to attempt a pin.'}</span>
           <div class="hold-stat-line"><b>${escapeHtml(trapped.name)}: ${trapped.stamina} STA</b><span>${escapeHtml(holder.name)}: ${holder.stamina} STA</span></div>
         </div>
         <div class="hold-ribbon-actions">
@@ -658,7 +659,7 @@ async function playSuccessfulMove(move, result) {
   ui.selectedMove = null;
   ui.selectedTarget = null;
   ui.spendCrowd = 0;
-  ui.phase = state.activeHold?'HOLD':(state.pinEligible ? 'OPPORTUNITY' : 'ACTION_SELECT');
+  ui.phase = state.activeHold?'HOLD_ESCAPE':(state.pinEligible ? 'OPPORTUNITY' : 'ACTION_SELECT');
   ui.railOffset=0;ui.filter='all';
   render();
   if (move.category === 'setup') announce(move.name.toUpperCase(), `OPPONENT −${result.staminaDamage} STA · CONTROL RETAINED`, 'major', false, 720);
@@ -740,12 +741,21 @@ async function performHoldEscape(){
   const result=escapeHold(state,{escapeRoll:roll});
   if(!result.ok)return;
   const name=wrestler(state,result.defenderId).name;
-  log(`${name} escape: d20 ${result.escapeRoll} +${result.modifier} = ${result.total} vs ${result.targetNumber}. ${result.success?'Hold broken.':'Still trapped.'}`);
+  log(`${name} escape: d20 ${result.escapeRoll} ${result.modifier>=0?'+':''}${result.modifier} = ${result.total} vs ${result.targetNumber}. ${result.success?'Hold broken.':result.submitted?'Submission!':'Still trapped.'}`);
   if(result.success){
     stage?.setHold(null);
     stage?.setRestingState({postures:{stone:wrestler(state,'stone').posture,viper:wrestler(state,'viper').posture}});
     ui.phase='NEUTRAL_ROLL';
     announce('ESCAPED!',`${name} breaks free · neutral restart`,'major',false,900);
+  }else if(result.submitted){
+    const holder=wrestler(state,result.holderId),trapped=wrestler(state,result.defenderId);
+    stage?.setHold(null);
+    stage?.setRestingState({postures:{stone:wrestler(state,'stone').posture,viper:wrestler(state,'viper').posture}});
+    highlights.push(`${holder.name} forces ${trapped.name} to submit after the final escape attempt.`);
+    if(!resultRecorded){progression=recordResult(progression,result.holderId,result.defenderId,state.turnCounter,highlights);saveProgress(localStorage,progression);resultRecorded=true;}
+    ui.phase='MATCH_COMPLETE';
+    audio.cue('victory');
+    announce('SUBMISSION!',`${holder.name} WINS · FINAL ESCAPE FAILED`,'spectacle',false,1200);
   }else{
     stage?.setHold(state.activeHold);
     ui.phase='HOLD';
