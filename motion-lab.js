@@ -1,5 +1,5 @@
-import {IsoStage} from './iso-stage.js?v=1.9.0';
-import {MOVE_TIMING} from './choreography.js?v=1.9.0';
+import {IsoStage} from './iso-stage.js?v=1.10.0';
+import {MOVE_TIMING} from './choreography.js?v=1.10.0';
 const stage=new IsoStage(document.querySelector('canvas'));
 const get=id=>document.getElementById(id),move=get('move'),attacker=get('attacker'),view=get('view'),timeline=get('timeline'),play=get('play'),speed=get('speed'),camera=get('camera');
 const defs={pick_up:['idle','idle',14],pull_to_knees:['idle','idle',12],snap_down:['idle','idle',12],idle:['idle','idle',4],lockup:['idle','idle',4],forearm:['forearm','forearm_hit',10],suplex:['suplex','suplex_taken',14],clothesline:['clothesline','clothesline_hit',10],body_slam:['body_slam','body_slam_taken',14],dragon_screw:['dragon_screw','dragon_screw_taken',12],headlock:['headlock','headlock_taken',10],pin:['pin','prone',4],kickout:['pin','kickout',6],finisher:['suplex','suplex_taken',14]};
