@@ -509,7 +509,20 @@ function selectMove(move) {
 async function playSuccessfulMove(move, result) {
   ui.phase = 'ANIMATING';
   render();
-  const anim = animationByMove[move.id] || animationByMove['forearm-smash'];
+  const anim = animationByMove[move.id];
+  if (!anim) {
+    // A newly added move has no bespoke paired asset yet. Respect the logical
+    // posture change instead of showing an unrelated strike or grapple.
+    await wait(settings.fast ? 120 : 420);
+    stage.resetPositions();
+    stage.setRestingState({ postures: { stone: wrestler(state,'stone').posture, viper: wrestler(state,'viper').posture } });
+    ui.selectedMove = null;
+    ui.selectedTarget = null;
+    ui.spendCrowd = 0;
+    ui.phase = state.pinEligible ? 'OPPORTUNITY' : 'ACTION_SELECT';
+    render();
+    return;
+  }
   if(move.category==='special')audio.cue('finisher');
   await stage.playPair(anim.attacker, anim.defender, {
     attackerId: result.attackerId,
@@ -525,7 +538,7 @@ async function playSuccessfulMove(move, result) {
       arena?.classList.add(anim.kind === 'slam' ? 'impact-shake--slam' : 'impact-shake');
       ring?.classList.add(anim.kind === 'slam' ? 'ring-bounce--slam' : 'ring-bounce');
       setTimeout(() => { arena?.classList.remove('impact-shake','impact-shake--slam'); ring?.classList.remove('ring-bounce','ring-bounce--slam'); }, anim.kind === 'slam' ? 260 : 180);
-      const damageText = result.damage?.marked ? `${bodyLabel(result.target).toUpperCase()} MARK +1` : `${bodyLabel(result.target).toUpperCase()} HOLDS`;
+      const damageText = result.target ? (result.damage?.marked ? `${bodyLabel(result.target).toUpperCase()} MARK +1` : `${bodyLabel(result.target).toUpperCase()} HOLDS`) : 'POSITION CONTROL';
       ui.event = { title: move.id === 'flash-finisher' ? 'FLASHPOINT DRIVER!' : `${move.name.toUpperCase()}!`, detail: `${damageText} · -${result.staminaDamage} STA`, kind: move.category === 'special' ? 'spectacle' : 'major', impact: true };
       render();
     }
@@ -544,7 +557,7 @@ async function rollMove() {
   const move = ui.selectedMove;
   if (!move) return;
   const attackRoll = rollDie(20);
-  const damageRoll = rollDie(move.damageDie);
+  const damageRoll = rollDie(move.damageDie || 4);
   await rollingVisual(`${currentActor().name} · ${move.name}`, attackRoll);
   const result = resolveMoveAttempt(state, { moveId: move.id, target: ui.selectedTarget, attackRoll, damageRoll, crowdSpend: ui.spendCrowd });
   log(`${wrestler(state,result.attackerId).name} ${move.name}: d20 ${attackRoll} ${result.modifier >= 0 ? '+' : ''}${result.modifier}${result.spentCrowd ? ` +${result.spentCrowd} crowd` : ''} = ${result.total} vs CON ${result.targetNumber}.`);
