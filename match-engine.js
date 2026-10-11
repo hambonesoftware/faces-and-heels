@@ -82,6 +82,7 @@ export function giveControl(state, id) {
   state.activeWrestlerId = id;
   setRoles(state, id);
   state.neutralAction = false;
+  state.activeHold = null;
   state.phase = 'ACTION_SELECT';
 }
 
@@ -92,6 +93,7 @@ export function beginNeutral(state, { resetPostures = false } = {}) {
   state.pinEligible = false;
   state.pinningWrestlerId = null;
   state.pendingFailure = null;
+  state.activeHold = null;
   setRoles(state, null);
   if (resetPostures) {
     state.wrestlers.stone.posture = 'standing';
@@ -154,7 +156,7 @@ export function setLegendaryLoadout(state,id,ids){
 }
 
 export function getLegalMoves(state, actorId = state.activeWrestlerId) {
-  if (!actorId || state.winnerId) return [];
+  if (!actorId || state.winnerId || state.activeHold) return [];
   const perspective = perspectiveState(state, actorId);
   let moves = demoMoves.filter(move => isMoveKnown(perspective.attacker,move) && isMoveLegal(move, perspective));
   const defender = perspective.defender;
@@ -165,7 +167,7 @@ export function getLegalMoves(state, actorId = state.activeWrestlerId) {
 }
 
 export function canReact(state) {
-  if (!state.pendingFailure) return false;
+  if (!state.pendingFailure || state.activeHold) return false;
   const reactor = wrestler(state, state.pendingFailure.defenderId);
   return reactor.stamina >= REACTION_COST;
 }
@@ -188,7 +190,7 @@ export function catchBreathToNeutral(state, wrestlerId) {
 
 export function scrambleUp(state, wrestlerId) {
   const w = wrestler(state, wrestlerId);
-  if (!w || w.posture !== 'prone') return { ok: false };
+  if (!w || w.posture !== 'prone' || state.activeHold) return { ok: false };
   w.posture = 'standing';
   w.condition = deriveCondition(w);
   state.phase = 'ACTION_SELECT';
@@ -232,7 +234,7 @@ export function resolveMoveAttempt(state, {
   const attacker = wrestler(state, attackerId);
   const defender = wrestler(state, defenderId);
   const perspective = perspectiveState(state, attackerId);
-  if (!isMoveKnown(attacker,move) || !isMoveLegal(move, perspective)) throw new Error(`${move.name} is not learned or legal for ${attacker.name}.`);
+  if (state.activeHold || !isMoveKnown(attacker,move) || !isMoveLegal(move, perspective)) throw new Error(`${move.name} is not learned or legal for ${attacker.name}.`);
 
   const targetDecision = resolveTargetDecision(move, perspective);
   let resolvedTarget = target;
@@ -304,12 +306,91 @@ export function resolveMoveAttempt(state, {
   if (defender.stamina <= 0) state.mustFinishTargetId = defenderId;
   else if (state.mustFinishTargetId === defenderId) state.mustFinishTargetId = null;
 
+  // Sustained holds enter their own turn cycle rather than resetting to the
+  // normal action menu. The initial impact costs and damages once only.
+  if (move.sustained) {
+    state.activeHold={
+      moveId:move.id,holderId:attackerId,defenderId,
+      target:resolvedTarget,ticks:0,escapes:0
+    };
+    state.pinEligible=false;state.pinningWrestlerId=null;
+    result.activeHold=structuredClone(state.activeHold);
+    state.phase='HOLD';
+    return result;
+  }
   state.pinEligible = defender.posture === 'prone' && move.category !== 'setup';
   state.pinningWrestlerId = state.pinEligible ? attackerId : null;
   result.pinEligible = state.pinEligible;
   result.forcedPin = state.pinEligible && defender.stamina <= 0;
   state.phase = state.pinEligible ? 'PIN_OPPORTUNITY' : 'ACTION_SELECT';
   return result;
+}
+
+
+// Wrestling holds are a continuing state, not instant attacks.
+// A successful opener gets a persistent hold; holder may tighten, with the
+// trapped wrestler getting a contest after every squeeze, or release freely.
+// Release retains High control and creates a normal pin opportunity.
+export function maintainHold(state){
+  const hold=state.activeHold;
+  if(!hold||state.phase!=='HOLD'||state.winnerId)return {ok:false,reason:'No active holder turn'};
+  const move=demoMoves.find(m=>m.id===hold.moveId),spec=move?.sustained;
+  const holder=wrestler(state,hold.holderId),defender=wrestler(state,hold.defenderId);
+  if(!spec||holder.stamina<spec.tickCost)return {ok:false,reason:'Not enough stamina to maintain the hold'};
+  holder.stamina-=spec.tickCost;
+  const before=defender.stamina;
+  defender.stamina=Math.max(0,before-spec.tickDamage);
+  const actual=before-defender.stamina;
+  hold.ticks++;
+  state.turnCounter++;
+  holder.condition=deriveCondition(holder);defender.condition=deriveCondition(defender);
+  // A sustained submission can actually finish the match. The opponent has
+  // survived an entry and every intervening contested escape opportunity.
+  if(defender.stamina===0){
+    state.winnerId=hold.holderId;
+    state.winMethod='submission';
+    state.activeHold=null;
+    state.phase='MATCH_COMPLETE';
+    return {ok:true,submitted:true,moveId:move.id,holderId:hold.holderId,defenderId:hold.defenderId,cost:spec.tickCost,staminaDamage:actual};
+  }
+  state.phase='HOLD_ESCAPE';
+  return {ok:true,submitted:false,moveId:move.id,holderId:hold.holderId,defenderId:hold.defenderId,cost:spec.tickCost,staminaDamage:actual,ticks:hold.ticks};
+}
+export function releaseHold(state){
+  const hold=state.activeHold;
+  if(!hold||state.phase!=='HOLD')return {ok:false,reason:'No releasable hold'};
+  const id=hold.holderId;
+  state.activeHold=null;state.pendingFailure=null;
+  state.activeWrestlerId=id;
+  setRoles(state,id);
+  const defender=wrestler(state,hold.defenderId);
+  state.pinEligible=defender.posture==='prone';
+  state.pinningWrestlerId=state.pinEligible?id:null;
+  state.phase=state.pinEligible?'PIN_OPPORTUNITY':'ACTION_SELECT';
+  return {ok:true,holderId:id,defenderId:hold.defenderId,pinEligible:state.pinEligible};
+}
+export function escapeHold(state,{escapeRoll}={}){
+  const hold=state.activeHold;
+  if(!hold||state.phase!=='HOLD_ESCAPE'||!Number.isInteger(escapeRoll)||escapeRoll<1||escapeRoll>20)
+    return {ok:false,reason:'No legal escape attempt'};
+  const holder=wrestler(state,hold.holderId),defender=wrestler(state,hold.defenderId);
+  const move=demoMoves.find(m=>m.id===hold.moveId),spec=move.sustained;
+  const before=defender.stamina;
+  defender.stamina=Math.max(0,defender.stamina-spec.escapeCost);
+  const modifier=statModifier(defender.stats.Agility);
+  const targetNumber=10+statModifier(holder.stats[spec.holdStat])+Math.min(3,hold.ticks);
+  const total=escapeRoll+modifier;
+  const success=total>=targetNumber;
+  hold.escapes++;state.turnCounter++;
+  defender.condition=deriveCondition(defender);
+  if(success){
+    state.activeHold=null;
+    beginNeutral(state,{resetPostures:true});
+    return {ok:true,success:true,escapeRoll,modifier,total,targetNumber,staminaCost:before-defender.stamina,defenderId:hold.defenderId};
+  }
+  state.phase='HOLD';
+  state.activeWrestlerId=hold.holderId;
+  return {ok:true,success:false,escapeRoll,modifier,total,targetNumber,staminaCost:before-defender.stamina,defenderId:hold.defenderId,ticks:hold.ticks};
 }
 
 export function declineReaction(state) {
