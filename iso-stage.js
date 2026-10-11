@@ -21,7 +21,7 @@ export class IsoStage extends SpriteStage {
   constructor(canvas){super(canvas);this.meshRenderer=new MeshRenderer();this.mode='iso';this.postures={};this.pinId=null;this.preview=null;this.compareCanvas=document.createElement('canvas');this.spriteView=new SpriteStage(this.compareCanvas);this.spriteView.resizeObserver.disconnect();this.spriteView.active=false;}
   setRestingState(options={}){super.setRestingState(options);if(!this.playback){this.transition=this.lastPair?{from:this.lastPair,start:performance.now(),duration:750}:null;this.postures=options.postures||{};this.pinId=null;}}
   playPair(a,d,o={}){
-    this.pinId=null;const name=o.moveId==='flash-finisher'?'finisher':o.choreography,timing=MOVE_TIMING[name];
+    this.pinId=null;const name=o.choreography,timing=MOVE_TIMING[name];
     const options={...o};this.entryPair=this.lastPair;this.transition=null;
     // Newly authored moves have coordinated 3D performers but no sprite atlases.
     // During those moves, render the actual procedural choreography rather than
