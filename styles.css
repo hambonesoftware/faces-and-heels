@@ -817,3 +817,8 @@ footer{grid-column:1;grid-row:4}
   .pin-defense-button{min-height:49px;padding:8px;font-size:12px;max-width:135px}
   .pin-defense-button small{font-size:7px}
 }
+
+/* The current defender is visually active even while their rival has High. */
+.turn-chip--defense{border-left:3px solid #ff718e;background:linear-gradient(90deg,#392341d9,#17243edb)}
+.turn-chip--defense strong{color:#ffe3a7}
+.fighter-hud.is-active-control .momentum-role--l{outline:2px solid #ff8faa;outline-offset:2px}
