@@ -1,10 +1,10 @@
 {
-  "name": "Faces & Heels v1.6.0: Ringside",
+  "name": "Faces & Heels v1.7.0: Neon Showdown",
   "short_name": "Faces & Heels",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#171614",
-  "theme_color": "#171614",
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020",
   "orientation": "any",
   "id": "./",
   "icons": [
