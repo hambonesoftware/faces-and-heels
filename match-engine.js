@@ -255,7 +255,6 @@ export function resolveMoveAttempt(state, {
 }) {
   const move = demoMoves.find(item => item.id === moveId);
   if (!move) throw new Error(`Unknown move ${moveId}`);
-  requireCombatAction(state,ACTION_IDS.MOVE,state.activeWrestlerId);
   const attackerId = state.activeWrestlerId;
   if (!attackerId) throw new Error('No active wrestler.');
   const defenderId = opponentId(attackerId);
@@ -263,6 +262,7 @@ export function resolveMoveAttempt(state, {
   const defender = wrestler(state, defenderId);
   const perspective = perspectiveState(state, attackerId);
   if (state.activeHold || !isMoveKnown(attacker,move) || !isMoveLegal(move, perspective)) throw new Error(`${move.name} is not learned or legal for ${attacker.name}.`);
+  requireCombatAction(state,ACTION_IDS.MOVE,attackerId);
 
   const targetDecision = resolveTargetDecision(move, perspective);
   let resolvedTarget = target;
@@ -302,8 +302,10 @@ export function resolveMoveAttempt(state, {
 
   if (!success) {
     state.pendingFailure = { attackerId, defenderId, moveId };
-    state.phase = canReact(state) ? 'REACTION' : 'ACTION_SELECT';
-    if (!canReact(state)) {
+    state.phase = 'REACTION';
+    const reactionAvailable=canReact(state);
+    if (!reactionAvailable) {
+      state.phase = 'ACTION_SELECT';
       state.pendingFailure=null;
       // Existing H/L stays. A failed action from the special N/N kickout turn returns to Neutral.
       if (state.neutralAction || roleFor(state, attackerId) === 'N') beginNeutral(state);
