@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {demoMoves} from './moves.js';
 import {
   cloneInitialState,
   wrestler,
@@ -16,7 +17,10 @@ import {
   catchBreathToNeutral,
   scrambleUp,
   perspectiveState,
-  totalBodyMarks
+  totalBodyMarks,
+  maintainHold,
+  escapeHold,
+  releaseHold
 } from './match-engine.js';
 import { resolveTargetDecision } from './flow-engine.js';
 
@@ -88,6 +92,7 @@ function simulateMatch(seed, maxSteps = 600) {
   let crowdRollSpends = 0;
   let crowdStaminaSpends = 0;
   let kickouts = 0;
+  let holdPressures=0,holdEscapes=0,holdReleases=0,submissions=0;
   const kickoutCounts = { 1: 0, 2: 0, 3: 0 };
 
   validateState(state, `seed ${seed} start`);
@@ -123,6 +128,32 @@ function simulateMatch(seed, maxSteps = 600) {
         declineReaction(state);
       }
       validateState(state, `seed ${seed} step ${steps} reaction`);
+      continue;
+    }
+
+    if(state.phase==='HOLD'){
+      const hold=state.activeHold;
+      assert.ok(hold,'HOLD requires active hold');
+      const holder=wrestler(state,hold.holderId);
+      const spec=demoMoves.find(move=>move.id===hold.moveId)?.sustained;
+      if(!spec||holder.stamina<spec.tickCost||rng()<.22){
+        const release=releaseHold(state);
+        assert.ok(release.ok,'Hold should release');
+        holdReleases++;
+      }else{
+        const effect=maintainHold(state);
+        assert.ok(effect.ok,'Hold must tighten');
+        holdPressures++;
+        if(effect.submitted)submissions++;
+      }
+      validateState(state,`seed ${seed} hold pressure`);
+      continue;
+    }
+    if(state.phase==='HOLD_ESCAPE'){
+      const outcome=escapeHold(state,{escapeRoll:die(rng,20)});
+      assert.ok(outcome.ok,'Defender must be allowed to escape');
+      if(outcome.success)holdEscapes++;
+      validateState(state,`seed ${seed} hold escape`);
       continue;
     }
 
@@ -238,6 +269,7 @@ function simulateMatch(seed, maxSteps = 600) {
     crowdRollSpends,
     crowdStaminaSpends,
     kickouts,
+    holdPressures,holdEscapes,holdReleases,submissions,
     kickoutCounts,
     terminalPhase: state.phase,
     finalStoneMarks: totalBodyMarks(wrestler(state, 'stone')),
@@ -295,3 +327,4 @@ console.log(`Average post-kickout scrambles: ${avg('scrambles').toFixed(2)}`);
 console.log(`Kickouts by count: 1=${kickoutCountTotals[1]}, 2=${kickoutCountTotals[2]}, 3=${kickoutCountTotals[3]}`);
 console.log(`Crowd spends: roll boosts=${sum('crowdRollSpends')}, stamina recovery=${sum('crowdStaminaSpends')}`);
 console.log(`Body marks added: ${sum('bodyMarksAdded')}`);
+console.log(`Submissions: ${sum('submissions')}; holds pressured ${sum('holdPressures')}, escaped ${sum('holdEscapes')}, released ${sum('holdReleases')}`);
