@@ -328,3 +328,70 @@ footer{grid-column:1;grid-row:4}
   .action-ribbon-track{scroll-behavior:auto!important}
   .action-slot,.action-ribbon-progress i{transition:none!important}
 }
+
+
+/* The inspection state feels like a game ability inspector, not a form dialog. */
+.tactical-menu-anchor>.decision-panel--selected,
+.tactical-menu-anchor>.decision-panel--opportunity,
+.tactical-menu-anchor>.decision-panel--recovery,
+.tactical-menu-anchor>.decision-panel--reaction,
+.tactical-menu-anchor>.decision-panel--neutral{
+  border-radius:5px;
+  background:linear-gradient(135deg,#222a45f8,#11192dfa);
+  border:1px solid #6681a8;border-top:3px solid #feca48;
+  box-shadow:0 13px 38px #050912de,0 0 0 2px #151d34b8,inset 0 1px #cedeff2b;
+}
+.tactical-menu-anchor>.decision-panel--reaction{border-top-color:#ff5069}
+.tactical-menu-anchor>.decision-panel--opportunity{border-top-color:#ffd34c}
+.tactical-menu-anchor>.decision-panel--selected .selected-title small{
+  letter-spacing:.16em;color:#ffbd65;
+}
+.tactical-menu-anchor>.decision-panel--selected .selected-title strong{
+  color:#fff;font:900 clamp(23px,3vw,33px)/1.04 Impact,"Arial Narrow",sans-serif;
+  letter-spacing:.035em;
+}
+.tactical-menu-anchor>.decision-panel--selected .selected-title>span{
+  color:#ffd46b;background:#273452;border-left:3px solid #ffd05a;padding:8px;
+}
+.tactical-menu-anchor>.decision-panel--selected .selected-illustration{
+  border:1px solid #51678a;background:#192542;padding:7px;gap:12px;margin-top:11px;
+  border-radius:2px;grid-template-columns:130px minmax(0,1fr);
+}
+.tactical-menu-anchor>.decision-panel--selected .selected-illustration svg{
+  width:100%;height:90px;background:#16243f;border:1px solid #54729d;
+}
+.tactical-menu-anchor>.decision-panel--selected .selected-illustration p{
+  font-size:13px;line-height:1.5;color:#e0e9f9;
+}
+.tactical-menu-anchor>.decision-panel--selected .move-meta-line{
+  color:#ccd5e6;border-bottom:1px solid #3e5272;padding-bottom:9px;
+}
+.tactical-menu-anchor>.decision-panel--selected .connect-meter{
+  accent-color:#ffbd54;margin-top:9px;
+}
+.tactical-menu-anchor>.decision-panel--selected .probability-note{
+  color:#aec4df;font-size:11px;
+}
+.tactical-menu-anchor>.decision-panel--selected .roll-button,
+.tactical-menu-anchor>.decision-panel--neutral .roll-button{
+  background:linear-gradient(#ffc953,#da862b);
+  color:#171c2a;border:1px solid #ffdb85;border-bottom:3px solid #915022;
+  border-radius:3px;text-shadow:none;box-shadow:0 4px 13px #0006;
+}
+.tactical-menu-anchor>.decision-panel--selected .boost-button{
+  background:linear-gradient(#7057a8,#3a3e7e);
+  color:#f5eaff;border:1px solid #a993f1;border-radius:3px;
+}
+.tactical-menu-anchor>.decision-panel--selected .boost-button.is-on{
+  background:linear-gradient(#ac7cdd,#70448b);
+}
+.tactical-menu-anchor .back-mini{
+  border:1px solid #5e7497;border-radius:3px;background:#283957;
+}
+@media(max-width:540px){
+  .tactical-menu-anchor>.decision-panel--selected .selected-illustration{
+    grid-template-columns:102px minmax(0,1fr);padding:6px;gap:8px;
+  }
+  .tactical-menu-anchor>.decision-panel--selected .selected-illustration svg{height:83px}
+  .tactical-menu-anchor>.decision-panel--selected .selected-illustration p{font-size:11px}
+}
