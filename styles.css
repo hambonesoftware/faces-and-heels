@@ -395,3 +395,44 @@ footer{grid-column:1;grid-row:4}
   .tactical-menu-anchor>.decision-panel--selected .selected-illustration svg{height:83px}
   .tactical-menu-anchor>.decision-panel--selected .selected-illustration p{font-size:11px}
 }
+
+
+/* v1.12: every action shows tactical stamina trade rather than hiding its effect */
+.action-slot .action-slot-tactic{
+  display:flex;align-items:center;justify-content:space-between;gap:4px;
+  min-height:19px;margin-top:auto;padding:4px 8px 5px;
+  background:#121a30ad;border-top:1px solid #7085a63d;
+  font:800 8px/1.12 system-ui,sans-serif;letter-spacing:.025em;
+  color:#a1b4d5;white-space:nowrap;overflow:hidden;
+}
+.action-slot-tactic b{color:#8ff7cf;font-size:9px;letter-spacing:.045em}
+.action-slot-tactic>span{max-width:66px;text-align:right;text-overflow:ellipsis;overflow:hidden}
+.action-slot--special .action-slot-tactic b{color:#ffdc75}
+.action-slot--setup .action-slot-tactic b{color:#64ebc4}
+.move-resource-trade{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  margin-top:11px;font:900 10px/1.25 system-ui,sans-serif;letter-spacing:.045em;
+}
+.move-resource-trade>span{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:8px;background:#26314a;border:1px solid #576b90;border-left:3px solid #e59c63;
+  padding:11px 10px;color:#d5dff1;
+}
+.move-resource-trade>span:last-child{
+  background:#1b3b3c;border-color:#397d69;border-left-color:#70edac;
+  color:#bdf1d8;
+}
+.move-resource-trade b{color:#ffd090;white-space:nowrap;font-size:12px}
+.move-resource-trade>span:last-child b{color:#8dfbc8}
+@media(max-width:540px){
+  .action-slot .action-slot-tactic{padding:4px 5px 5px;font-size:7px}
+  .action-slot-tactic b{font-size:8px}
+  .action-slot-tactic>span{max-width:45px}
+  .move-resource-trade{grid-template-columns:1fr;gap:5px}
+  .move-resource-trade>span{padding:8px}
+  .action-slot{height:163px}
+}
+@media(orientation:landscape) and (max-height:600px){
+  .action-slot{height:131px}
+  .action-slot .action-slot-tactic{min-height:16px;padding:3px 5px}
+}
