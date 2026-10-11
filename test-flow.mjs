@@ -27,7 +27,9 @@ resolveNeutralRoll(proneState, 20, 1);
 proneState.wrestlers.viper.posture = 'prone';
 const pronePerspective = perspectiveState(proneState);
 const grappleRoute = getCategoryRoute(demoMoves, 'grapple', pronePerspective);
-assert.equal(grappleRoute.kind, 'directMove');
-assert.equal(grappleRoute.move.id, 'ground-headlock');
+assert.equal(grappleRoute.kind, 'moveChooser');
+assert.deepEqual(grappleRoute.legalMoves.map(move => move.id).sort(),
+  ['armbar','ankle-lock','ground-headlock'].sort(),
+  'A prone opponent exposes all three legal grounded grapples');
 
 console.log('Smart Flow tests passed.');
