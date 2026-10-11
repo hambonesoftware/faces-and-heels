@@ -5,7 +5,7 @@ const dot=(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0),length=a=>Math.hypot(...a);
 const unit=a=>mul(a,1/(length(a)||1)),clamp=t=>Math.max(0,Math.min(1,t));
 const ease=t=>{t=clamp(t);return t*t*(3-2*t)},PI=Math.PI;
 const env=(t,a,b,c,d)=>ease((t-a)/(b-a))*(1-ease((t-c)/(d-c)));
-export const MOVE_TIMING={knee_lift:{duration:1580,impact:.49},dropkick:{duration:2050,impact:.57},ddt:{duration:2450,impact:.79},neckbreaker:{duration:2500,impact:.84},hip_toss:{duration:2700,impact:.87},spinebuster:{duration:3050,impact:.88},elbow_drop:{duration:2100,impact:.79},stomp:{duration:1750,impact:.63},knee_drop:{duration:2050,impact:.73},leg_drop:{duration:2250,impact:.81},armbar:{duration:2400,impact:.62},ankle_lock:{duration:2300,impact:.59},pick_up:{duration:2350},pull_to_knees:{duration:1750},snap_down:{duration:2100,impact:.77},lockup:{duration:1900},forearm:{duration:1550,impact:.5},clothesline:{duration:2050,impact:.48},suplex:{duration:3600,impact:.82},body_slam:{duration:3100,impact:.8},dragon_screw:{duration:2500,impact:.76},headlock:{duration:2300,impact:.52},pin:{duration:1500},kickout:{duration:1600,impact:.44},finisher:{duration:3700,impact:.82}};
+export const MOVE_TIMING={shove_counter:{duration:1650,impact:.49},knee_lift:{duration:1580,impact:.49},dropkick:{duration:2050,impact:.57},ddt:{duration:2450,impact:.79},neckbreaker:{duration:2500,impact:.84},hip_toss:{duration:2700,impact:.87},spinebuster:{duration:3050,impact:.88},elbow_drop:{duration:2100,impact:.79},stomp:{duration:1750,impact:.63},knee_drop:{duration:2050,impact:.73},leg_drop:{duration:2250,impact:.81},armbar:{duration:2400,impact:.62},ankle_lock:{duration:2300,impact:.59},pick_up:{duration:2350},pull_to_knees:{duration:1750},snap_down:{duration:2100,impact:.77},lockup:{duration:1900},forearm:{duration:1550,impact:.5},clothesline:{duration:2050,impact:.48},suplex:{duration:3600,impact:.82},body_slam:{duration:3100,impact:.8},dragon_screw:{duration:2500,impact:.76},headlock:{duration:2300,impact:.52},pin:{duration:1500},kickout:{duration:1600,impact:.44},finisher:{duration:3700,impact:.82}};
 export const ARM_LENGTH=.74;
 export function transformJoint(p,root,yaw,roll=0){const x=p[0]*Math.cos(yaw)+p[2]*Math.sin(yaw),z=-p[0]*Math.sin(yaw)+p[2]*Math.cos(yaw);return add(root,[x*Math.cos(roll)-p[1]*Math.sin(roll),x*Math.sin(roll)+p[1]*Math.cos(roll),z]);}
 const BASE={pelvis:[0,1.46,0],chest:[0,2.3,0],head:[0,3.14,0],ls:[-.55,2.65,0],rs:[.55,2.65,0],le:[-.78,2.14,.1],re:[.78,2.14,.1],lh:[-.5,2.25,.58],rh:[.5,2.25,.58],lk:[-.34,.79,.12],rk:[.34,.79,.12],la:[-.4,.25,.1],ra:[.4,.25,.1]};
@@ -113,6 +113,9 @@ function tracks(name){
   }else if(name==='snap_down'){
     A=[K(0,[-1.4,1.46,-.6]),K(.25,[-.48,1.25,-.55],{lean:.23}),K(.5,[-.42,1.1,-.55],{lean:.35}),K(.73,[-.56,1.25,-.57],{lean:.16}),K(1,[-.9,1.46,-.6])];
     D=[DK(0,[1.4,1.46,.58]),DK(.25,[.88,1.36,.58],{lean:.13}),DK(.5,[.78,.94,.58],{roll:-.66,ground:.2,spread:.3}),down(.77,.92,.63),down(1,.92,.63)];
+  }else if(name==='shove_counter'){
+    A=[K(0,[-1.4,1.46,-.2]),K(.3,[-.65,1.38,-.2],{lean:.12}),K(.49,[-.42,1.43,-.2],{lean:.23,spread:.7}),K(.7,[-.73,1.46,-.2]),K(1,[-1.25,1.46,-.2])];
+    D=[DK(0,[1.4,1.46,.25]),DK(.3,[.84,1.43,.25]),DK(.5,[.86,1.3,.25],{lean:-.23,spread:.8}),DK(.7,[1.25,1.35,.25],{lean:-.13}),DK(1,[1.6,1.46,.25])];
   }else if(name==='headlock'){
     A=[K(0,[-.55,1.2,-1.15],{yaw:0}),K(.28,[.35,.92,-.9],{yaw:0,lean:.25}),K(.52,[.32,.86,-.9],{yaw:0,lean:.28}),K(.75,[.35,.91,-.9],{yaw:0,lean:.24}),K(1,[.35,.92,-.9],{yaw:0,lean:.25})];
     D=[down(0,-.75,.3),down(.52,-.75,.3,{spread:.5}),down(1,-.75,.3)];
@@ -150,6 +153,21 @@ export function samplePair(name,t,attackerId='stone',postures={},time=0){
   else if(['suplex','finisher','body_slam'].includes(name)){const w=env(t,.09,.22,.61,.75),slam=name==='body_slam';grip(a,slam?'r':'l',mix(d.j.chest,neckPoint(d),.25),w,.4);grip(a,slam?'l':'r',d.j.pelvis,w,.4);grip(d,'l',a.j.rs,env(t,.1,.22,.35,.5),.18);}
   else if(name==='dragon_screw'){const w=env(t,.1,.25,.48,.68);arm(a,'l',add(d.j.ra,[0,.08,.12]),w);arm(a,'r',add(d.j.ra,[0,-.08,-.12]),w);}
   else if(['pick_up','pull_to_knees','snap_down'].includes(name)){const w=name==='snap_down'?env(t,.12,.29,.63,.86):env(t,.1,.28,.8,1.03);grip(a,'l',neckPoint(d),w,.24);grip(a,'r',d.j.rs,w,.18);}
+  // Distinct paired grips and strikes: attachment follows the opponent's
+  // animated landmarks rather than a fixed world-space destination.
+  else if(name==='ddt'){const w=env(t,.1,.25,.68,.91);grip(a,'l',neckPoint(d),w,.18);grip(a,'r',d.j.rs,w,.15);grip(d,'r',a.j.ls,env(t,.18,.33,.52,.7),.18);}
+  else if(name==='neckbreaker'){const w=env(t,.15,.28,.64,.88);grip(a,'r',neckPoint(d),w,.2);grip(a,'l',d.j.rs,w,.18);}
+  else if(name==='hip_toss'){const w=env(t,.12,.25,.64,.85);arm(a,'l',d.j.rh,w);grip(a,'r',d.j.pelvis,w,.3);}
+  else if(name==='spinebuster'){const w=env(t,.14,.29,.74,.89);grip(a,'l',d.j.pelvis,w,.27);grip(a,'r',d.j.chest,w,.33);grip(d,'l',a.j.rs,env(t,.19,.3,.65,.78),.18);}
+  else if(name==='knee_lift'){const w=env(t,.28,.43,.5,.7);leg(a,'r',surface(d.j.chest,a.j.ra,.3),w);grip(a,'l',d.j.ls,env(t,.12,.3,.52,.66),.2);}
+  else if(name==='dropkick'){const w=env(t,.28,.44,.54,.68);leg(a,'l',surface(d.j.chest,a.j.la,.27),w);leg(a,'r',surface(d.j.chest,a.j.ra,.27),w);}
+  else if(name==='elbow_drop'){const w=env(t,.4,.6,.78,.85);arm(a,'l',surface(d.j.chest,a.j.ls,.3),w);}
+  else if(name==='stomp'){const w=env(t,.43,.57,.64,.79);leg(a,'l',surface(d.j.chest,a.j.la,.26),w);}
+  else if(name==='knee_drop'){const w=env(t,.54,.67,.76,.86);leg(a,'r',surface(d.j.chest,a.j.ra,.25),w);}
+  else if(name==='leg_drop'){const w=env(t,.53,.7,.81,.93);leg(a,'r',surface(d.j.chest,a.j.ra,.24),w);}
+  else if(name==='armbar'){const w=env(t,.18,.37,.78,.96);arm(a,'l',d.j.le,w);arm(a,'r',d.j.lh,w);arm(d,'l',surface(a.j.chest,d.j.lh,.4),w*.45);}
+  else if(name==='ankle_lock'){const w=env(t,.22,.39,.77,.94);arm(a,'l',d.j.la,w);arm(a,'r',add(d.j.la,[0,.18,0]),w);}
+  else if(name==='shove_counter'){const w=env(t,.17,.36,.47,.66);grip(a,'l',d.j.chest,w,.31);grip(a,'r',d.j.rs,w,.22);}
   else if(name==='headlock'){const w=ease(t/.28);grip(a,'l',neckPoint(d),w,.28);grip(a,'r',d.j.rs,w,.18);}
   else if(name==='pin')grip(a,'r',d.j.rk,1,.22);
   for(const r of [a,d])for(const side of ['l','r'])if(r.j[side+'h'][1]<.25)arm(r,side,[r.j[side+'h'][0],.25,r.j[side+'h'][2]]);
