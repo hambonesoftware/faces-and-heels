@@ -69,6 +69,7 @@ const expect=(state,phase,owner)=>{
  assert.equal(getDefensiveWindow(state).controlId,'stone');
  assert(!action(state,ACTION_IDS.COUNT_PIN,'stone').ok);
  assert(action(state,ACTION_IDS.COUNT_PIN,'viper').ok);
+ assert.throws(()=>resolvePinCount(state,{pinningId:info.pinningId,count:2,pinningRoll:20,pinnedRoll:1}),/Pin counts must resolve in order/);
  const count=resolvePinCount(state,{pinningId:info.pinningId,count:1,pinningRoll:5,pinnedRoll:19});
  assert(count.kickout);
  expect(state,'ACTION_SELECT','viper');
@@ -153,4 +154,5 @@ for(const marker of ['function turnDecision()','function permitted(','data-pin-d
  assert(app.includes(marker),'Missing central-turn integration '+marker);
 }
 assert(!app.includes('for (const count of [1,2,3])'),'Pin counts must wait for player defense input');
+assert(app.includes('turn-chip--defense'),'HUD must indicate when Low wrestler is the active defender');
 console.log('Turn controller PASS: valid actors, Low reactions and holds, interactive pinned defense, recovery rights, and terminal states.');
