@@ -1,6 +1,7 @@
 import { demoMoves, demoState, reactionMove } from './moves.js';
 import {isLegendaryLearnable,MAX_LEGENDARY_MOVES,getLegendaryCandidate} from './legendary-catalog.js';
 import { isMoveLegal, resolveTargetDecision } from './flow-engine.js';
+import {ACTION_IDS,getTurnContext,canPerformAction,getDefensiveWindow,auditTurnState} from './turn-controller.js';
 
 export const CROWD_CAP = 5;
 export const BODY_MARK_CAP = 3;
@@ -156,7 +157,7 @@ export function setLegendaryLoadout(state,id,ids){
 }
 
 export function getLegalMoves(state, actorId = state.activeWrestlerId) {
-  if (!actorId || state.winnerId || state.activeHold) return [];
+  if (!actorId || state.phase!=='ACTION_SELECT' || state.winnerId || state.activeHold) return [];
   const perspective = perspectiveState(state, actorId);
   let moves = demoMoves.filter(move => isMoveKnown(perspective.attacker,move) && isMoveLegal(move, perspective));
   const defender = perspective.defender;
@@ -166,13 +167,35 @@ export function getLegalMoves(state, actorId = state.activeWrestlerId) {
   return moves;
 }
 
+// Single source of truth for the live actor, legal decisions and Low's
+// defensive window. Consumers can use this without reconstructing phases.
+export function getAvailableActions(state){
+  const moves=state.phase==='ACTION_SELECT'&&!state.activeHold ? getLegalMoves(state) : [];
+  return getTurnContext(state,moves);
+}
+export function checkCombatFlow(state){
+  const moves=state.phase==='ACTION_SELECT'&&!state.activeHold ? getLegalMoves(state) : [];
+  return auditTurnState(state,moves);
+}
+export function validateCombatAction(state,id,actorId){
+  const moves=state.phase==='ACTION_SELECT'&&!state.activeHold ? getLegalMoves(state) : [];
+  return canPerformAction(state,id,actorId,moves);
+}
+function requireCombatAction(state,id,actorId){
+  const check=validateCombatAction(state,id,actorId);
+  if(!check.ok)throw new Error(check.reason);
+  return check;
+}
+
 export function canReact(state) {
-  if (!state.pendingFailure || state.activeHold) return false;
+  if (!state.pendingFailure || state.phase!=='REACTION' || state.activeHold) return false;
   const reactor = wrestler(state, state.pendingFailure.defenderId);
   return reactor.stamina >= REACTION_COST;
 }
 
 export function spendCrowdForStamina(state, wrestlerId, amount = 1) {
+  const allowed=validateCombatAction(state,ACTION_IDS.RECOVER,wrestlerId);
+  if(!allowed.ok)return {ok:false,gained:0,spent:0,reason:allowed.reason};
   const w = wrestler(state, wrestlerId);
   const spend = Math.max(0, Math.min(amount, w.crowdResource));
   if (!spend) return { ok: false, gained: 0, spent: 0 };
@@ -182,6 +205,8 @@ export function spendCrowdForStamina(state, wrestlerId, amount = 1) {
 }
 
 export function catchBreathToNeutral(state, wrestlerId) {
+  const allowed=validateCombatAction(state,ACTION_IDS.BREATH,wrestlerId);
+  if(!allowed.ok)return {ok:false,reason:allowed.reason};
   const w = wrestler(state, wrestlerId);
   recover(w, 10);
   beginNeutral(state, { resetPostures: true });
@@ -189,6 +214,8 @@ export function catchBreathToNeutral(state, wrestlerId) {
 }
 
 export function scrambleUp(state, wrestlerId) {
+  const allowed=validateCombatAction(state,ACTION_IDS.SCRAMBLE,wrestlerId);
+  if(!allowed.ok)return {ok:false,reason:allowed.reason};
   const w = wrestler(state, wrestlerId);
   if (!w || w.posture !== 'prone' || state.activeHold) return { ok: false };
   w.posture = 'standing';
@@ -228,6 +255,7 @@ export function resolveMoveAttempt(state, {
 }) {
   const move = demoMoves.find(item => item.id === moveId);
   if (!move) throw new Error(`Unknown move ${moveId}`);
+  requireCombatAction(state,ACTION_IDS.MOVE,state.activeWrestlerId);
   const attackerId = state.activeWrestlerId;
   if (!attackerId) throw new Error('No active wrestler.');
   const defenderId = opponentId(attackerId);
@@ -276,6 +304,7 @@ export function resolveMoveAttempt(state, {
     state.pendingFailure = { attackerId, defenderId, moveId };
     state.phase = canReact(state) ? 'REACTION' : 'ACTION_SELECT';
     if (!canReact(state)) {
+      state.pendingFailure=null;
       // Existing H/L stays. A failed action from the special N/N kickout turn returns to Neutral.
       if (state.neutralAction || roleFor(state, attackerId) === 'N') beginNeutral(state);
       else state.activeWrestlerId = attackerId;
@@ -311,7 +340,7 @@ export function resolveMoveAttempt(state, {
   if (move.sustained) {
     state.activeHold={
       moveId:move.id,holderId:attackerId,defenderId,
-      target:resolvedTarget,ticks:0,escapes:0,
+      target:resolvedTarget,ticks:0,escapes:0,tickCost:move.sustained.tickCost,
       // Every successful grapple immediately grants its defender an escape roll.
       // Even a zero-stamina rival can attempt one final escape before a tapout.
       finishPending:defender.stamina===0
@@ -336,7 +365,7 @@ export function resolveMoveAttempt(state, {
 // Release retains High control and creates a normal pin opportunity.
 export function maintainHold(state){
   const hold=state.activeHold;
-  if(!hold||state.phase!=='HOLD'||state.winnerId)return {ok:false,reason:'No active holder turn'};
+  if(!hold||!validateCombatAction(state,ACTION_IDS.HOLD_SQUEEZE,hold.holderId).ok)return {ok:false,reason:'No active holder turn or insufficient stamina'};
   const move=demoMoves.find(m=>m.id===hold.moveId),spec=move?.sustained;
   const holder=wrestler(state,hold.holderId),defender=wrestler(state,hold.defenderId);
   if(!spec||holder.stamina<spec.tickCost)return {ok:false,reason:'Not enough stamina to maintain the hold'};
@@ -358,7 +387,7 @@ export function maintainHold(state){
 }
 export function releaseHold(state){
   const hold=state.activeHold;
-  if(!hold||state.phase!=='HOLD')return {ok:false,reason:'No releasable hold'};
+  if(!hold||!validateCombatAction(state,ACTION_IDS.HOLD_RELEASE,hold.holderId).ok)return {ok:false,reason:'No releasable hold'};
   const id=hold.holderId;
   state.activeHold=null;state.pendingFailure=null;
   state.activeWrestlerId=id;
@@ -371,7 +400,7 @@ export function releaseHold(state){
 }
 export function escapeHold(state,{escapeRoll}={}){
   const hold=state.activeHold;
-  if(!hold||state.phase!=='HOLD_ESCAPE'||!Number.isInteger(escapeRoll)||escapeRoll<1||escapeRoll>20)
+  if(!hold||!validateCombatAction(state,ACTION_IDS.HOLD_ESCAPE,hold.defenderId).ok||!Number.isInteger(escapeRoll)||escapeRoll<1||escapeRoll>20)
     return {ok:false,reason:'No legal escape attempt'};
   const holder=wrestler(state,hold.holderId),defender=wrestler(state,hold.defenderId);
   const move=demoMoves.find(m=>m.id===hold.moveId),spec=move.sustained;
@@ -406,7 +435,7 @@ export function escapeHold(state,{escapeRoll}={}){
 }
 
 export function declineReaction(state) {
-  if (!state.pendingFailure) return { ok: false };
+  if (!state.pendingFailure||!validateCombatAction(state,ACTION_IDS.PASS_REACTION,state.pendingFailure.defenderId).ok) return { ok: false };
   const attackerId = state.pendingFailure.attackerId;
   state.pendingFailure = null;
   if (roleFor(state, attackerId) === 'N' || state.neutralAction) {
@@ -420,6 +449,7 @@ export function declineReaction(state) {
 
 export function resolveReaction(state, { reactionRoll, damageRoll }) {
   if (!state.pendingFailure) throw new Error('No reaction is pending.');
+  requireCombatAction(state,ACTION_IDS.REACT,state.pendingFailure.defenderId);
   const originalAttackerId = state.pendingFailure.attackerId;
   const reactorId = state.pendingFailure.defenderId;
   const originalAttacker = wrestler(state, originalAttackerId);
@@ -473,6 +503,7 @@ export function resolveReaction(state, { reactionRoll, damageRoll }) {
 }
 
 export function startPin(state) {
+  requireCombatAction(state,ACTION_IDS.PIN,state.pinningWrestlerId);
   if (!state.pinEligible || !state.pinningWrestlerId) throw new Error('No pin opportunity is available.');
   state.phase = 'PIN';
   return {
@@ -483,7 +514,9 @@ export function startPin(state) {
 }
 
 export function resolvePinCount(state, { pinningId, count, pinningRoll, pinnedRoll }) {
+  if(pinningId!==state.pinningWrestlerId)throw new Error('Wrong pinning wrestler.');
   const pinnedId = opponentId(pinningId);
+  requireCombatAction(state,ACTION_IDS.COUNT_PIN,pinnedId);
   const pinning = wrestler(state, pinningId);
   const pinned = wrestler(state, pinnedId);
   const pinningPenalty = pinning.bodyDamage.core || 0;
@@ -535,6 +568,8 @@ export function resolvePinCount(state, { pinningId, count, pinningRoll, pinnedRo
 }
 
 export function skipPin(state) {
+  const decision=validateCombatAction(state,ACTION_IDS.SKIP_PIN,state.pinningWrestlerId);
+  if(!decision.ok)return {ok:false,forced:Boolean(state.pinEligible),reason:decision.reason};
   const forced = state.pinningWrestlerId && wrestler(state, opponentId(state.pinningWrestlerId)).stamina <= 0;
   if (forced) return { ok: false, forced: true };
   state.pinEligible = false;
