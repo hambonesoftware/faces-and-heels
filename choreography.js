@@ -5,7 +5,7 @@ const dot=(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0),length=a=>Math.hypot(...a);
 const unit=a=>mul(a,1/(length(a)||1)),clamp=t=>Math.max(0,Math.min(1,t));
 const ease=t=>{t=clamp(t);return t*t*(3-2*t)},PI=Math.PI;
 const env=(t,a,b,c,d)=>ease((t-a)/(b-a))*(1-ease((t-c)/(d-c)));
-export const MOVE_TIMING={lockup:{duration:1900},forearm:{duration:1550,impact:.5},clothesline:{duration:2050,impact:.48},suplex:{duration:3600,impact:.82},body_slam:{duration:3100,impact:.8},dragon_screw:{duration:2500,impact:.76},headlock:{duration:2300,impact:.52},pin:{duration:1500},kickout:{duration:1600,impact:.44},finisher:{duration:3700,impact:.82}};
+export const MOVE_TIMING={pick_up:{duration:2350},pull_to_knees:{duration:1750},snap_down:{duration:2100,impact:.77},lockup:{duration:1900},forearm:{duration:1550,impact:.5},clothesline:{duration:2050,impact:.48},suplex:{duration:3600,impact:.82},body_slam:{duration:3100,impact:.8},dragon_screw:{duration:2500,impact:.76},headlock:{duration:2300,impact:.52},pin:{duration:1500},kickout:{duration:1600,impact:.44},finisher:{duration:3700,impact:.82}};
 export const ARM_LENGTH=.74;
 export function transformJoint(p,root,yaw,roll=0){const x=p[0]*Math.cos(yaw)+p[2]*Math.sin(yaw),z=-p[0]*Math.sin(yaw)+p[2]*Math.cos(yaw);return add(root,[x*Math.cos(roll)-p[1]*Math.sin(roll),x*Math.sin(roll)+p[1]*Math.cos(roll),z]);}
 const BASE={pelvis:[0,1.46,0],chest:[0,2.3,0],head:[0,3.14,0],ls:[-.55,2.65,0],rs:[.55,2.65,0],le:[-.78,2.14,.1],re:[.78,2.14,.1],lh:[-.5,2.25,.58],rh:[.5,2.25,.58],lk:[-.34,.79,.12],rk:[.34,.79,.12],la:[-.4,.25,.1],ra:[.4,.25,.1]};
@@ -93,6 +93,15 @@ function tracks(name){
   }else if(name==='dragon_screw'){
     A=[K(0,[-1.4,1.46,0]),K(.25,[-.72,.98,-.45],{lean:.18}),K(.45,[-.65,1.0,-.55],{yaw:.6}),K(.62,[-.82,.85,-.72],{yaw:-.25}),K(.76,[-1,.98,-.85]),K(1,[-1.4,1.46,-.85])];
     D=[DK(0,[1.4,1.46,0]),DK(.25,[.85,1.46,.5]),DK(.45,[.85,1.4,.5],{lean:-.1}),DK(.62,[1,1.25,.6],{roll:-.5,ground:0,spread:.5}),down(.76,1.1,.7),down(1,1.1,.7)];
+  }else if(name==='pick_up'){
+    A=[K(0,[-1.3,1.46,-.62]),K(.22,[-.48,1.24,-.53],{lean:.3}),K(.42,[-.46,1.15,-.53],{lean:.26}),K(.64,[-.49,1.36,-.53],{lean:.14}),K(.86,[-.57,1.46,-.53]),K(1,[-.67,1.46,-.53])];
+    D=[down(0,.86,.55),down(.22,.86,.55),DK(.42,[.82,.75,.55],{roll:-.92,spread:.55,ground:.15}),DK(.64,[.84,1.12,.55],{roll:-.34,spread:.25,ground:.5}),DK(.86,[.88,1.46,.55]),DK(1,[.88,1.46,.55])];
+  }else if(name==='pull_to_knees'){
+    A=[K(0,[-1.3,1.46,-.62]),K(.25,[-.48,1.2,-.53],{lean:.29}),K(.5,[-.45,1.14,-.53],{lean:.25}),K(.76,[-.49,1.29,-.53],{lean:.2}),K(1,[-.55,1.38,-.53],{lean:.16})];
+    D=[down(0,.86,.55),down(.25,.86,.55),DK(.52,[.83,.72,.55],{roll:-.93,spread:.6,ground:.1}),DK(.78,[.84,.95,.55],{roll:-.25,spread:.25,ground:.6}),DK(1,[.84,.98,.55],{roll:0,ground:.75})];
+  }else if(name==='snap_down'){
+    A=[K(0,[-1.4,1.46,-.6]),K(.25,[-.48,1.25,-.55],{lean:.23}),K(.5,[-.42,1.1,-.55],{lean:.35}),K(.73,[-.56,1.25,-.57],{lean:.16}),K(1,[-.9,1.46,-.6])];
+    D=[DK(0,[1.4,1.46,.58]),DK(.25,[.88,1.36,.58],{lean:.13}),DK(.5,[.78,.94,.58],{roll:-.66,ground:.2,spread:.3}),down(.77,.92,.63),down(1,.92,.63)];
   }else if(name==='headlock'){
     A=[K(0,[-.55,1.2,-1.15],{yaw:0}),K(.28,[.35,.92,-.9],{yaw:0,lean:.25}),K(.52,[.32,.86,-.9],{yaw:0,lean:.28}),K(.75,[.35,.91,-.9],{yaw:0,lean:.24}),K(1,[.35,.92,-.9],{yaw:0,lean:.25})];
     D=[down(0,-.75,.3),down(.52,-.75,.3,{spread:.5}),down(1,-.75,.3)];
@@ -107,10 +116,15 @@ function mirror(r){r.root=[-r.root[0],r.root[1],-r.root[2]];r.yaw+=PI;r.roll=-r.
 export function samplePair(name,t,attackerId='stone',postures={},time=0){
   t=clamp(t);const other=attackerId==='stone'?'viper':'stone';
   if(!name){const result={};for(const [id,x,yaw] of [['stone',-1.4,PI/2],['viper',1.4,-PI/2]]){
-    const prone=postures[id]==='prone',r=build(id,{p:[x,prone?.39:1.46,prone?(id==='stone'?-.7:.7):0],yaw,roll:prone?(id==='stone'?PI/2:-PI/2):0,spread:prone?1:0,ground:prone?0:1,lean:Math.sin(time/480)*.012});
+    const prone=postures[id]==='prone',kneeling=postures[id]==='kneeling',r=build(id,{p:[x,prone?.39:kneeling?.98:1.46,prone?(id==='stone'?-.7:.7):0],yaw,roll:prone?(id==='stone'?PI/2:-PI/2):0,spread:prone?1:0,ground:prone?0:kneeling?.75:1,lean:Math.sin(time/480)*.012});
     for(const side of ['l','r']){arm(r,side,r.j[side+'h']);leg(r,side,r.j[side+'a']);}ground(r);result[id]=r;
   }return result;}
-  const [A,D]=TRACKS[name]||tracks(name),a=sampleTrack(attackerId,A,t),d=sampleTrack(other,D,t);
+  const [A,D]=TRACKS[name]||tracks(name);
+  // Snap downs can start from either standing or kneeling, consistent with the rules.
+  const defenderKeys=(name==='snap_down'&&postures[other]==='kneeling')
+    ?[DK(0,[1.4,.98,.58],{ground:.75}),DK(.25,[.88,.94,.58],{lean:.1,ground:.65}),DK(.5,[.78,.83,.58],{roll:-.66,ground:.2,spread:.3}),down(.77,.92,.63),down(1,.92,.63)]
+    :D;
+  const a=sampleTrack(attackerId,A,t),d=sampleTrack(other,defenderKeys,t);
   if(name==='dragon_screw')leg(d,'r',add(d.j.pelvis,[-.95,-.25,-.1]),env(t,.08,.25,.45,.7));
   ground(a);ground(d);
   // Pins use vertical separation; keep the defender's back on the mat.
@@ -124,6 +138,7 @@ export function samplePair(name,t,attackerId='stone',postures={},time=0){
   else if(name==='clothesline')grip(a,'l',add(d.j.chest,[0,.25,0]),env(t,.22,.44,.49,.65),.4);
   else if(['suplex','finisher','body_slam'].includes(name)){const w=env(t,.09,.22,.61,.75),slam=name==='body_slam';grip(a,slam?'r':'l',mix(d.j.chest,neckPoint(d),.25),w,.4);grip(a,slam?'l':'r',d.j.pelvis,w,.4);grip(d,'l',a.j.rs,env(t,.1,.22,.35,.5),.18);}
   else if(name==='dragon_screw'){const w=env(t,.1,.25,.48,.68);arm(a,'l',add(d.j.ra,[0,.08,.12]),w);arm(a,'r',add(d.j.ra,[0,-.08,-.12]),w);}
+  else if(['pick_up','pull_to_knees','snap_down'].includes(name)){const w=name==='snap_down'?env(t,.12,.29,.63,.86):env(t,.1,.28,.8,1.03);grip(a,'l',neckPoint(d),w,.24);grip(a,'r',d.j.rs,w,.18);}
   else if(name==='headlock'){const w=ease(t/.28);grip(a,'l',neckPoint(d),w,.28);grip(a,'r',d.j.rs,w,.18);}
   else if(name==='pin')grip(a,'r',d.j.rk,1,.22);
   for(const r of [a,d])for(const side of ['l','r'])if(r.j[side+'h'][1]<.25)arm(r,side,[r.j[side+'h'][0],.25,r.j[side+'h'][2]]);
