@@ -10,7 +10,7 @@ import {resolveTargetDecision} from './flow-engine.js';
 const distance=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i]));
 const allMoves=[...demoMoves,reactionMove];
 const moveIds=new Set(allMoves.map(move=>move.id));
-assert.equal(moveIds.size,23,'Every move ID must be unique');
+assert.equal(moveIds.size,24,'Every move ID must be unique');
 assert.equal(Object.keys(animationByMove).length,allMoves.length,'Every move requires choreography');
 assert.equal(Object.keys(MOVE_ART_TIMES).length,allMoves.length,'Every move including the counter needs art');
 
@@ -29,8 +29,12 @@ for(const move of allMoves){
   }
   assert(move.automatic===true || move.category!=='setup',move.id+': setup moves should not require a d20');
   const state=cloneInitialState();
-  giveControl(state,'stone');
-  const actor=wrestler(state,'stone'),defender=wrestler(state,'viper');
+  const actorId=move.id==='viper-bite'?'viper':'stone';
+  const defenderId=actorId==='stone'?'viper':'stone';
+  giveControl(state,actorId);
+  const actor=wrestler(state,actorId),defender=wrestler(state,defenderId);
+  // Each move is tested as part of an explicitly learned repertoire, not as a global unlock.
+  if(!move.legendary && move.category!=='setup' && !actor.commonMoves.includes(move.id)) actor.commonMoves.push(move.id);
   actor.posture=move.requirements.attackerPostures[0];
   defender.posture=move.requirements.defenderPostures[0];
   assert(getLegalMoves(state).some(item=>item.id===move.id),move.id+': move must be legal in its declared starting position');
@@ -47,7 +51,7 @@ for(const move of allMoves){
   if(move.category==='setup'){
     assert.equal(JSON.stringify(defender.bodyDamage),bodyBefore,move.id+': setup must not mark damage');
     assert.equal(state.pinEligible,false,move.id+': setup must not produce a pin');
-    assert.equal(state.activeWrestlerId,'stone',move.id+': setup must retain control');
+    assert.equal(state.activeWrestlerId,actorId,move.id+': setup must retain control');
   }
   if(move.result?.preserveDefenderPosture)assert.equal(defender.posture,originalPosture,move.id+': posture unexpectedly changed');
 
