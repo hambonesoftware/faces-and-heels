@@ -144,7 +144,7 @@ function simulateMatch(seed, maxSteps = 600) {
         const effect=maintainHold(state);
         assert.ok(effect.ok,'Hold must tighten');
         holdPressures++;
-        if(effect.submitted)submissions++;
+        if(effect.finishPending)assert.equal(state.phase,'HOLD_ESCAPE','Submission must allow final defensive roll');
       }
       validateState(state,`seed ${seed} hold pressure`);
       continue;
@@ -153,6 +153,7 @@ function simulateMatch(seed, maxSteps = 600) {
       const outcome=escapeHold(state,{escapeRoll:die(rng,20)});
       assert.ok(outcome.ok,'Defender must be allowed to escape');
       if(outcome.success)holdEscapes++;
+      if(outcome.submitted)submissions++;
       validateState(state,`seed ${seed} hold escape`);
       continue;
     }
