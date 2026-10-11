@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   cloneInitialState,
+  giveControl,
   wrestler,
   statModifier,
   conditioning,
@@ -120,6 +121,7 @@ assert.equal(pinfallState.winnerId, 'stone');
 
 // Crowd resource converts to stamina without exceeding max.
 const recoveryState = cloneInitialState();
+giveControl(recoveryState,'stone');
 recoveryState.wrestlers.stone.stamina = 20;
 const recovery = spendCrowdForStamina(recoveryState, 'stone', 1);
 assert.equal(recovery.ok, true);
