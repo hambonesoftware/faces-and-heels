@@ -167,7 +167,7 @@ function renderFighterHud(w, side) {
 function renderHeader() {
   return `
     <header class="game-header">
-      <div class="brand"><span>FACES</span><b>&</b><strong>HEELS</strong><em>RINGSIDE</em></div>
+      <div class="brand"><span>FACES</span><b>&</b><strong>HEELS</strong><em>NEON SHOWDOWN</em></div>
       <button class="icon-button" data-drawer="menu" aria-label="Match menu">☰</button>
     </header>
     <section class="fighter-strip">
@@ -363,7 +363,7 @@ function renderDecisionDock() {
   if (ui.phase === 'OPPORTUNITY') return renderOpportunity();
   if (ui.phase === 'REACTION') return renderReaction();
   if (ui.phase === 'MATCH_COMPLETE') return renderMatchComplete();
-  if (['ROLLING','ANIMATING','PIN'].includes(ui.phase)) return `<section class="decision-panel decision-panel--quiet"><span>${ui.phase === 'PIN' ? 'Pin in progress…' : 'Match action in progress…'}</span></section>`;
+  if (['ROLLING','ANIMATING','PIN'].includes(ui.phase)) return '';
   return renderMoveCards();
 }
 
@@ -424,7 +424,7 @@ function render() {
   previousDrawer = ui.drawer;
   syncUiToEngine();
   const oldCanvas = document.querySelector('#match-canvas');
-  app.innerHTML = `<div class="game-shell phase-${ui.phase.toLowerCase()} ${progression.theme==='championship'?'is-championship':''}">${renderHeader()}${renderArena()}${renderDecisionDock()}<footer><span>RINGSIDE LIVE · ${state.turnCounter} ACTIONS</span><button data-drawer="log">MATCH LOG</button></footer></div>${renderDrawer()}${introOpen ? renderMatchIntro() : ''}`;
+  app.innerHTML = `<div class="game-shell phase-${ui.phase.toLowerCase()} ${progression.theme==='championship'?'is-championship':''}">${renderHeader()}<div class="arena-combat-zone">${renderArena()}<div class="tactical-menu-anchor">${renderDecisionDock()}</div></div><footer><span>RINGSIDE LIVE · ${state.turnCounter} ACTIONS</span><button data-drawer="log">MATCH LOG</button></footer></div>${renderDrawer()}${introOpen ? renderMatchIntro() : ''}`;
   const canvas = document.querySelector('#match-canvas');
   if (!stage) {
     stage = new IsoStage(canvas);
