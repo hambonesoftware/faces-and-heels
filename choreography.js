@@ -148,10 +148,27 @@ export function samplePair(name,t,attackerId='stone',postures={},time=0){
   }return result;}
   const [A,D]=TRACKS[name]||tracks(name);
   // Snap downs can start from either standing or kneeling, consistent with the rules.
-  const defenderKeys=(name==='snap_down'&&postures[other]==='kneeling')
+  const defenderKneeling=postures[other]==='kneeling';
+  // Every legal starting posture must be reflected in the paired animation;
+  // otherwise a kneeling opponent teleports upright at animation frame zero.
+  let defenderKeys=(name==='snap_down'&&defenderKneeling)
     ?[DK(0,[1.4,.98,.58],{ground:.75}),DK(.25,[.88,.94,.58],{lean:.1,ground:.65}),DK(.5,[.78,.83,.58],{roll:-.66,ground:.2,spread:.3}),down(.77,.92,.63),down(1,.92,.63)]
     :D;
-  const a=sampleTrack(attackerId,A,t),d=sampleTrack(other,defenderKeys,t);
+  if(defenderKneeling&&['ddt','knee_lift'].includes(name)){
+    const first=D[0][1].p,second=D[1][1].p;
+    defenderKeys=[DK(0,[first[0],.98,first[2]],{ground:.75}),DK(.14,[(first[0]+second[0])/2,1.02,(first[2]+second[2])/2],{ground:.65}),...D.slice(1)];
+  }
+  if(defenderKneeling&&name==='forearm'){
+    defenderKeys=D.map(([time,spec])=>DK(time,[spec.p[0],.98,spec.p[2]],{roll:spec.roll,lean:spec.lean,spread:spec.spread,ground:.75}));
+  }
+  let attackerKeys=A;
+  const attackerKneeling=postures[attackerId]==='kneeling';
+  if(attackerKneeling&&['pick_up','armbar','ankle_lock'].includes(name)){
+    const first=A[0][1].p,last=A[A.length-1][1].p;
+    attackerKeys=[K(0,[first[0],.98,first[2]],{ground:.75}),K(.15,[first[0],.98,first[2]],{ground:.75}),...A.slice(1,-1),
+      K(1,[last[0],name==='pick_up'?1.46:.98,last[2]],{ground:name==='pick_up'?1:.75})];
+  }
+  const a=sampleTrack(attackerId,attackerKeys,t),d=sampleTrack(other,defenderKeys,t);
   if(name==='dragon_screw')leg(d,'r',add(d.j.pelvis,[-.95,-.25,-.1]),env(t,.08,.25,.45,.7));
   ground(a);ground(d);
   // Pins use vertical separation; keep the defender's back on the mat.
