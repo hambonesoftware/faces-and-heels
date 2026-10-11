@@ -20,10 +20,11 @@ if not errorlevel 1 goto docker_ready
 
 echo Docker is installed, but the Docker engine is not running.
 set "DOCKER_DESKTOP=%ProgramFiles%\Docker\Docker\Docker Desktop.exe"
+if not exist "!DOCKER_DESKTOP!" set "DOCKER_DESKTOP=%LOCALAPPDATA%\Programs\DockerDesktop\Docker Desktop.exe"
 if not exist "!DOCKER_DESKTOP!" goto docker_not_running
 
 echo Starting Docker Desktop...
-start "" "!DOCKER_DESKTOP!"
+powershell -NoProfile -Command "Start-Process -FilePath '%DOCKER_DESKTOP%' -WindowStyle Hidden"
 echo Waiting for Docker Desktop to become ready...
 set /a tries=0
 
@@ -49,11 +50,11 @@ echo.
 echo Faces ^& Heels is running.
 echo.
 echo Local address:
-echo     http://localhost:8080  ^(v1.5 iso action figures^)
+echo     http://localhost:8080  ^(v1.5 televised arena^)
 echo.
 echo Opening the game...
 timeout /t 2 /nobreak >nul
-start "" "http://localhost:8080/reset.html?fh=1.5.0&r=%RANDOM%%RANDOM%"
+start "" "http://localhost:8080/reset.html?fh=1.5.2&r=%RANDOM%%RANDOM%"
 echo.
 echo You can close this window. Docker keeps the game running.
 echo Double-click Stop-FH.bat when you want to stop it.

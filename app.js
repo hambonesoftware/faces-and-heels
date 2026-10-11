@@ -1,9 +1,12 @@
-import { emptyProgress, loadProgress, saveProgress, recordResult, resetProgress } from './progression.js?v=1.5.0';
-import { DEFAULT_PRESENTATION, readSettings, saveSettings, delayFor, tacticalLabel, chanceToHit, MatchAudio } from './presentation.js?v=1.5.0';
-import { demoMoves } from './moves.js?v=1.5.0';
-import { bodyLabel, resolveTargetDecision } from './flow-engine.js?v=1.5.0';
-import { SpriteStage } from './sprite-stage.js?v=1.5.0';
-import { IsoStage } from './iso-stage.js?v=1.5.0';
+import { emptyProgress, loadProgress, saveProgress, recordResult, resetProgress } from './progression.js?v=1.5.2';
+import { DEFAULT_PRESENTATION, readSettings, saveSettings, delayFor, tacticalLabel, chanceToHit, MatchAudio } from './presentation.js?v=1.5.2';
+import { demoMoves } from './moves.js?v=1.5.2';
+import { bodyLabel, resolveTargetDecision } from './flow-engine.js?v=1.5.2';
+import { IsoStage } from './iso-stage.js?v=1.5.2';
+let rendererMode = 'iso';
+try { const saved=localStorage.getItem('fh-renderer-v15'); if(['iso','sprite','compare'].includes(saved)) rendererMode=saved; } catch {}
+const requestedRenderer=new URLSearchParams(location.search).get('renderer');
+if(['iso','sprite','compare'].includes(requestedRenderer))rendererMode=requestedRenderer;
 import {
   cloneInitialState,
   opponentId,
@@ -25,7 +28,7 @@ import {
   catchBreathToNeutral,
   scrambleUp,
   totalBodyMarks
-} from './match-engine.js?v=1.5.0';
+} from './match-engine.js?v=1.5.2';
 
 const app = document.querySelector('#app');
 let progression=loadProgress(localStorage);
@@ -73,8 +76,6 @@ let ui = {
 };
 
 let stage = null;
-let rendererMode = localStorage.getItem('fh-renderer-v15') || 'iso';
-const StageClass = () => rendererMode === 'sprites' ? SpriteStage : IsoStage;
 let eventTimer = null;
 const params = new URLSearchParams(location.search);
 let seeded = Number(params.get('seed')) || null;
@@ -123,6 +124,7 @@ function log(entry) {
 }
 
 function syncUiToEngine() {
+  if (['ROLLING','ANIMATING','PIN'].includes(ui.phase)) return;
   if (state.phase === 'NEUTRAL_ROLL') ui.phase = 'NEUTRAL_ROLL';
   else if (state.phase === 'PIN_OPPORTUNITY') ui.phase = 'OPPORTUNITY';
   else if (state.phase === 'REACTION') ui.phase = 'REACTION';
@@ -173,7 +175,7 @@ function renderFighterHud(w, side) {
 function renderHeader() {
   return `
     <header class="game-header">
-      <div class="brand"><span>FACES</span><b>&</b><strong>HEELS</strong><em>v1.5 · ${rendererMode==='iso'?'ISO':'SPRITE'}</em></div>
+      <div class="brand"><span>FACES</span><b>&</b><strong>HEELS</strong><em>v1.5.2</em></div>
       <button class="icon-button" data-drawer="menu" aria-label="Match menu">☰</button>
     </header>
     <section class="fighter-strip">
@@ -208,7 +210,7 @@ function renderArenaOverlay() {
 
 function renderArena() {
   return `
-    <main class="arena-shell ${ui.event?.impact ? 'is-impact' : ''}">
+    <main class="arena-shell renderer-${rendererMode} ${ui.event?.impact ? 'is-impact' : ''}">
       <div class="arena-bg">
         <div class="arena-haze"></div>
         <div class="spot spot--blue"></div><div class="spot spot--red"></div><div class="spot spot--center"></div>
@@ -221,6 +223,9 @@ function renderArena() {
           <i class="post p1"></i><i class="post p2"></i><i class="post p3"></i><i class="post p4"></i>
           <i class="rope r1"></i><i class="rope r2"></i><i class="rope r3"></i><i class="rope r4"></i>
         </div>
+      </div>
+      <div class="renderer-toolbar" aria-label="Arena view">
+        ${[['iso','ISOMETRIC'],['sprite','SPRITES'],['compare','COMPARE']].map(([mode,label])=>`<button data-renderer="${mode}" aria-pressed="${rendererMode===mode}">${label}</button>`).join('')}<a href="./motion-lab.html">MOTION LAB ↗</a>
       </div>
       <canvas id="match-canvas" aria-label="Animated wrestling match"></canvas>
       <div class="arena-vignette"></div>
@@ -387,13 +392,13 @@ function renderBodyDrawer(wrestlerId) {
 function renderMenuDrawer() {
   return `
     <div class="drawer-backdrop" data-close-drawer></div><aside class="drawer">
-      <header><div><small>MATCH · v1.5 ISO ACTION FIGURES</small><strong>More</strong></div><button data-close-drawer>×</button></header>
+      <header><div><small>MATCH · v1.5 ARENA</small><strong>More</strong></div><button data-close-drawer>×</button></header>
       <button class="drawer-action" data-drawer="settings"><span>⚙</span><div><strong>Presentation settings</strong><small>Sound, motion, flash and speed.</small></div></button>
       <button class="drawer-action" data-drawer="progress"><span>▤</span><div><strong>Championship journey</strong><small>Local match series, rewards and rivalry.</small></div></button>
       <button class="drawer-action" data-drawer="log"><span>☷</span><div><strong>Match Log</strong><small>Rolls, control changes, damage, pins and recovery.</small></div></button>
       <button class="drawer-action" data-body="stone"><span>◉</span><div><strong>Stone Status</strong><small>Stats, body marks and stamina.</small></div></button>
       <button class="drawer-action" data-body="viper"><span>◉</span><div><strong>Viper Status</strong><small>Stats, body marks and stamina.</small></div></button>
-      <div class="principle-card"><small>v1.5 RENDERER TEST</small><strong>Keep control until the opponent steals it.<br>Prone creates a pin chance.</strong></div>
+      <div class="principle-card"><small>v1.5 MATCH LOOP</small><strong>Keep control until the opponent steals it.<br>Prone creates a pin chance.</strong></div>
     </aside>`;
 }
 
@@ -401,7 +406,7 @@ function renderLogDrawer() {
   return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer drawer--wide"><header><div><small>TRANSPARENT RULES</small><strong>Match Log</strong></div><button data-close-drawer>×</button></header><div class="log-list">${matchLog.slice().reverse().map((entry,i) => `<div><span>${matchLog.length-i}</span><p>${escapeHtml(entry)}</p></div>`).join('')}</div></aside>`;
 }
 
-function renderSettingsDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer"><header><strong>Presentation settings</strong><button data-close-drawer>×</button></header><p class="drawer-note">These settings change presentation only. Dice rolls and rules are identical.</p><div class="renderer-choice"><strong>Wrestler renderer</strong><button data-renderer="iso" class="${rendererMode==='iso'?'is-selected':''}">ISO ACTION FIGURES</button><button data-renderer="sprites" class="${rendererMode==='sprites'?'is-selected':''}">LEGACY SPRITES</button><small>Switch at any time to compare the same match logic.</small></div>${[['muted','Mute sound'],['reducedMotion','Reduced motion'],['reducedFlash','Reduced flash'],['fast','Fast presentation']].map(([key,label])=>`<label class="setting-option"><span>${label}</span><input type="checkbox" data-setting="${key}" ${settings[key]?'checked':''}></label>`).join('')}</aside>`;}
+function renderSettingsDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer"><header><strong>Presentation settings</strong><button data-close-drawer>×</button></header><p class="drawer-note">These settings change presentation only. Dice rolls and rules are identical.</p>${[['muted','Mute sound'],['reducedMotion','Reduced motion'],['reducedFlash','Reduced flash'],['fast','Fast presentation']].map(([key,label])=>`<label class="setting-option"><span>${label}</span><input type="checkbox" data-setting="${key}" ${settings[key]?'checked':''}></label>`).join('')}</aside>`;}
 function renderProgressDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer drawer--wide"><header><strong>Championship journey</strong><button data-close-drawer>×</button></header><p class="drawer-note">Three-match championship series. Results and cosmetic unlocks live only on this device. No combat bonuses.</p><div class="stat-summary"><span>Stone wins <b>${progression.wins.stone}</b></span><span>Viper wins <b>${progression.wins.viper}</b></span><span>Matches <b>${progression.series}</b></span><span>Champion <b>${progression.champion?.toUpperCase()||'UNDECIDED'}</b></span></div><button class="drawer-action" data-toggle-career><strong>${progression.mode==='championship'?'CHAMPIONSHIP ACTIVE':'START CHAMPIONSHIP SERIES'}</strong></button><p class="drawer-note">Rewards: ${progression.palette==='spotlight'?'Spotlight palette unlocked':'Spotlight palette after 2 matches'} · ${progression.theme==='championship'?'Championship arena unlocked':'Championship arena after 3 matches'}</p>${progression.history.slice(-6).reverse().map(m=>`<p class="history-row">MATCH ${m.number} · ${m.winner.toUpperCase()} won · ${m.actions} actions</p>`).join('')}<button class="continue-button" data-reset-progress>RESET PROGRESSION</button></aside>`;}
 function renderHighlightsDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer drawer--wide"><header><strong>Match highlights</strong><button data-close-drawer>×</button></header>${highlights.length?highlights.slice(-12).reverse().map(x=>`<p class="history-row">${escapeHtml(x)}</p>`).join(''):'<p>No highlights yet.</p>'}</aside>`;}
 function renderDrawer() {
@@ -418,33 +423,18 @@ function renderDrawer() {
 function render() {
   syncUiToEngine();
   const oldCanvas = document.querySelector('#match-canvas');
-  app.innerHTML = `<div class="game-shell ${progression.theme==='championship'?'is-championship':''} renderer-${rendererMode}">${renderHeader()}${renderArena()}${renderDecisionDock()}<footer><span>v1.5 Iso Action Figures · provisional digital rules</span><button data-drawer="log">MATCH LOG</button></footer></div>${renderDrawer()}`;
+  app.innerHTML = `<div class="game-shell ${progression.theme==='championship'?'is-championship':''}">${renderHeader()}${renderArena()}${renderDecisionDock()}<footer><span>v1.5.2 Coordinated Moves · provisional digital rules</span><button data-drawer="log">MATCH LOG</button></footer></div>${renderDrawer()}`;
   const canvas = document.querySelector('#match-canvas');
   if (!stage) {
-    stage = new (StageClass())(canvas);
-    stage.init().then(() => stage.setRestingState({ postures: { stone: wrestler(state,'stone').posture, viper: wrestler(state,'viper').posture } }));
+    stage = new IsoStage(canvas);
+    stage.mode=rendererMode;
+    stage.init().then(() => stage.setRestingState({ postures: { stone: wrestler(state,'stone').posture, viper: wrestler(state,'viper').posture } })).catch(error=>{console.error('Sprite assets failed to load',error);});
   } else if (oldCanvas !== canvas) {
-    const previous = stage;
-    stage.resizeObserver.disconnect();
-    stage.active = false;
-    const replacement = new (StageClass())(canvas);
-    if (rendererMode === 'sprites') {
-      replacement.images = previous.images || replacement.images;
-      replacement.meta = previous.meta || replacement.meta;
-      replacement.debugAnchors = previous.debugAnchors || false;
-      replacement.display = previous.display || replacement.display;
-    }
-    replacement.playback = previous.playback || null;
-    replacement.impactPulse = previous.impactPulse || 0;
-    replacement.impactKind = previous.impactKind || 'strike';
-    replacement.impactPoint = previous.impactPoint || [0.52,0.48];
-    replacement.particles = previous.particles || [];
-    if (previous.postures) replacement.postures = {...previous.postures};
-    if (previous.camera) replacement.camera = {...previous.camera};
-    stage = replacement;
+    canvas.replaceWith(oldCanvas);
     stage.resize();
-    requestAnimationFrame(stage.loop);
   }
+  stage.mode=rendererMode;stage.fast=settings.fast;stage.reducedMotion=settings.reducedMotion;stage.reducedFlash=settings.reducedFlash;
+
 }
 
 function announce(title, detail = '', kind = 'major', impact = false, ms = 1050) {
@@ -473,6 +463,8 @@ async function rollNeutral() {
   const stoneRoll = rollDie(20);
   const viperRoll = rollDie(20);
   await rollingVisual('NEUTRAL · STONE BGD', stoneRoll);
+  ui.phase = 'ANIMATING'; render();
+  await stage.playLockup();
   const result = resolveNeutralRoll(state, stoneRoll, viperRoll);
   ui.neutralRolls = result;
   if (result.tie) {
@@ -511,6 +503,7 @@ async function playSuccessfulMove(move, result) {
   if(move.category==='special')audio.cue('finisher');
   await stage.playPair(anim.attacker, anim.defender, {
     attackerId: result.attackerId,
+    moveId: move.id,
     impactFrame: anim.impactFrame,
     choreography: anim.choreography,
     impactKind: anim.kind,
@@ -575,6 +568,7 @@ async function runReaction() {
     announce('COUNTER FAILS', state.phase === 'NEUTRAL_ROLL' ? 'Back to Neutral' : `${currentActor()?.name || 'H'} keeps control`, 'danger', false, 900);
     return;
   }
+  ui.phase='ANIMATING';render();
   const damageText = result.damage?.marked ? 'CORE MARK +1' : 'CORE HOLDS';
   await stage.playPair('forearm', 'forearm_hit', {
     attackerId: result.reactorId,
@@ -690,13 +684,15 @@ function resetSelection() {
   render();
 }
 
-app.addEventListener('change',event=>{const input=event.target.closest('[data-setting]');if(!input)return;settings=saveSettings(localStorage,{...settings,[input.dataset.setting]:input.checked});audio.muted=settings.muted;document.documentElement.classList.toggle('user-reduced-motion',settings.reducedMotion);document.documentElement.classList.toggle('user-reduced-flash',settings.reducedFlash);});
+app.addEventListener('change',event=>{const input=event.target.closest('[data-setting]');if(!input)return;settings=saveSettings(localStorage,{...settings,[input.dataset.setting]:input.checked});audio.muted=settings.muted;if(stage){stage.reducedMotion=settings.reducedMotion;stage.reducedFlash=settings.reducedFlash;}document.documentElement.classList.toggle('user-reduced-motion',settings.reducedMotion);document.documentElement.classList.toggle('user-reduced-flash',settings.reducedFlash);});
 app.addEventListener('click', event => {
   audio.unlock();
   const el = event.target.closest('button,[data-close-drawer]');
   if (!el) return;
+  if (['ROLLING','ANIMATING','PIN'].includes(ui.phase) && !el.dataset.renderer && !el.dataset.drawer && el.dataset.closeDrawer===undefined) return;
   if (el.dataset.neutralRoll !== undefined) { rollNeutral(); return; }
   if (el.dataset.move) { const move = demoMoves.find(m => m.id === el.dataset.move); if (move) selectMove(move); return; }
+  if (el.dataset.renderer) {rendererMode=el.dataset.renderer;try{localStorage.setItem('fh-renderer-v15',rendererMode)}catch{} render();return;}
   if (el.dataset.target) { ui.selectedTarget = el.dataset.target; log(`${currentActor().name} chose ${bodyLabel(ui.selectedTarget)} for ${ui.selectedMove.name}.`); ui.phase = 'SELECTED'; render(); return; }
   if (el.dataset.roll !== undefined) { rollMove(); return; }
   if (el.dataset.boost !== undefined) { const actor=currentActor(); ui.spendCrowd = ui.spendCrowd ? 0 : (actor?.crowdResource > 0 ? 1 : 0); render(); return; }
@@ -710,8 +706,7 @@ app.addEventListener('click', event => {
   if (el.dataset.catchBreath !== undefined) { catchBreath(); return; }
   if(el.dataset.toggleCareer!==undefined){progression.mode=progression.mode==='championship'?'quick':'championship';saveProgress(localStorage,progression);render();return;}
   if(el.dataset.resetProgress!==undefined){if(confirm('Reset all local championship results and rewards?')){progression=resetProgress(localStorage);render();}return;}
-  if (el.dataset.renderer) { const next=el.dataset.renderer; if(next!==rendererMode){rendererMode=next;localStorage.setItem('fh-renderer-v15',rendererMode);if(stage){stage.resizeObserver?.disconnect();stage.active=false;stage=null;}ui.drawer=null;render();} return; }
-  if (el.dataset.newMatch !== undefined) { location.href='./?fhbuild=1.5.0&t='+Date.now(); return; }
+  if (el.dataset.newMatch !== undefined) { location.href='./?fhbuild=1.5.2&t='+Date.now(); return; }
   if (el.dataset.moreMoves !== undefined) { ui.moreMoves=!ui.moreMoves; if(!ui.moreMoves) ui.filter='all'; render(); return; }
   if (el.dataset.filter) { ui.filter=el.dataset.filter; ui.moreMoves=true; render(); return; }
   if (el.dataset.body) { ui.drawer=el.dataset.body; render(); return; }
@@ -734,3 +729,4 @@ applyDemoQuery();
 document.documentElement.classList.toggle('user-reduced-motion',settings.reducedMotion);
 document.documentElement.classList.toggle('user-reduced-flash',settings.reducedFlash);
 render();
+

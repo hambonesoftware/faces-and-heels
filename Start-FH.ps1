@@ -24,9 +24,10 @@ if ($LASTEXITCODE -ne 0) {
 & docker info *> $null
 if ($LASTEXITCODE -ne 0) {
     $dockerDesktop = Join-Path $env:ProgramFiles "Docker\Docker\Docker Desktop.exe"
+    if (-not (Test-Path -LiteralPath $dockerDesktop)) { $dockerDesktop = Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\Docker Desktop.exe" }
     if (Test-Path $dockerDesktop) {
         Write-Host "Starting Docker Desktop..."
-        Start-Process $dockerDesktop
+        Start-Process $dockerDesktop -WindowStyle Hidden
     }
 
     Write-Host "Waiting for Docker Desktop..."
@@ -60,4 +61,4 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "Faces & Heels is running at http://localhost:8080" -ForegroundColor Green
 Start-Sleep -Seconds 2
-Start-Process ("http://localhost:8080/reset.html?fh=1.5.0&t=" + [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())
+Start-Process ("http://localhost:8080/reset.html?fh=1.5.2&t=" + [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())

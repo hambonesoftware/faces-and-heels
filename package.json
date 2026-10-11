@@ -1,23 +1,23 @@
 {
   "name": "faces-and-heels-pwa",
-  "version": "1.5.0",
+  "version": "1.5.2",
   "type": "module",
   "private": true,
-  "description": "Faces & Heels v1.5: playable isometric action-figure renderer prototype with legacy sprite fallback, preserving the complete v1.3/v1.4 match loop and offline Docker PWA.",
+  "description": "Faces & Heels v1.5.2 beveled block wrestler models with retained paired animation",
   "scripts": {
-    "test": "node test-flow.mjs && node test-v11.mjs && node test-v13.mjs && node test-presentation.mjs && node test-v15.mjs && node test-simulations.mjs",
+    "test": "node test-flow.mjs && node test-v11.mjs && node test-v13.mjs && node test-presentation.mjs && node test-simulations.mjs && node test-isometric.mjs && node test-block-model.mjs && node test-package.cjs",
     "test:flow": "node test-flow.mjs",
     "test:v11": "node test-v11.mjs",
     "test:v13": "node test-v13.mjs",
     "test:sim": "node test-simulations.mjs",
     "sprites": "python art_pipeline/generate_match_sprites.py",
-    "test:v15": "node test-v15.mjs"
+    "start": "node serve.cjs"
   },
   "facesAndHeels": {
     "uxSpec": "docs/Faces_and_Heels_Match_UX_HUD_Spec_v1.0.md",
     "uiTokens": "docs/faces_heels_ui_tokens_v1.json",
     "matchFlow": "docs/faces_heels_match_flow_v1.json",
-    "implementationNotes": "docs/V1.5_ISO_ACTION_FIGURES.md",
+    "implementationNotes": "docs/V1.3_COMPLETE_MATCH_LOOP.md",
     "spriteGenerator": "art_pipeline/generate_match_sprites.py",
     "principle": "Facts are labels. Decisions are buttons.",
     "visualPolishSpec": "docs/visual_polish_v1/Faces_and_Heels_Visual_Polish_UI_Redo_Spec_v1.0.md",

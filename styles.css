@@ -6,6 +6,21 @@
   --shadow:rgba(0,0,0,.52);--radius:16px;
   font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
+.renderer-toolbar{position:absolute;top:10px;left:12px;right:12px;z-index:20;display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.renderer-toolbar button,.renderer-toolbar a{border:1px solid #345065;background:#0b192bed;border-radius:8px;min-height:34px;padding:6px 10px;color:#bacddd;font:800 10px system-ui;cursor:pointer;text-decoration:none}
+.renderer-toolbar button[aria-pressed=true]{background:#153d51;color:#7ce1ff;border-color:#2dbbff}
+.renderer-toolbar a{margin-left:auto}
+.renderer-iso .ring-stage,.renderer-compare .ring-stage{display:none}
+.renderer-iso .arena-led,.renderer-compare .arena-led{top:16%;bottom:auto}
+.renderer-compare .arena-shell{min-height:440px}
+.arena-shell.renderer-iso,.arena-shell.renderer-compare{min-height:390px}
+.lab-shell{max-width:1180px;margin:auto;padding:20px}
+.lab-shell h1{font-size:24px;margin:0 0 6px}.lab-shell p{color:#a3b4c8;font-size:14px;line-height:1.5}
+.lab-stage{position:relative;height:580px;background:radial-gradient(ellipse at 50% 25%,#244054,#070f1b 75%);border:1px solid #294056;border-radius:18px;overflow:hidden}
+.lab-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:15px 0}
+.lab-controls button,.lab-controls select{min-height:44px;padding:8px 16px;background:#132c40;color:#e6f6ff;border:1px solid #36566a;border-radius:9px;font:700 14px system-ui}
+.lab-controls input{flex:1;min-width:120px;accent-color:#2dbbff}.lab-shell a{color:#7cddff}
+@media(max-width:600px){.arena-shell.renderer-iso,.arena-shell.renderer-compare{min-height:330px}.renderer-toolbar button,.renderer-toolbar a{font-size:9px;padding:5px 7px}.lab-stage{height:430px}.lab-shell{padding:12px}}
 *{box-sizing:border-box}html,body,#app{margin:0;min-height:100%;background:var(--bg);color:var(--text)}
 body{min-height:100dvh;overflow-x:hidden;background:
   radial-gradient(circle at 23% -10%,rgba(45,187,255,.10),transparent 34%),
@@ -99,14 +114,3 @@ footer{min-height:24px;display:flex;align-items:center;justify-content:space-bet
 @media(orientation:landscape) and (max-height:560px){.game-shell{grid-template-rows:27px 52px minmax(225px,1fr) auto}.arena-shell{min-height:225px}.fighter-hud{height:50px}}
 
 .game-shell.is-championship .arena-led{background:linear-gradient(90deg,#20405c,#6c5121,#641f37);border-color:#c7a651}.game-shell.is-championship .ring-apron{border-color:#ffc72c}
-
-/* v1.5 — isometric action-figure renderer */
-.renderer-iso .arena-shell{background:radial-gradient(ellipse at 50% 30%,#294258 0,#091420 70%);}
-.renderer-iso .ring-stage{left:3%;right:3%;bottom:0;height:61%;perspective:900px;}
-.renderer-iso .ring-mat{left:8%;right:8%;top:8%;bottom:8%;clip-path:polygon(12% 0,88% 0,100% 100%,0 100%);background:radial-gradient(ellipse at 50% 35%,rgba(255,255,255,.98),rgba(221,231,240,.96) 36%,rgba(145,162,180,.98) 82%),repeating-linear-gradient(98deg,transparent 0 56px,#65788a14 57px 59px);box-shadow:inset 0 15px 38px #fff5,inset 0 -35px 45px #30435755,0 18px 25px #0008;}
-.renderer-iso .ring-apron{height:18%;bottom:-1%;background:linear-gradient(180deg,#24364b,#07111d 78%);clip-path:polygon(0 0,100% 0,94% 100%,6% 100%);}
-.renderer-iso .r1{top:12%}.renderer-iso .r2{top:22%}.renderer-iso .r3{bottom:30%}.renderer-iso .r4{bottom:18%}
-.renderer-iso #match-canvas{filter:drop-shadow(0 10px 7px rgba(0,0,0,.32));}
-.renderer-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 0 14px;border-bottom:1px solid #293c50}.renderer-choice>strong,.renderer-choice>small{grid-column:1/-1}.renderer-choice>strong{font-size:.78rem}.renderer-choice>small{color:var(--muted2);font-size:.66rem}.renderer-choice button{min-height:44px;border:0;border-radius:12px;background:#142437;color:var(--muted);font-size:.64rem;font-weight:950;letter-spacing:.05em;box-shadow:inset 0 0 0 1px #31485e;cursor:pointer}.renderer-choice button.is-selected{background:linear-gradient(180deg,#173e57,#102637);color:#eaf8ff;box-shadow:inset 0 0 0 1px #48cfff,0 0 18px #2dbbff22}
-.renderer-iso .arena-led{top:18%;opacity:.82}.renderer-iso .crowd--near{top:47%}.renderer-iso .crowd-signs{top:39%}
-@media(max-width:430px){.renderer-iso .ring-stage{height:63%;bottom:0}.renderer-iso .ring-mat{left:4%;right:4%}.renderer-choice{grid-template-columns:1fr}.renderer-choice>strong,.renderer-choice>small{grid-column:auto}}

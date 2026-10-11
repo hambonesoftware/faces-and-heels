@@ -1,14 +1,2 @@
-import fs from 'node:fs';
-import assert from 'node:assert/strict';
-const iso=fs.readFileSync(new URL('./iso-stage.js',import.meta.url),'utf8');
-const app=fs.readFileSync(new URL('./app.js',import.meta.url),'utf8');
-const sw=fs.readFileSync(new URL('./sw.js',import.meta.url),'utf8');
-assert.match(iso,/export class IsoStage/);
-for(const move of ['forearm','clothesline','headlock','suplex','body_slam','dragon_screw','kickout']) assert.match(iso,new RegExp(move));
-assert.match(app,/rendererMode/);
-assert.match(app,/IsoStage/);
-assert.match(app,/SpriteStage/);
-assert.match(app,/fh-renderer-v15/);
-assert.match(sw,/iso-stage\.js/);
-assert.match(sw,/faces-heels-v1\.5\.0/);
-console.log('v1.5 isometric renderer tests passed.');
+import './test-isometric.mjs';
+import './test-block-model.mjs';

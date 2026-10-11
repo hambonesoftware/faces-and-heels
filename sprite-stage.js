@@ -467,6 +467,7 @@ export class SpriteStage {
       frameCount,
       fps,
       impactFrame,
+      impactProgress: options.impactProgress,
       impactFired: false,
       onImpact: options.onImpact,
       choreography: choreoName,
@@ -563,9 +564,10 @@ export class SpriteStage {
     this.applyChoreography(p.choreography, raw, p.attackerId);
     this.solveContacts(p.choreography, raw, p.attackerId);
 
-    if (p.impactFrame !== null && !p.impactFired && frame >= p.impactFrame) {
+    if (p.impactFrame !== null && !p.impactFired && (p.impactProgress !== undefined ? raw >= p.impactProgress : frame >= p.impactFrame)) {
       p.impactFired = true;
       p.freezeFrame = frame;
+      p.freezeProgress = raw;
       if (p.hitStopMs > 0) p.freezeUntil = now + p.hitStopMs;
       this.pulseImpact(p.impactKind, p.impactPoint);
       p.onImpact?.();
