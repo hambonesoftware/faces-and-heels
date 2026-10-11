@@ -23,6 +23,8 @@ export const wrestlerDefinitions = {
     name: 'STONE',
     attitude: 'face',
     style: 'Powerhouse',
+    commonMoves:['forearm-smash','running-clothesline','knee-lift','body-slam','vertical-suplex','spinebuster','elbow-drop','stomp','ground-headlock'],
+    legendaryMoves:['flash-finisher'],
     crowdResourceName: 'POP',
     stats: {
       Power: 16,
@@ -39,6 +41,8 @@ export const wrestlerDefinitions = {
     name: 'VIPER',
     attitude: 'heel',
     style: 'Daredevil',
+    commonMoves:['forearm-smash','dropkick','neckbreaker','hip-toss','dragon-screw','ddt','leg-drop','knee-drop','armbar','ankle-lock'],
+    legendaryMoves:['viper-bite'],
     crowdResourceName: 'HEAT',
     stats: {
       Power: 14,
@@ -590,6 +594,8 @@ export const demoMoves = [
     crowdGain: 1,
     heatPopRequired: 2,
     legendary: true,
+    legendaryStyle:'Powerhouse',
+    signatureFor:'stone',
     description: 'A high-impact special that leaves the opponent prone.',
     requirements: {
       attackerPostures: ['standing'],
@@ -597,7 +603,25 @@ export const demoMoves = [
     },
     targeting: { mode: 'fixed', bodyParts: ['core'] },
     result: { defenderPosture: 'prone' }
+  }  ,{
+    id:'viper-bite',
+    name:"Viper's Bite",
+    category:'special',
+    stat:'Agility',
+    staminaCost:10,
+    staminaDamage:16,
+    damageDie:12,
+    crowdGain:1,
+    heatPopRequired:2,
+    legendary:true,
+    legendaryStyle:'Daredevil',
+    signatureFor:'viper',
+    description:'A twisting spring-in neck cutter: Viper clamps the head, spins, and drops the rival to the mat. A successful hit immediately offers a pin.',
+    requirements:{attackerPostures:['standing'],defenderPostures:['standing']},
+    targeting:{mode:'fixed',bodyParts:['head']},
+    result:{defenderPosture:'prone'}
   }
+
 ];
 
 export const reactionMove = {
