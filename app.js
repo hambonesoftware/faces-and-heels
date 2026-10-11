@@ -255,7 +255,10 @@ function renderMoveCards() {
   const categories = ['all','strike','grapple','setup','special'];
   const labels = {all:'ALL',strike:'STRIKES',grapple:'GRAPPLES',setup:'SETUPS',special:'FINISHERS'};
   const present = categories.filter(category => category === 'all' || allLegal.some(move => move.category === category));
-  const activeCategory = present.includes(ui.filter) ? ui.filter : 'all';
+  // A new posture can invalidate a previous category (for example, pickup
+  // ends the ground-attack list). Always show legal actions after the turn.
+  if(!present.includes(ui.filter)){ui.filter='all';ui.railOffset=0;}
+  const activeCategory = ui.filter;
   const moves = activeCategory === 'all' ? allLegal : allLegal.filter(move => move.category === activeCategory);
   const cards = moves.map((move, index) => {
     const decision = resolveTargetDecision(move, perspectiveState(state));
@@ -425,7 +428,7 @@ function renderLogDrawer() {
   return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer drawer--wide"><header><div><small>TRANSPARENT RULES</small><strong>Match Log</strong></div><button data-close-drawer aria-label="Close panel">×</button></header><div class="log-list">${matchLog.slice().reverse().map((entry,i) => `<div><span>${matchLog.length-i}</span><p>${escapeHtml(entry)}</p></div>`).join('')}</div></aside>`;
 }
 
-function renderSettingsDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer"><header><strong>Presentation settings</strong><button data-close-drawer aria-label="Close panel">×</button></header><p class="drawer-note">These settings change presentation only. Dice rolls and rules are identical.</p>${[['muted','Mute sound'],['reducedMotion','Reduced motion'],['reducedFlash','Reduced flash'],['fast','Fast presentation']].map(([key,label])=>`<label class="setting-option"><span>${label}</span><input type="checkbox" data-setting="${key}" ${settings[key]?'checked':''}></label>`).join('')}<details class="developer-options"><summary>Arena tools &amp; build info</summary><div class="lab-controls">${[['iso','Isometric'],['sprite','Sprites'],['compare','Compare']].map(([mode,label])=>`<button data-renderer="${mode}" aria-pressed="${rendererMode===mode}">${label}</button>`).join('')}</div><a href="./motion-lab.html">Open motion lab ↗</a><p>Build 1.10.0 · provisional digital rules</p></details></aside>`;}
+function renderSettingsDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer"><header><strong>Presentation settings</strong><button data-close-drawer aria-label="Close panel">×</button></header><p class="drawer-note">These settings change presentation only. Dice rolls and rules are identical.</p>${[['muted','Mute sound'],['reducedMotion','Reduced motion'],['reducedFlash','Reduced flash'],['fast','Fast presentation']].map(([key,label])=>`<label class="setting-option"><span>${label}</span><input type="checkbox" data-setting="${key}" ${settings[key]?'checked':''}></label>`).join('')}<details class="developer-options"><summary>Arena tools &amp; build info</summary><div class="lab-controls">${[['iso','Isometric'],['sprite','Sprites'],['compare','Compare']].map(([mode,label])=>`<button data-renderer="${mode}" aria-pressed="${rendererMode===mode}">${label}</button>`).join('')}</div><a href="./motion-lab.html">Open motion lab ↗</a><p>Build 1.11.0 · provisional digital rules</p></details></aside>`;}
 function renderProgressDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer drawer--wide"><header><strong>Championship journey</strong><button data-close-drawer aria-label="Close panel">×</button></header><div class="championship-track">${[1,2,3].map(n=>`<span class="${progression.series>=n?'is-earned':''}"><b>${n}</b>${['DEBUT','SPOTLIGHT','TITLE ARENA'][n-1]}</span>`).join('')}</div><p class="drawer-note">Three-match championship series. Results and cosmetic unlocks live only on this device. No combat bonuses.</p><div class="stat-summary"><span>Stone wins <b>${progression.wins.stone}</b></span><span>Viper wins <b>${progression.wins.viper}</b></span><span>Matches <b>${progression.series}</b></span><span>Champion <b>${progression.champion?.toUpperCase()||'UNDECIDED'}</b></span></div><button class="drawer-action" data-toggle-career><strong>${progression.mode==='championship'?'CHAMPIONSHIP ACTIVE':'START CHAMPIONSHIP SERIES'}</strong></button><p class="drawer-note">Rewards: ${progression.palette==='spotlight'?'Spotlight palette unlocked':'Spotlight palette after 2 matches'} · ${progression.theme==='championship'?'Championship arena unlocked':'Championship arena after 3 matches'}</p>${progression.history.slice(-6).reverse().map(m=>`<p class="history-row">MATCH ${m.number} · ${m.winner.toUpperCase()} won · ${m.actions} actions</p>`).join('')}<button class="continue-button" data-reset-progress>RESET PROGRESSION</button></aside>`;}
 function renderHighlightsDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer drawer--wide"><header><strong>Match highlights</strong><button data-close-drawer aria-label="Close panel">×</button></header>${highlights.length?highlights.slice(-12).reverse().map(x=>`<p class="history-row">${escapeHtml(x)}</p>`).join(''):'<p>No highlights yet.</p>'}</aside>`;}
 function renderDrawer() {
@@ -803,7 +806,7 @@ app.addEventListener('keydown',event=>{
   event.preventDefault();
   const move=rail.querySelector('[data-move]');
   const stride=(move?.offsetWidth||150)+12;
-  rail.scrollTo({left:event.key==='Home'?0:event.key==='End'?rail.scrollWidth:(rail.scrollLeft+(event.key==='ArrowRight'?stride:-stride)),behavior:settings.reducedMotion?'instant':'smooth'});
+  rail.scrollTo({left:event.key==='Home'?0:event.key==='End'?rail.scrollWidth:(rail.scrollLeft+(event.key==='ArrowRight'?stride:-stride)),behavior:settings.reducedMotion?'auto':'smooth'});
 });
 
 app.addEventListener('click', event => {
@@ -832,7 +835,7 @@ app.addEventListener('click', event => {
   if (el.dataset.railStep !== undefined) {
     const rail=app.querySelector('[data-action-rail]');
     const card=rail?.querySelector('[data-move]');
-    if(rail&&card)rail.scrollBy({left:Number(el.dataset.railStep)*(card.offsetWidth+12)*Math.max(1,Math.floor(rail.clientWidth/(card.offsetWidth+12))),behavior:settings.reducedMotion?'instant':'smooth'});
+    if(rail&&card)rail.scrollBy({left:Number(el.dataset.railStep)*(card.offsetWidth+12)*Math.max(1,Math.floor(rail.clientWidth/(card.offsetWidth+12))),behavior:settings.reducedMotion?'auto':'smooth'});
     return;
   }
   if (el.dataset.filter) {
