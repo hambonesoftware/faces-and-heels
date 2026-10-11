@@ -1,3 +1,4 @@
+import { animationByMove } from './combat-animation-map.js?v=1.10.0';
 import { portrait, moveArt, damageDiagram } from './ui-art.js?v=1.9.0';
 import { emptyProgress, loadProgress, saveProgress, recordResult, resetProgress } from './progression.js?v=1.9.0';
 import { DEFAULT_PRESENTATION, readSettings, saveSettings, delayFor, tacticalLabel, chanceToHit, MatchAudio } from './presentation.js?v=1.9.0';
@@ -40,18 +41,7 @@ const rivalryLead=progression.history.length?`${progression.history.at(-1).winne
 const trailing={stone:null,viper:null};
 const state = cloneInitialState();
 
-const animationByMove = {
-  'pick-up-opponent': {attacker:'idle',defender:'idle',choreography:'pick_up',kind:'setup'},
-  'pull-to-knees': {attacker:'idle',defender:'idle',choreography:'pull_to_knees',kind:'setup'},
-  'snap-down': {attacker:'idle',defender:'idle',choreography:'snap_down',kind:'setup'},
-  'forearm-smash': { attacker:'forearm', defender:'forearm_hit', choreography:'forearm', impactFrame:5, kind:'strike' },
-  'running-clothesline': { attacker:'clothesline', defender:'clothesline_hit', choreography:'clothesline', impactFrame:5, kind:'strike', hitStopMs:84 },
-  'vertical-suplex': { attacker:'suplex', defender:'suplex_taken', choreography:'suplex', impactFrame:9, kind:'slam' },
-  'body-slam': { attacker:'body_slam', defender:'body_slam_taken', choreography:'body_slam', impactFrame:9, kind:'slam', hitStopMs:102 },
-  'dragon-screw': { attacker:'dragon_screw', defender:'dragon_screw_taken', choreography:'dragon_screw', impactFrame:7, kind:'slam' },
-  'ground-headlock': { attacker:'headlock', defender:'headlock_taken', choreography:'headlock', impactFrame:5, kind:'grapple' },
-  'flash-finisher': { attacker:'suplex', defender:'suplex_taken', choreography:'suplex', impactFrame:9, kind:'slam', hitStopMs:115 }
-};
+
 
 let ui = {
   phase: 'NEUTRAL_ROLL',
@@ -523,9 +513,10 @@ async function playSuccessfulMove(move, result) {
   render();
   const anim = animationByMove[move.id];
   if (!anim) {
-    // A newly added move has no bespoke paired asset yet. Respect the logical
-    // posture change instead of showing an unrelated strike or grapple.
-    await wait(settings.fast ? 120 : 420);
+    // Never substitute an idle performance or unrelated strike for a named move.
+    console.error('Missing paired animation for move:',move.id);
+    log(`Animation mapping missing: ${move.name}`);
+    await wait(100);
     stage.resetPositions();
     stage.setRestingState({ postures: { stone: wrestler(state,'stone').posture, viper: wrestler(state,'viper').posture } });
     ui.selectedMove = null;
@@ -621,9 +612,9 @@ async function runReaction() {
   }
   ui.phase='ANIMATING';render();
   const damageText = result.damage?.marked ? 'CORE MARK +1' : 'CORE HOLDS';
-  await stage.playPair('forearm', 'forearm_hit', {
+  await stage.playPair('idle', 'idle', {
     attackerId: result.reactorId,
-    choreography: 'forearm',
+    choreography: 'shove_counter',
     impactFrame: 5,
     impactKind: 'strike',
     hitStopMs: 72,
