@@ -710,3 +710,27 @@ footer{grid-column:1;grid-row:4}
   .action-ribbon-window{margin-top:2px}
   .action-ribbon-footer{display:none}
 }
+
+
+/* v1.14 wrestler movebooks and premium signature finishers */
+.action-slot--special{border-top:3px solid #ffd65c;box-shadow:inset 0 0 18px #f8bf4d16,0 2px 9px #0007}
+.action-slot--special .action-slot-heading strong{color:#ffe8ad}
+.action-slot--special .action-slot-category{color:#ffce51}
+.action-slot--special .action-slot-index{color:#ffe69b;background:#33202ea8}
+.loadout-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 2px;border-bottom:1px solid #607296}
+.loadout-heading strong{color:#ffd169;font:900 15px Impact,system-ui,sans-serif}
+.loadout-heading span{font:800 9px system-ui,sans-serif;color:#a8caed}
+.loadout-signatures{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0}
+.loadout-signatures span{border-left:3px solid #ffd05d;background:#3a3048;padding:9px 12px;color:#ffdc92;font-size:12px;font-weight:900}
+.wrestler-movebook{margin:12px 0;background:#1a2843;border:1px solid #47658d;padding:9px}
+.wrestler-movebook summary,.legendary-catalog summary{font:900 11px system-ui,sans-serif;color:#e6f0fc;cursor:pointer;letter-spacing:.06em}
+.wrestler-movebook>div{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+.wrestler-movebook span{font:700 11px system-ui,sans-serif;padding:6px 8px;color:#b7defa;background:#263e62}
+.legendary-progress{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:18px 0 8px;border-top:2px solid #ffcd56;padding-top:14px}
+.legendary-progress strong{font:900 16px Impact,system-ui,sans-serif;color:#ffd671}
+.legendary-progress span{font:800 10px system-ui,sans-serif;color:#a3cbef}
+.legendary-catalog{padding:11px;margin:6px 0;background:#192640;border:1px solid #4d648e}
+.legendary-catalog-list{display:grid;gap:4px;margin-top:9px}
+.legendary-catalog-list>div{display:flex;justify-content:space-between;gap:9px;padding:7px;background:#273653;color:#d8e4f6;font-size:11px}
+.legendary-catalog-list em{font-style:normal;color:#93b7dd;font-size:9px;font-weight:900;white-space:nowrap}
+.legendary-catalog-list>div:has(em:first-child){color:#fff}
