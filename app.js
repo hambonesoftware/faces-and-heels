@@ -266,12 +266,12 @@ function renderMoveCards() {
     const tactic = tacticalLabel(move);
     const categoryName = labels[move.category] || move.category.toUpperCase();
     return `
-      <button class="action-slot action-slot--${escapeHtml(move.category)}" data-move="${escapeHtml(move.id)}" aria-label="${escapeHtml(move.name)}, ${move.staminaCost} stamina, ${escapeHtml(target)}" type="button">
+      <button class="action-slot action-slot--${escapeHtml(move.category)}" data-move="${escapeHtml(move.id)}" aria-label="${escapeHtml(move.name)}, costs ${move.staminaCost} stamina, removes up to ${move.staminaDamage} opponent stamina on success, ${escapeHtml(target)}" type="button">
         <span class="action-slot-art">${moveArt(move.id)}</span>
         <span class="action-slot-index" aria-hidden="true">${String(index+1).padStart(2,'0')}</span>
         <span class="action-slot-heading"><span class="action-slot-category">${escapeHtml(categoryName)}</span><strong>${escapeHtml(move.name)}</strong></span>
         <span class="action-slot-foot"><span class="action-slot-target">${escapeHtml(target)}</span><span class="action-slot-cost"><b>${move.staminaCost}</b><small>STA</small></span></span>
-        <span class="action-slot-tactic">${escapeHtml(tactic)}</span>
+        <span class="action-slot-tactic"><b>−${move.staminaDamage} OPP STA</b><span>${escapeHtml(tactic)}</span></span>
       </button>`;
   }).join('');
 
@@ -329,7 +329,8 @@ function renderSelectedMove() {
       <section class="decision-panel decision-panel--selected">
         <div class="selected-title"><button class="back-mini" data-back aria-label="Back">‹</button><div><small>POSITIONING / SETUP</small><strong>${escapeHtml(move.name)}</strong></div><span>${move.staminaCost} STA</span></div>
         <div class="selected-illustration">${moveArt(move.id)}<p>${escapeHtml(move.description)}</p></div>
-        <div class="move-meta-line"><b>RETAINS HIGH CONTROL</b><i>·</i><span>NO DAMAGE</span><i>·</i><span>NO ATTACK ROLL</span></div>
+        <div class="move-meta-line"><b>RETAINS HIGH CONTROL</b><i>·</i><span>NO BODY MARK</span><i>·</i><span>NO ATTACK ROLL</span></div>
+        <div class="move-resource-trade"><span>YOUR COST <b>−${move.staminaCost} STA</b></span><span>OPPONENT EXERTION <b>−${move.staminaDamage} STA</b></span></div>
         <div class="primary-row"><button class="roll-button" data-roll><strong>PERFORM SETUP</strong><small>KEEP CONTROL · ${move.staminaCost} STA</small></button></div>
       </section>`;
   }
@@ -344,7 +345,7 @@ function renderSelectedMove() {
     <section class="decision-panel decision-panel--selected">
       <div class="selected-title"><button class="back-mini" data-back aria-label="Back">‹</button><div><small>${move.category.toUpperCase()}</small><strong>${escapeHtml(move.name)}</strong></div><span>${move.staminaCost} STA</span></div>
       <div class="selected-illustration">${moveArt(move.id)}<p>${escapeHtml(move.description)}</p></div><div class="move-meta-line"><b>${target ? escapeHtml(bodyLabel(target).toUpperCase()) : 'AUTO'}</b><i>·</i><span>${escapeHtml(move.stat.toUpperCase())} ${mod >= 0 ? '+' : ''}${mod}</span><i>·</i><span>VS CON ${conditioning(defender)}</span><i>·</i><span>d${move.damageDie} DAMAGE</span></div>
-      <meter class="connect-meter" min="0" max="100" value="${probability}" aria-label="${probability}% chance to connect">${probability}%</meter><p class="probability-note">${probability}% to connect · damage threshold and pin counts resolve separately</p><div class="primary-row"><button class="boost-button ${ui.spendCrowd ? 'is-on' : ''}" data-boost ${actor.crowdResource < 1 ? 'disabled' : ''}><strong>${boostLabel}</strong><small>${escapeHtml(actor.crowdResourceName)}</small></button><button class="roll-button" data-roll><strong>ATTEMPT MOVE</strong><small>ROLL d20 · ${escapeHtml(move.name)}</small></button></div>
+      <div class="move-resource-trade"><span>YOUR COST <b>−${move.staminaCost} STA</b></span><span>OPPONENT ON HIT <b>−${move.staminaDamage} STA</b></span></div><meter class="connect-meter" min="0" max="100" value="${probability}" aria-label="${probability}% chance to connect">${probability}%</meter><p class="probability-note">${probability}% to connect · damage threshold and pin counts resolve separately</p><div class="primary-row"><button class="boost-button ${ui.spendCrowd ? 'is-on' : ''}" data-boost ${actor.crowdResource < 1 ? 'disabled' : ''}><strong>${boostLabel}</strong><small>${escapeHtml(actor.crowdResourceName)}</small></button><button class="roll-button" data-roll><strong>ATTEMPT MOVE</strong><small>ROLL d20 · ${escapeHtml(move.name)}</small></button></div>
     </section>`;
 }
 
@@ -614,7 +615,7 @@ async function playSuccessfulMove(move, result) {
   ui.phase = state.pinEligible ? 'OPPORTUNITY' : 'ACTION_SELECT';
   ui.railOffset=0;ui.filter='all';
   render();
-  if (move.category === 'setup') announce(move.name.toUpperCase(), 'POSITION SECURED · HIGH CONTROL', 'major', false, 720);
+  if (move.category === 'setup') announce(move.name.toUpperCase(), `OPPONENT −${result.staminaDamage} STA · CONTROL RETAINED`, 'major', false, 720);
 }
 
 async function rollMove() {
