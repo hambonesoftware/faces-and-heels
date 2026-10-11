@@ -7,17 +7,17 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="description" content="Faces & Heels — playable isometric procedural 3D wrestling PWA with original sprite fallback." />
-  <meta name="fh-build" content="1.7.0-neon-showdown" />
-  <title>Faces & Heels v1.7.0 — Neon Showdown</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=1.7.0" />
-  <link rel="stylesheet" href="./styles.css?v=1.7.0" />
+  <meta name="fh-build" content="1.8.0-complete-moves" />
+  <title>Faces & Heels v1.8.0 — Neon Showdown</title>
+  <link rel="manifest" href="./manifest.webmanifest?v=1.8.0" />
+  <link rel="stylesheet" href="./styles.css?v=1.8.0" />
 </head>
 <body>
   <div id="app"></div>
-  <script type="module" src="./app.js?v=1.7.0"></script>
+  <script type="module" src="./app.js?v=1.8.0"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=1.7.0', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {}));
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=1.8.0', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {}));
     }
   </script>
 </body>
