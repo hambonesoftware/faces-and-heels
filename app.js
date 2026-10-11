@@ -3,6 +3,7 @@ import { portrait, moveArt, damageDiagram } from './ui-art.js?v=1.13.0';
 import { emptyProgress, loadProgress, saveProgress, recordResult, resetProgress } from './progression.js?v=1.13.0';
 import { DEFAULT_PRESENTATION, readSettings, saveSettings, delayFor, tacticalLabel, chanceToHit, MatchAudio } from './presentation.js?v=1.13.0';
 import { demoMoves } from './moves.js?v=1.13.0';
+import { LEGENDARY_CATALOG,MAX_LEGENDARY_MOVES } from './legendary-catalog.js?v=1.13.0';
 import { bodyLabel, resolveTargetDecision } from './flow-engine.js?v=1.13.0';
 import { IsoStage } from './iso-stage.js?v=1.13.0';
 let rendererMode = 'iso';
@@ -29,7 +30,8 @@ import {
   spendCrowdForStamina,
   catchBreathToNeutral,
   scrambleUp,
-  totalBodyMarks
+  totalBodyMarks,
+  setLegendaryLoadout
 } from './match-engine.js?v=1.13.0';
 
 const app = document.querySelector('#app');
@@ -40,6 +42,7 @@ const highlights=[];let resultRecorded=false;
 const rivalryLead=progression.history.length?`${progression.history.at(-1).winner.toUpperCase()} won the previous encounter. The rivalry continues.`:'The rivalry begins. Win the opening Neutral roll to establish control.';
 const trailing={stone:null,viper:null};
 const state = cloneInitialState();
+for(const id of ['stone','viper'])setLegendaryLoadout(state,id,progression.learnedLegendaries[id]);
 
 
 
@@ -263,7 +266,7 @@ function renderMoveCards() {
   const cards = moves.map((move, index) => {
     const decision = resolveTargetDecision(move, perspectiveState(state));
     const target = decision.kind === 'choice' ? 'CHOOSE TARGET' : resolvedTargetLabel(move);
-    const categoryName = labels[move.category] || move.category.toUpperCase();
+    const categoryName = move.legendary ? 'LEGENDARY' : (labels[move.category] || move.category.toUpperCase());
     return `
       <button class="action-slot action-slot--${escapeHtml(move.category)}" data-move="${escapeHtml(move.id)}" aria-label="${escapeHtml(move.name)}, costs ${move.staminaCost} stamina, removes up to ${move.staminaDamage} opponent stamina on success, ${escapeHtml(target)}" type="button" title="${escapeHtml(move.name)} · ${move.staminaCost} stamina cost · ${move.staminaDamage} opponent stamina loss">
         <span class="action-slot-art">${moveArt(move.id)}</span>
@@ -314,7 +317,7 @@ function renderTargetChoice() {
   const decision = resolveTargetDecision(move, perspectiveState(state));
   return `
     <section class="decision-panel decision-panel--selected">
-      <div class="selected-title"><button class="back-mini" data-back aria-label="Back">‹</button><div><small>${move.category.toUpperCase()}</small><strong>${escapeHtml(move.name)}</strong></div><span>CHOOSE TARGET</span></div>
+      <div class="selected-title"><button class="back-mini" data-back aria-label="Back">‹</button><div><small>${move.legendary?'LEGENDARY FINISHER · '+escapeHtml(currentActor().style.toUpperCase()):move.category.toUpperCase()}</small><strong>${escapeHtml(move.name)}</strong></div><span>CHOOSE TARGET</span></div>
       <div class="choice-grid">${decision.values.map(target => `<button class="choice-button" data-target="${target}">${escapeHtml(bodyLabel(target).toUpperCase())}</button>`).join('')}</div>
     </section>`;
 }
@@ -408,10 +411,10 @@ function renderBodyDrawer(wrestlerId) {
     <div class="drawer-backdrop" data-close-drawer></div>
     <aside class="drawer">
       <header><div><small>BODY STATUS · ${roleFor(state,wrestlerId)}</small><strong>${escapeHtml(w.name)}</strong></div><button data-close-drawer aria-label="Close panel">×</button></header>
-      <div class="stat-summary"><span>Power <b>${statModifier(w.stats.Power) >= 0 ? '+' : ''}${statModifier(w.stats.Power)}</b></span><span>Agility <b>${statModifier(w.stats.Agility) >= 0 ? '+' : ''}${statModifier(w.stats.Agility)}</b></span><span>CON <b>${conditioning(w)}</b></span><span>Marks <b>${totalBodyMarks(w)}</b></span></div>
+      <div class="loadout-heading"><strong>${escapeHtml(w.style.toUpperCase())}</strong><span>${w.commonMoves.length} COMMON · ${w.legendaryMoves.length}/${MAX_LEGENDARY_MOVES} LEGENDARY</span></div><div class="loadout-signatures">${w.legendaryMoves.map(id=>`<span>★ ${escapeHtml(demoMoves.find(m=>m.id===id)?.name||id)}</span>`).join('')}</div><div class="stat-summary"><span>Power <b>${statModifier(w.stats.Power) >= 0 ? '+' : ''}${statModifier(w.stats.Power)}</b></span><span>Agility <b>${statModifier(w.stats.Agility) >= 0 ? '+' : ''}${statModifier(w.stats.Agility)}</b></span><span>CON <b>${conditioning(w)}</b></span><span>Marks <b>${totalBodyMarks(w)}</b></span></div>
       <div class="body-figure">${damageDiagram(damage)}</div>
       <div class="damage-list">${parts.map(([key,label]) => `<div><span>${label}</span><b class="damage-${Math.min(3,damage[key]||0)}">${damage[key]||0} / 3</b></div>`).join('')}</div>
-      <p class="drawer-note">Body marks penalize pin rolls. Damage marks are earned only when a move's damage die beats that body part's threshold.</p>
+      <details class="wrestler-movebook"><summary>LEARNED COMMON MOVES</summary><div>${w.commonMoves.map(id=>`<span>${escapeHtml(demoMoves.find(m=>m.id===id)?.name||id)}</span>`).join('')}</div></details><p class="drawer-note">Body marks penalize pin rolls. Damage marks are earned only when a move's damage die beats that body part's threshold.</p>
     </aside>`;
 }
 
@@ -433,7 +436,7 @@ function renderLogDrawer() {
 }
 
 function renderSettingsDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer"><header><strong>Presentation settings</strong><button data-close-drawer aria-label="Close panel">×</button></header><p class="drawer-note">These settings change presentation only. Dice rolls and rules are identical.</p>${[['muted','Mute sound'],['reducedMotion','Reduced motion'],['reducedFlash','Reduced flash'],['fast','Fast presentation']].map(([key,label])=>`<label class="setting-option"><span>${label}</span><input type="checkbox" data-setting="${key}" ${settings[key]?'checked':''}></label>`).join('')}<details class="developer-options"><summary>Arena tools &amp; build info</summary><div class="lab-controls">${[['iso','Isometric'],['sprite','Sprites'],['compare','Compare']].map(([mode,label])=>`<button data-renderer="${mode}" aria-pressed="${rendererMode===mode}">${label}</button>`).join('')}</div><a href="./motion-lab.html">Open motion lab ↗</a><p>Build 1.13.0 · provisional digital rules</p></details></aside>`;}
-function renderProgressDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer drawer--wide"><header><strong>Championship journey</strong><button data-close-drawer aria-label="Close panel">×</button></header><div class="championship-track">${[1,2,3].map(n=>`<span class="${progression.series>=n?'is-earned':''}"><b>${n}</b>${['DEBUT','SPOTLIGHT','TITLE ARENA'][n-1]}</span>`).join('')}</div><p class="drawer-note">Three-match championship series. Results and cosmetic unlocks live only on this device. No combat bonuses.</p><div class="stat-summary"><span>Stone wins <b>${progression.wins.stone}</b></span><span>Viper wins <b>${progression.wins.viper}</b></span><span>Matches <b>${progression.series}</b></span><span>Champion <b>${progression.champion?.toUpperCase()||'UNDECIDED'}</b></span></div><button class="drawer-action" data-toggle-career><strong>${progression.mode==='championship'?'CHAMPIONSHIP ACTIVE':'START CHAMPIONSHIP SERIES'}</strong></button><p class="drawer-note">Rewards: ${progression.palette==='spotlight'?'Spotlight palette unlocked':'Spotlight palette after 2 matches'} · ${progression.theme==='championship'?'Championship arena unlocked':'Championship arena after 3 matches'}</p>${progression.history.slice(-6).reverse().map(m=>`<p class="history-row">MATCH ${m.number} · ${m.winner.toUpperCase()} won · ${m.actions} actions</p>`).join('')}<button class="continue-button" data-reset-progress>RESET PROGRESSION</button></aside>`;}
+function renderProgressDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer drawer--wide"><header><strong>Championship journey</strong><button data-close-drawer aria-label="Close panel">×</button></header><div class="championship-track">${[1,2,3].map(n=>`<span class="${progression.series>=n?'is-earned':''}"><b>${n}</b>${['DEBUT','SPOTLIGHT','TITLE ARENA'][n-1]}</span>`).join('')}</div><p class="drawer-note">Three-match championship series. Results and cosmetic unlocks live only on this device. No combat bonuses.</p><div class="stat-summary"><span>Stone wins <b>${progression.wins.stone}</b></span><span>Viper wins <b>${progression.wins.viper}</b></span><span>Matches <b>${progression.series}</b></span><span>Champion <b>${progression.champion?.toUpperCase()||'UNDECIDED'}</b></span></div><button class="drawer-action" data-toggle-career><strong>${progression.mode==='championship'?'CHAMPIONSHIP ACTIVE':'START CHAMPIONSHIP SERIES'}</strong></button><p class="drawer-note">Rewards: ${progression.palette==='spotlight'?'Spotlight palette unlocked':'Spotlight palette after 2 matches'} · ${progression.theme==='championship'?'Championship arena unlocked':'Championship arena after 3 matches'}</p>${progression.history.slice(-6).reverse().map(m=>`<p class="history-row">MATCH ${m.number} · ${m.winner.toUpperCase()} won · ${m.actions} actions</p>`).join('')}<div class="legendary-progress"><strong>LEGENDARY FINISHERS</strong><span>${progression.matPasses} / 10 MAT PASSES AVAILABLE</span></div>${['stone','viper'].map(id=>{const w=wrestler(state,id),candidates=LEGENDARY_CATALOG[w.style]||[];return `<details class="legendary-catalog"><summary>${escapeHtml(w.name)} · ${escapeHtml(w.style)} · ${w.legendaryMoves.length}/${MAX_LEGENDARY_MOVES} LEARNED</summary><div class="legendary-catalog-list">${candidates.map(candidate=>`<div><span>${escapeHtml(candidate.name)}${candidate.signatureFor===id?' · SIGNATURE':''}</span><em>${w.legendaryMoves.includes(candidate.id)?'LEARNED':candidate.status==='planned'?'CHOREOGRAPHY PENDING':'AVAILABLE'}</em></div>`).join('')}</div></details>`}).join('')}<p class="drawer-note">The original rules allow up to four style Legendary Moves per wrestler, learned with Mat Passes. Only fully animated finishers are playable; upcoming entries cannot be selected or unlocked yet.</p><button class="continue-button" data-reset-progress>RESET PROGRESSION</button></aside>`;}
 function renderHighlightsDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer drawer--wide"><header><strong>Match highlights</strong><button data-close-drawer aria-label="Close panel">×</button></header>${highlights.length?highlights.slice(-12).reverse().map(x=>`<p class="history-row">${escapeHtml(x)}</p>`).join(''):'<p>No highlights yet.</p>'}</aside>`;}
 function renderDrawer() {
   if (!ui.drawer) return '';
