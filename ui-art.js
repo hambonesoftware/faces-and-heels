@@ -1,6 +1,6 @@
 import { samplePair } from './choreography.js?v=1.12.0';
 import { animationByMove } from './combat-animation-map.js?v=1.12.0';
-import { demoMoves } from './moves.js?v=1.12.0';
+import { demoMoves, reactionMove } from './moves.js?v=1.12.0';
 // Original vector artwork. No external assets or font requests.
 const frame = (content, viewBox='0 0 120 90', label='') => `<svg viewBox="${viewBox}" xmlns="http://www.w3.org/2000/svg" ${label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"'}>${content}</svg>`;
 export function portrait(id) {
@@ -17,13 +17,14 @@ export const MOVE_ART_TIMES=Object.freeze({
   'knee-drop':.7,'leg-drop':.75,'armbar':.6,'ankle-lock':.56,
   'forearm-smash':.5,'running-clothesline':.56,'vertical-suplex':.55,
   'body-slam':.55,'dragon-screw':.58,'ground-headlock':.57,
-  'flash-finisher':.55
+  'flash-finisher':.55,'shove-counter':.49
 });
 const colorGroups={
   setup:{top:'#154b59',bottom:'#0d223f',bright:'#3ef4c2',accent:'#75dcff'},
   strike:{top:'#5b2350',bottom:'#161c43',bright:'#ff5d7a',accent:'#ffca69'},
   grapple:{top:'#32296d',bottom:'#171b40',bright:'#bd91ff',accent:'#57c7ff'},
-  special:{top:'#8a4a24',bottom:'#292340',bright:'#ffd14c',accent:'#fc7583'}
+  special:{top:'#8a4a24',bottom:'#292340',bright:'#ffd14c',accent:'#fc7583'},
+  reaction:{top:'#582b53',bottom:'#211d48',bright:'#ff728c',accent:'#faac6d'}
 };
 const r2=n=>Number(n.toFixed(2));
 function drawWrestler(pose,project,color,dark){
@@ -42,7 +43,7 @@ function drawWrestler(pose,project,color,dark){
   </g>`;
 }
 export function moveArt(id){
-  const move=demoMoves.find(item=>item.id===id);
+  const move=demoMoves.find(item=>item.id===id)||(reactionMove.id===id?reactionMove:null);
   const animation=animationByMove[id];
   if(!move||!animation)throw new Error('No documented wrestling pose for '+id);
   const poseTime=MOVE_ART_TIMES[id];
