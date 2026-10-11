@@ -22,7 +22,7 @@ function setupHold(spec){
  assert(hit.success,spec.id+' failed at high roll');
  assert.equal(a.stamina,beforeA-move.staminaCost);
  assert.equal(d.stamina,beforeD-move.staminaDamage);
- assert.equal(state.phase,'HOLD');
+ assert.equal(state.phase,'HOLD_ESCAPE','Every successful hold immediately grants Low a defense roll');
  assert.equal(state.activeHold.moveId,spec.id);
  assert.equal(state.activeHold.holderId,spec.attacker);
  assert.equal(state.activeHold.defenderId,other);
@@ -33,6 +33,10 @@ function setupHold(spec){
 }
 for(const spec of specs){
  const {state,move,a,d}=setupHold(spec);
+ const initial=escapeHold(state,{escapeRoll:1});
+ assert(initial.ok&&!initial.success,'Initial escape should fail on a roll of 1');
+ assert.equal(state.phase,'HOLD');
+ assert.equal(state.activeHold.escapes,1);
  const beforeA=a.stamina,beforeD=d.stamina;
  const pressure=maintainHold(state);
  assert(pressure.ok&&!pressure.submitted);
@@ -49,7 +53,7 @@ for(const spec of specs){
  const escape=escapeHold(state,{escapeRoll:1});
  assert(escape.ok&&!escape.success,'minimum escape roll must fail');
  assert.equal(state.phase,'HOLD');
- assert.equal(state.activeHold.escapes,1);
+ assert.equal(state.activeHold.escapes,2);
  assert.equal(escape.staminaCost,move.sustained.escapeCost);
  assert.equal(state.activeWrestlerId,spec.attacker);
  assert.equal(state.roles[spec.attacker],'H');
@@ -63,7 +67,6 @@ for(const spec of specs){
 }
 for(const spec of specs){
  const {state}=setupHold(spec);
- assert(maintainHold(state).ok);
  const success=escapeHold(state,{escapeRoll:20});
  assert(success.ok&&success.success,'maximum roll should break any demo hold');
  assert.equal(state.activeHold,null);
@@ -75,20 +78,24 @@ for(const spec of specs){
 }
 for(const spec of specs){
  const {state,d,move}=setupHold(spec);
- // Simulate an exhausted rival who remains trapped in the original hold.
+ // A first failed escape gives the attacker permission to apply pressure.
+ assert(!escapeHold(state,{escapeRoll:1}).success);
  d.stamina=move.sustained.tickDamage;
  const end=maintainHold(state);
- assert(end.ok&&end.submitted,'A tightened hold against zero stamina should finish');
+ assert(end.ok&&!end.submitted&&end.finishPending,'Exhaustion must trigger a final defensive roll');
+ assert.equal(state.phase,'HOLD_ESCAPE');
+ assert.equal(d.stamina,0);
+ assert.equal(state.winnerId,null);
+ const final=escapeHold(state,{escapeRoll:1});
+ assert(final.ok&&final.submitted&&!final.success,'Failed final escape finishes submission');
  assert.equal(state.winnerId,spec.attacker);
  assert.equal(state.winMethod,'submission');
  assert.equal(state.phase,'MATCH_COMPLETE');
  assert.equal(state.activeHold,null);
- assert.equal(d.stamina,0);
 }
 // Defender can still attempt to escape without paying more than their remaining STA.
 {
  const {state,d}=setupHold(specs[0]);
- assert(maintainHold(state).ok);
  d.stamina=1;
  const escape=escapeHold(state,{escapeRoll:20});
  assert.equal(escape.staminaCost,1);
@@ -97,9 +104,20 @@ for(const spec of specs){
 }
 {
  const {state,a}=setupHold(specs[1]);
+ assert(!escapeHold(state,{escapeRoll:1}).success);
  a.stamina=0;
  assert.equal(maintainHold(state).ok,false);
  assert(releaseHold(state).ok,'A tired wrestler can release without stamina');
+}
+
+// Even an opponent exhausted on the initial grab gets the final defensive roll.
+for(const spec of specs){
+ const {state,d}=setupHold(spec);
+ d.stamina=0;
+ state.activeHold.finishPending=true;
+ const final=escapeHold(state,{escapeRoll:20});
+ assert(final.success&&!final.submitted,'A natural 20 must still beat an exhausting grapple');
+ assert.equal(state.phase,'NEUTRAL_ROLL');
 }
 
 let samples=0;
