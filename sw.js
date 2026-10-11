@@ -1,4 +1,4 @@
-const CACHE = 'faces-heels-v1.13.0-compact-unobstructed-ring';
+const CACHE = 'faces-heels-v1.13.0-compact-unobstructed-ring-r2';
 const CORE = [
   './index.html?v=1.13.0',
   './styles.css?v=1.13.0',
