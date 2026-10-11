@@ -436,3 +436,17 @@ footer{grid-column:1;grid-row:4}
   .action-slot{height:131px}
   .action-slot .action-slot-tactic{min-height:16px;padding:3px 5px}
 }
+
+
+/* Paired 3D Shove Counter rendered into the reaction choice surface */
+.reaction-performance{display:grid;grid-template-columns:126px minmax(0,1fr);align-items:center;gap:14px}
+.reaction-preview-art{background:#211f3f;border:1px solid #b75e88;border-top:3px solid #ff738b;overflow:hidden}
+.reaction-preview-art svg{width:100%;height:96px;display:block}
+.decision-panel--reaction .reaction-performance .move-resource-trade{margin-top:7px}
+.decision-panel--reaction .reaction-performance .move-resource-trade>span{padding:6px 8px;font-size:9px}
+@media(max-width:540px){
+ .reaction-performance{grid-template-columns:85px minmax(0,1fr);gap:8px}
+ .reaction-preview-art svg{height:92px}
+ .decision-panel--reaction .reaction-performance .move-resource-trade{gap:3px}
+ .decision-panel--reaction .reaction-performance .move-resource-trade>span{padding:5px 6px;font-size:8px}
+}
