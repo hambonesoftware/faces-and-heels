@@ -1,3 +1,15 @@
+# v1.6.0 Ringside
+
+- Rebuilt the UI stylesheet around a charcoal, ivory, gold, and crimson wrestling broadcast identity.
+- Added original vector wrestler portraits and illustrations for all seven moves.
+- Added a match-poster introduction, broadcast HUD, illustrated action cards, move details and chance meter.
+- Connected body silhouette regions to their actual damage marks.
+- Expanded victory records and championship milestone presentation.
+- Moved renderer comparison controls and Motion Lab into presentation settings.
+- Added modal focus management, Escape handling, and keyboard focus trapping.
+- Updated versioned assets and the offline cache while retaining match rules and progression compatibility.
+- Passed the full existing test suite, including 1,000 complete matches and 22,022 paired animation samples.
+
 # v1.5 Iso Action Figures
 
 - Added dependency-free articulated isometric wrestler renderer.

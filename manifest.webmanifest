@@ -1,10 +1,10 @@
 {
-  "name": "Faces & Heels v1.5.2: Block Arena",
+  "name": "Faces & Heels v1.6.0: Ringside",
   "short_name": "Faces & Heels",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#050A12",
-  "theme_color": "#050A12",
+  "background_color": "#171614",
+  "theme_color": "#171614",
   "orientation": "any",
   "id": "./",
   "icons": [

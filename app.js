@@ -1,8 +1,9 @@
-import { emptyProgress, loadProgress, saveProgress, recordResult, resetProgress } from './progression.js?v=1.5.2';
-import { DEFAULT_PRESENTATION, readSettings, saveSettings, delayFor, tacticalLabel, chanceToHit, MatchAudio } from './presentation.js?v=1.5.2';
-import { demoMoves } from './moves.js?v=1.5.2';
-import { bodyLabel, resolveTargetDecision } from './flow-engine.js?v=1.5.2';
-import { IsoStage } from './iso-stage.js?v=1.5.2';
+import { portrait, moveArt, damageDiagram } from './ui-art.js?v=1.6.0';
+import { emptyProgress, loadProgress, saveProgress, recordResult, resetProgress } from './progression.js?v=1.6.0';
+import { DEFAULT_PRESENTATION, readSettings, saveSettings, delayFor, tacticalLabel, chanceToHit, MatchAudio } from './presentation.js?v=1.6.0';
+import { demoMoves } from './moves.js?v=1.6.0';
+import { bodyLabel, resolveTargetDecision } from './flow-engine.js?v=1.6.0';
+import { IsoStage } from './iso-stage.js?v=1.6.0';
 let rendererMode = 'iso';
 try { const saved=localStorage.getItem('fh-renderer-v15'); if(['iso','sprite','compare'].includes(saved)) rendererMode=saved; } catch {}
 const requestedRenderer=new URLSearchParams(location.search).get('renderer');
@@ -28,7 +29,7 @@ import {
   catchBreathToNeutral,
   scrambleUp,
   totalBodyMarks
-} from './match-engine.js?v=1.5.2';
+} from './match-engine.js?v=1.6.0';
 
 const app = document.querySelector('#app');
 let progression=loadProgress(localStorage);
@@ -38,16 +39,6 @@ const highlights=[];let resultRecorded=false;
 const rivalryLead=progression.history.length?`${progression.history.at(-1).winner.toUpperCase()} won the previous encounter. The rivalry continues.`:'The rivalry begins. Win the opening Neutral roll to establish control.';
 const trailing={stone:null,viper:null};
 const state = cloneInitialState();
-
-const moveIcons = {
-  'forearm-smash': '◆',
-  'running-clothesline': '⇢',
-  'vertical-suplex': '↟',
-  'body-slam': '↓',
-  'dragon-screw': '⟳',
-  'ground-headlock': '⌁',
-  'flash-finisher': '✦'
-};
 
 const animationByMove = {
   'forearm-smash': { attacker:'forearm', defender:'forearm_hit', choreography:'forearm', impactFrame:5, kind:'strike' },
@@ -75,6 +66,7 @@ let ui = {
   neutralRolls: null
 };
 
+let introOpen = !new URLSearchParams(location.search).has('demo');
 let stage = null;
 let eventTimer = null;
 const params = new URLSearchParams(location.search);
@@ -163,7 +155,7 @@ function renderFighterHud(w, side) {
   else if(now<trailing[w.id]){const old=trailing[w.id];setTimeout(()=>{trailing[w.id]=now;const bar=document.querySelector(`[data-trail=\"${w.id}\"]`);if(bar)bar.style.width=`${now}%`;},680);trailing[w.id]=old;}
   return `
     <button class="fighter-hud fighter-hud--${side} ${active ? 'is-active-control' : ''}" data-body="${w.id}" aria-label="Open ${escapeHtml(w.name)} body status">
-      <div class="hud-portrait hud-portrait--${w.id}"><span class="hud-head"></span><span class="hud-hair"></span><span class="hud-body"></span></div>
+      <div class="hud-portrait hud-portrait--${w.id}">${portrait(w.id)}</div>
       <div class="fighter-copy">
         <div class="fighter-name-row"><strong>${escapeHtml(w.name)}</strong><span class="momentum-role momentum-role--${role.toLowerCase()}">${roleText}</span>${statusWarning(w) ? `<span class="status-chip">${escapeHtml(statusWarning(w))}</span>` : ''}</div>
         <div class="stamina-row"><span>STA</span><div class="stamina"><em class="stamina-trail" data-trail="${w.id}" style="width:${trailing[w.id]}%"></em><i style="width:${now}%"></i></div><b>${w.stamina}/${w.maxStamina}</b></div>
@@ -175,12 +167,12 @@ function renderFighterHud(w, side) {
 function renderHeader() {
   return `
     <header class="game-header">
-      <div class="brand"><span>FACES</span><b>&</b><strong>HEELS</strong><em>v1.5.2</em></div>
+      <div class="brand"><span>FACES</span><b>&</b><strong>HEELS</strong><em>RINGSIDE</em></div>
       <button class="icon-button" data-drawer="menu" aria-label="Match menu">☰</button>
     </header>
     <section class="fighter-strip">
       ${renderFighterHud(wrestler(state,'stone'), 'face')}
-      <div class="versus"><span>RING</span><b>LEVEL ${state.matchLevel}</b></div>
+      <div class="versus"><span>LIVE</span><b>VS</b><small>LV ${state.matchLevel}</small></div>
       ${renderFighterHud(wrestler(state,'viper'), 'heel')}
     </section>`;
 }
@@ -224,9 +216,6 @@ function renderArena() {
           <i class="rope r1"></i><i class="rope r2"></i><i class="rope r3"></i><i class="rope r4"></i>
         </div>
       </div>
-      <div class="renderer-toolbar" aria-label="Arena view">
-        ${[['iso','ISOMETRIC'],['sprite','SPRITES'],['compare','COMPARE']].map(([mode,label])=>`<button data-renderer="${mode}" aria-pressed="${rendererMode===mode}">${label}</button>`).join('')}<a href="./motion-lab.html">MOTION LAB ↗</a>
-      </div>
       <canvas id="match-canvas" aria-label="Animated wrestling match"></canvas>
       <div class="arena-vignette"></div>
       ${renderArenaOverlay()}
@@ -244,9 +233,9 @@ function renderNeutral() {
   const rolls = ui.neutralRolls;
   return `
     <section class="decision-panel decision-panel--neutral">
-      <div class="opportunity-copy"><small>OPENING / NEUTRAL</small><strong>Fight for control</strong><span>${escapeHtml(rivalryLead)} Both regain up to 10 STA. Higher BGD + Agility modifier becomes H.</span></div>
+      <div class="opportunity-copy"><small>OPENING / NEUTRAL</small><strong>Fight for control</strong><span>${escapeHtml(rivalryLead)} Both recover up to 10 stamina. Highest roll + Agility takes control.</span></div>
       ${rolls ? `<div class="neutral-score"><span>STONE <b>${rolls.stoneTotal}</b></span><i>VS</i><span>VIPER <b>${rolls.viperTotal}</b></span></div>` : ''}
-      <button class="roll-button neutral-roll-button" data-neutral-roll><strong>ROLL NEUTRAL</strong><small>BIG GOLD DICE</small></button>
+      <button class="roll-button neutral-roll-button" data-neutral-roll><strong>FIGHT FOR CONTROL</strong><small>ROLL BIG GOLD DICE</small></button>
     </section>`;
 }
 
@@ -280,8 +269,8 @@ function renderMoveCards() {
     const tactic=tacticalLabel(move);
     return `
       <button class="move-card move-card--${move.category} ${move.category === 'special' ? 'is-special' : ''}" data-move="${move.id}">
-        <span class="move-rail" aria-hidden="true"></span><span class="move-icon">${moveIcons[move.id] || '•'}</span>
-        <span class="move-main"><strong>${escapeHtml(move.name)}</strong><small>${escapeHtml(target)} · ${tactic}</small></span>
+        <span class="move-art">${moveArt(move.id)}</span>
+        <span class="move-main"><small class="move-category">${escapeHtml(move.category)}</small><strong>${escapeHtml(move.name)}</strong><small>${escapeHtml(target)} · ${tactic}</small></span>
         <span class="move-cost"><b>${move.staminaCost}</b><small>STA</small></span>
       </button>`;
   }).join('');
@@ -299,7 +288,7 @@ function renderMoveCards() {
       </div>
       ${showFilters ? `<div class="filter-row">${['all','strike','grapple','special'].map(filter => `<button data-filter="${filter}" class="filter-chip ${ui.filter === filter ? 'is-active' : ''}">${filter.toUpperCase()}</button>`).join('')}</div>` : ''}
       <div class="move-grid">${cards}</div>
-      ${hiddenCount > 0 && !expanded ? `<div class="move-hint">Four useful legal actions shown · ${hiddenCount} more available</div>` : ''}
+      ${hiddenCount > 0 && !expanded ? `<div class="move-hint">Four legal moves shown · ${hiddenCount} more available</div>` : ''}
     </section>`;
 }
 
@@ -325,8 +314,8 @@ function renderSelectedMove() {
   return `
     <section class="decision-panel decision-panel--selected">
       <div class="selected-title"><button class="back-mini" data-back aria-label="Back">‹</button><div><small>${move.category.toUpperCase()}</small><strong>${escapeHtml(move.name)}</strong></div><span>${move.staminaCost} STA</span></div>
-      <div class="move-meta-line"><b>${target ? escapeHtml(bodyLabel(target).toUpperCase()) : 'AUTO'}</b><i>·</i><span>${escapeHtml(move.stat.toUpperCase())} ${mod >= 0 ? '+' : ''}${mod}</span><i>·</i><span>VS CON ${conditioning(defender)}</span><i>·</i><span>d${move.damageDie} DAMAGE</span></div>
-      <p class="probability-note">${probability}% to connect · damage threshold and pin counts resolve separately</p><div class="primary-row"><button class="boost-button ${ui.spendCrowd ? 'is-on' : ''}" data-boost ${actor.crowdResource < 1 ? 'disabled' : ''}><strong>${boostLabel}</strong><small>${escapeHtml(actor.crowdResourceName)}</small></button><button class="roll-button" data-roll><strong>ROLL d20</strong><small>RESOLVE MOVE</small></button></div>
+      <div class="selected-illustration">${moveArt(move.id)}<p>${escapeHtml(move.description)}</p></div><div class="move-meta-line"><b>${target ? escapeHtml(bodyLabel(target).toUpperCase()) : 'AUTO'}</b><i>·</i><span>${escapeHtml(move.stat.toUpperCase())} ${mod >= 0 ? '+' : ''}${mod}</span><i>·</i><span>VS CON ${conditioning(defender)}</span><i>·</i><span>d${move.damageDie} DAMAGE</span></div>
+      <meter class="connect-meter" min="0" max="100" value="${probability}" aria-label="${probability}% chance to connect">${probability}%</meter><p class="probability-note">${probability}% to connect · damage threshold and pin counts resolve separately</p><div class="primary-row"><button class="boost-button ${ui.spendCrowd ? 'is-on' : ''}" data-boost ${actor.crowdResource < 1 ? 'disabled' : ''}><strong>${boostLabel}</strong><small>${escapeHtml(actor.crowdResourceName)}</small></button><button class="roll-button" data-roll><strong>ATTEMPT MOVE</strong><small>ROLL d20 · ${escapeHtml(move.name)}</small></button></div>
     </section>`;
 }
 
@@ -354,11 +343,15 @@ function renderReaction() {
     </section>`;
 }
 
+function renderMatchIntro() {
+  return `<div class="match-intro" role="dialog" aria-modal="true" aria-label="Tonight's match"><div class="intro-poster"><p class="poster-kicker">FACES &amp; HEELS PRESENTS</p><h1>MAIN<br>EVENT</h1><div class="poster-match"><div>${portrait('stone')}<strong>STONE</strong><span>POWERHOUSE · FACE</span></div><b>VS</b><div>${portrait('viper')}<strong>VIPER</strong><span>DAREDEVIL · HEEL</span></div></div><p class="intro-rivalry">${escapeHtml(rivalryLead)}</p><button class="roll-button" data-start-match><strong>ENTER THE RING</strong><small>A TACTICAL WRESTLING SHOWDOWN</small></button><p class="intro-help">Play both corners. Choose a move, roll the dice, and fight for the three-count.</p></div></div>`;
+}
+
 function renderMatchComplete() {
   const winner = wrestler(state, state.winnerId);
   return `
-    <section class="decision-panel decision-panel--winner">
-      <div class="opportunity-copy"><small>MATCH COMPLETE</small><strong>${escapeHtml(winner.name)} WINS</strong><span>Pinfall · ${state.turnCounter} resolved actions · ${highlights.length} highlights</span></div>
+    <section class="decision-panel decision-panel--winner"><div class="winner-portrait">${portrait(winner.id)}</div>
+      <div class="opportunity-copy"><small>MATCH COMPLETE</small><strong>${escapeHtml(winner.name)} WINS</strong><span>Pinfall · ${state.turnCounter} resolved actions · ${highlights.length} highlights</span><div class="result-record">STONE ${progression.wins.stone} — ${progression.wins.viper} VIPER</div><p class="result-highlight">${escapeHtml(highlights.at(-1) || 'The final three-count settles the match.')}</p></div>
       <div class="victory-actions"><button class="pin-button" data-new-match>REMATCH</button><button class="continue-button" data-drawer="highlights">HIGHLIGHTS</button><button class="continue-button" data-drawer="progress">CAREER</button></div>
     </section>`;
 }
@@ -381,9 +374,9 @@ function renderBodyDrawer(wrestlerId) {
   return `
     <div class="drawer-backdrop" data-close-drawer></div>
     <aside class="drawer">
-      <header><div><small>BODY STATUS · ${roleFor(state,wrestlerId)}</small><strong>${escapeHtml(w.name)}</strong></div><button data-close-drawer>×</button></header>
+      <header><div><small>BODY STATUS · ${roleFor(state,wrestlerId)}</small><strong>${escapeHtml(w.name)}</strong></div><button data-close-drawer aria-label="Close panel">×</button></header>
       <div class="stat-summary"><span>Power <b>${statModifier(w.stats.Power) >= 0 ? '+' : ''}${statModifier(w.stats.Power)}</b></span><span>Agility <b>${statModifier(w.stats.Agility) >= 0 ? '+' : ''}${statModifier(w.stats.Agility)}</b></span><span>CON <b>${conditioning(w)}</b></span><span>Marks <b>${totalBodyMarks(w)}</b></span></div>
-      <div class="body-figure" aria-hidden="true"><span class="bf-head"></span><span class="bf-core"></span><span class="bf-arm l"></span><span class="bf-arm r"></span><span class="bf-leg l"></span><span class="bf-leg r"></span></div>
+      <div class="body-figure">${damageDiagram(damage)}</div>
       <div class="damage-list">${parts.map(([key,label]) => `<div><span>${label}</span><b class="damage-${Math.min(3,damage[key]||0)}">${damage[key]||0} / 3</b></div>`).join('')}</div>
       <p class="drawer-note">Body marks penalize pin rolls. Damage marks are earned only when a move's damage die beats that body part's threshold.</p>
     </aside>`;
@@ -392,23 +385,23 @@ function renderBodyDrawer(wrestlerId) {
 function renderMenuDrawer() {
   return `
     <div class="drawer-backdrop" data-close-drawer></div><aside class="drawer">
-      <header><div><small>MATCH · v1.5 ARENA</small><strong>More</strong></div><button data-close-drawer>×</button></header>
+      <header><div><small>FACES &amp; HEELS</small><strong>Ringside menu</strong></div><button data-close-drawer aria-label="Close panel">×</button></header>
       <button class="drawer-action" data-drawer="settings"><span>⚙</span><div><strong>Presentation settings</strong><small>Sound, motion, flash and speed.</small></div></button>
       <button class="drawer-action" data-drawer="progress"><span>▤</span><div><strong>Championship journey</strong><small>Local match series, rewards and rivalry.</small></div></button>
       <button class="drawer-action" data-drawer="log"><span>☷</span><div><strong>Match Log</strong><small>Rolls, control changes, damage, pins and recovery.</small></div></button>
       <button class="drawer-action" data-body="stone"><span>◉</span><div><strong>Stone Status</strong><small>Stats, body marks and stamina.</small></div></button>
       <button class="drawer-action" data-body="viper"><span>◉</span><div><strong>Viper Status</strong><small>Stats, body marks and stamina.</small></div></button>
-      <div class="principle-card"><small>v1.5 MATCH LOOP</small><strong>Keep control until the opponent steals it.<br>Prone creates a pin chance.</strong></div>
+      <div class="principle-card"><small>THE MATCH</small><strong>Keep control until the opponent steals it.<br>Prone creates a pin chance.</strong></div>
     </aside>`;
 }
 
 function renderLogDrawer() {
-  return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer drawer--wide"><header><div><small>TRANSPARENT RULES</small><strong>Match Log</strong></div><button data-close-drawer>×</button></header><div class="log-list">${matchLog.slice().reverse().map((entry,i) => `<div><span>${matchLog.length-i}</span><p>${escapeHtml(entry)}</p></div>`).join('')}</div></aside>`;
+  return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer drawer--wide"><header><div><small>TRANSPARENT RULES</small><strong>Match Log</strong></div><button data-close-drawer aria-label="Close panel">×</button></header><div class="log-list">${matchLog.slice().reverse().map((entry,i) => `<div><span>${matchLog.length-i}</span><p>${escapeHtml(entry)}</p></div>`).join('')}</div></aside>`;
 }
 
-function renderSettingsDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer"><header><strong>Presentation settings</strong><button data-close-drawer>×</button></header><p class="drawer-note">These settings change presentation only. Dice rolls and rules are identical.</p>${[['muted','Mute sound'],['reducedMotion','Reduced motion'],['reducedFlash','Reduced flash'],['fast','Fast presentation']].map(([key,label])=>`<label class="setting-option"><span>${label}</span><input type="checkbox" data-setting="${key}" ${settings[key]?'checked':''}></label>`).join('')}</aside>`;}
-function renderProgressDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer drawer--wide"><header><strong>Championship journey</strong><button data-close-drawer>×</button></header><p class="drawer-note">Three-match championship series. Results and cosmetic unlocks live only on this device. No combat bonuses.</p><div class="stat-summary"><span>Stone wins <b>${progression.wins.stone}</b></span><span>Viper wins <b>${progression.wins.viper}</b></span><span>Matches <b>${progression.series}</b></span><span>Champion <b>${progression.champion?.toUpperCase()||'UNDECIDED'}</b></span></div><button class="drawer-action" data-toggle-career><strong>${progression.mode==='championship'?'CHAMPIONSHIP ACTIVE':'START CHAMPIONSHIP SERIES'}</strong></button><p class="drawer-note">Rewards: ${progression.palette==='spotlight'?'Spotlight palette unlocked':'Spotlight palette after 2 matches'} · ${progression.theme==='championship'?'Championship arena unlocked':'Championship arena after 3 matches'}</p>${progression.history.slice(-6).reverse().map(m=>`<p class="history-row">MATCH ${m.number} · ${m.winner.toUpperCase()} won · ${m.actions} actions</p>`).join('')}<button class="continue-button" data-reset-progress>RESET PROGRESSION</button></aside>`;}
-function renderHighlightsDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer drawer--wide"><header><strong>Match highlights</strong><button data-close-drawer>×</button></header>${highlights.length?highlights.slice(-12).reverse().map(x=>`<p class="history-row">${escapeHtml(x)}</p>`).join(''):'<p>No highlights yet.</p>'}</aside>`;}
+function renderSettingsDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer"><header><strong>Presentation settings</strong><button data-close-drawer aria-label="Close panel">×</button></header><p class="drawer-note">These settings change presentation only. Dice rolls and rules are identical.</p>${[['muted','Mute sound'],['reducedMotion','Reduced motion'],['reducedFlash','Reduced flash'],['fast','Fast presentation']].map(([key,label])=>`<label class="setting-option"><span>${label}</span><input type="checkbox" data-setting="${key}" ${settings[key]?'checked':''}></label>`).join('')}<details class="developer-options"><summary>Arena tools &amp; build info</summary><div class="lab-controls">${[['iso','Isometric'],['sprite','Sprites'],['compare','Compare']].map(([mode,label])=>`<button data-renderer="${mode}" aria-pressed="${rendererMode===mode}">${label}</button>`).join('')}</div><a href="./motion-lab.html">Open motion lab ↗</a><p>Build 1.6.0 · provisional digital rules</p></details></aside>`;}
+function renderProgressDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer drawer--wide"><header><strong>Championship journey</strong><button data-close-drawer aria-label="Close panel">×</button></header><div class="championship-track">${[1,2,3].map(n=>`<span class="${progression.series>=n?'is-earned':''}"><b>${n}</b>${['DEBUT','SPOTLIGHT','TITLE ARENA'][n-1]}</span>`).join('')}</div><p class="drawer-note">Three-match championship series. Results and cosmetic unlocks live only on this device. No combat bonuses.</p><div class="stat-summary"><span>Stone wins <b>${progression.wins.stone}</b></span><span>Viper wins <b>${progression.wins.viper}</b></span><span>Matches <b>${progression.series}</b></span><span>Champion <b>${progression.champion?.toUpperCase()||'UNDECIDED'}</b></span></div><button class="drawer-action" data-toggle-career><strong>${progression.mode==='championship'?'CHAMPIONSHIP ACTIVE':'START CHAMPIONSHIP SERIES'}</strong></button><p class="drawer-note">Rewards: ${progression.palette==='spotlight'?'Spotlight palette unlocked':'Spotlight palette after 2 matches'} · ${progression.theme==='championship'?'Championship arena unlocked':'Championship arena after 3 matches'}</p>${progression.history.slice(-6).reverse().map(m=>`<p class="history-row">MATCH ${m.number} · ${m.winner.toUpperCase()} won · ${m.actions} actions</p>`).join('')}<button class="continue-button" data-reset-progress>RESET PROGRESSION</button></aside>`;}
+function renderHighlightsDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer drawer--wide"><header><strong>Match highlights</strong><button data-close-drawer aria-label="Close panel">×</button></header>${highlights.length?highlights.slice(-12).reverse().map(x=>`<p class="history-row">${escapeHtml(x)}</p>`).join(''):'<p>No highlights yet.</p>'}</aside>`;}
 function renderDrawer() {
   if (!ui.drawer) return '';
   if (ui.drawer === 'menu') return renderMenuDrawer();
@@ -420,10 +413,18 @@ function renderDrawer() {
   return '';
 }
 
+let previousDrawer = null;
+let returnFocus = null;
+function focusKey(el) { return el?.dataset ? Object.entries(el.dataset).find(([key])=>['move','target','drawer','body','boost','roll','neutralRoll','startMatch','renderer','setting','pin','moreMoves','filter','back'].includes(key)) : null; }
 function render() {
+  const focused = focusKey(document.activeElement);
+  if (ui.drawer && !previousDrawer) returnFocus = focused;
+  const closedDrawer = previousDrawer && !ui.drawer;
+  const openedDrawer = ui.drawer && ui.drawer !== previousDrawer;
+  previousDrawer = ui.drawer;
   syncUiToEngine();
   const oldCanvas = document.querySelector('#match-canvas');
-  app.innerHTML = `<div class="game-shell ${progression.theme==='championship'?'is-championship':''}">${renderHeader()}${renderArena()}${renderDecisionDock()}<footer><span>v1.5.2 Coordinated Moves · provisional digital rules</span><button data-drawer="log">MATCH LOG</button></footer></div>${renderDrawer()}`;
+  app.innerHTML = `<div class="game-shell phase-${ui.phase.toLowerCase()} ${progression.theme==='championship'?'is-championship':''}">${renderHeader()}${renderArena()}${renderDecisionDock()}<footer><span>RINGSIDE LIVE · ${state.turnCounter} ACTIONS</span><button data-drawer="log">MATCH LOG</button></footer></div>${renderDrawer()}${introOpen ? renderMatchIntro() : ''}`;
   const canvas = document.querySelector('#match-canvas');
   if (!stage) {
     stage = new IsoStage(canvas);
@@ -432,6 +433,15 @@ function render() {
   } else if (oldCanvas !== canvas) {
     canvas.replaceWith(oldCanvas);
     stage.resize();
+  }
+  const drawer=document.querySelector('.drawer');
+  if(drawer){drawer.setAttribute('role','dialog');drawer.setAttribute('aria-modal','true');drawer.setAttribute('aria-label',drawer.querySelector('header strong')?.textContent||'Ringside');}
+  const shell=document.querySelector('.game-shell');
+  if(shell) shell.inert=Boolean(drawer||introOpen);
+  if(openedDrawer) drawer?.querySelector('button')?.focus();
+  else {
+    const key=closedDrawer?returnFocus:focused;
+    if(key) [...app.querySelectorAll('button,input')].find(el=>el.dataset[key[0]]===key[1])?.focus({preventScroll:true});
   }
   stage.mode=rendererMode;stage.fast=settings.fast;stage.reducedMotion=settings.reducedMotion;stage.reducedFlash=settings.reducedFlash;
 
@@ -690,6 +700,7 @@ app.addEventListener('click', event => {
   const el = event.target.closest('button,[data-close-drawer]');
   if (!el) return;
   if (['ROLLING','ANIMATING','PIN'].includes(ui.phase) && !el.dataset.renderer && !el.dataset.drawer && el.dataset.closeDrawer===undefined) return;
+  if (el.dataset.startMatch !== undefined) { introOpen=false; audio.cue('bell'); render(); document.querySelector('[data-neutral-roll]')?.focus(); return; }
   if (el.dataset.neutralRoll !== undefined) { rollNeutral(); return; }
   if (el.dataset.move) { const move = demoMoves.find(m => m.id === el.dataset.move); if (move) selectMove(move); return; }
   if (el.dataset.renderer) {rendererMode=el.dataset.renderer;try{localStorage.setItem('fh-renderer-v15',rendererMode)}catch{} render();return;}
@@ -706,12 +717,23 @@ app.addEventListener('click', event => {
   if (el.dataset.catchBreath !== undefined) { catchBreath(); return; }
   if(el.dataset.toggleCareer!==undefined){progression.mode=progression.mode==='championship'?'quick':'championship';saveProgress(localStorage,progression);render();return;}
   if(el.dataset.resetProgress!==undefined){if(confirm('Reset all local championship results and rewards?')){progression=resetProgress(localStorage);render();}return;}
-  if (el.dataset.newMatch !== undefined) { location.href='./?fhbuild=1.5.2&t='+Date.now(); return; }
+  if (el.dataset.newMatch !== undefined) { location.href='./?fhbuild=1.6.0&t='+Date.now(); return; }
   if (el.dataset.moreMoves !== undefined) { ui.moreMoves=!ui.moreMoves; if(!ui.moreMoves) ui.filter='all'; render(); return; }
   if (el.dataset.filter) { ui.filter=el.dataset.filter; ui.moreMoves=true; render(); return; }
   if (el.dataset.body) { ui.drawer=el.dataset.body; render(); return; }
   if (el.dataset.drawer) { ui.drawer=el.dataset.drawer; render(); return; }
   if (el.dataset.closeDrawer !== undefined) { ui.drawer=null; render(); return; }
+});
+
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape' && ui.drawer){ui.drawer=null;render();return;}
+  const modal=document.querySelector('.match-intro,.drawer');
+  if(event.key!=='Tab'||!modal)return;
+  const items=[...modal.querySelectorAll('button:not([disabled]),a,input,summary')].filter(el=>el.getClientRects().length);
+  if(!items.length)return;
+  const first=items[0],last=items.at(-1);
+  if(event.shiftKey&&(document.activeElement===first||!modal.contains(document.activeElement))){event.preventDefault();last.focus();}
+  else if(!event.shiftKey&&(document.activeElement===last||!modal.contains(document.activeElement))){event.preventDefault();first.focus();}
 });
 
 function applyDemoQuery() {
@@ -729,4 +751,4 @@ applyDemoQuery();
 document.documentElement.classList.toggle('user-reduced-motion',settings.reducedMotion);
 document.documentElement.classList.toggle('user-reduced-flash',settings.reducedFlash);
 render();
-
+if(introOpen) document.querySelector('[data-start-match]')?.focus();

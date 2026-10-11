@@ -1,9 +1,9 @@
 {
   "name": "faces-and-heels-pwa",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "type": "module",
   "private": true,
-  "description": "Faces & Heels v1.5.2 beveled block wrestler models with retained paired animation",
+  "description": "Faces & Heels v1.6.0 Ringside broadcast interface with original vector move art",
   "scripts": {
     "test": "node test-flow.mjs && node test-v11.mjs && node test-v13.mjs && node test-presentation.mjs && node test-simulations.mjs && node test-isometric.mjs && node test-block-model.mjs && node test-package.cjs",
     "test:flow": "node test-flow.mjs",
