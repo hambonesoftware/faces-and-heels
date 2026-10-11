@@ -42,7 +42,9 @@ const deps={
   perspectiveState:()=>({}),
   resolvedTargetLabel:()=> 'CORE',
   tacticalLabel:()=> 'CONTROL',
-  moveArt
+  moveArt,
+  turnDecision:()=>({actions:[]}),
+  ACTION_IDS:{RECOVER:'crowd-recover',SCRAMBLE:'scramble-up'}
 };
 const render=new Function(...Object.keys(deps),fragment+';return renderMoveCards;')(...Object.values(deps));
 const html=render();
