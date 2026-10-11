@@ -131,7 +131,7 @@ export function getLegalMoves(state, actorId = state.activeWrestlerId) {
   let moves = demoMoves.filter(move => isMoveLegal(move, perspective));
   const defender = perspective.defender;
   if (state.mustFinishTargetId === defender.id && defender.stamina <= 0 && defender.posture !== 'prone') {
-    moves = moves.filter(move => move.result?.defenderPosture === 'prone' && move.staminaDamage > 0);
+    moves = moves.filter(move => move.category !== 'setup' && move.result?.defenderPosture === 'prone' && move.staminaDamage > 0);
   }
   return moves;
 }
@@ -254,12 +254,16 @@ export function resolveMoveAttempt(state, {
   }
 
   state.pendingFailure = null;
-  defender.stamina = Math.max(0, defender.stamina - Number(move.staminaDamage || 0));
-  result.staminaDamage = Number(move.staminaDamage || 0);
+  const listedStaminaDamage = Number(move.staminaDamage || 0);
+  const defenderBefore = defender.stamina;
+  defender.stamina = Math.max(0, defender.stamina - listedStaminaDamage);
+  // Reports actual stamina drained, never a value greater than what remains.
+  result.staminaDamage = defenderBefore - defender.stamina;
+  result.listedStaminaDamage = listedStaminaDamage;
   result.crowdGained = awardCrowd(attacker, move.crowdGain || 0);
-  if (resolvedTarget && move.staminaDamage > 0) result.damage = applyDamageMark(defender, resolvedTarget, damageRoll);
+  if (resolvedTarget && move.category !== 'setup') result.damage = applyDamageMark(defender, resolvedTarget, damageRoll);
 
-  if (move.result?.defenderPosture) defender.posture = move.result.defenderPosture;
+  if (move.result?.defenderPosture && !move.result.preserveDefenderPosture) defender.posture = move.result.defenderPosture;
   if (move.result?.attackerPosture) attacker.posture = move.result.attackerPosture;
   attacker.condition = deriveCondition(attacker);
   defender.condition = deriveCondition(defender);
@@ -332,8 +336,10 @@ export function resolveReaction(state, { reactionRoll, damageRoll }) {
     return result;
   }
 
+  const opponentBefore = originalAttacker.stamina;
   originalAttacker.stamina = Math.max(0, originalAttacker.stamina - reactionMove.staminaDamage);
-  result.staminaDamage = reactionMove.staminaDamage;
+  result.staminaDamage = opponentBefore - originalAttacker.stamina;
+  result.listedStaminaDamage = reactionMove.staminaDamage;
   result.damage = applyDamageMark(originalAttacker, 'core', damageRoll);
   result.crowdGained = awardCrowd(reactor, reactionMove.crowdGain || 0);
   reactor.posture = reactionMove.result.attackerPosture || 'standing';
