@@ -368,8 +368,14 @@ function renderReaction() {
   const available = canReact(state);
   return `
     <section class="decision-panel decision-panel--reaction">
-      <div class="opportunity-copy"><small>REACTION WINDOW</small><strong>${escapeHtml(reactor.name)} can steal control</strong><span>Shove Counter: d20 + Power vs ${escapeHtml(target.name)} CON ${conditioning(target)} · costs 5 STA.</span></div>
-      <div class="opportunity-actions">${available ? '<button class="reaction-button" data-reaction>COUNTER · 5 STA</button>' : ''}<button class="continue-button" data-pass-reaction>${available ? 'PASS' : 'NO STAMINA · PASS'}</button></div>
+      <div class="reaction-performance">
+        <div class="reaction-preview-art">${moveArt('shove-counter')}</div>
+        <div class="opportunity-copy"><small>REACTION WINDOW</small><strong>${escapeHtml(reactor.name)} can steal control</strong>
+          <span>Shove Counter · d20 + Power vs ${escapeHtml(target.name)} CON ${conditioning(target)}</span>
+          <div class="move-resource-trade"><span>YOUR COST <b>−5 STA</b></span><span>OPPONENT ON HIT <b>−7 STA</b></span></div>
+        </div>
+      </div>
+      <div class="opportunity-actions">${available ? '<button class="reaction-button" data-reaction>SHOVE COUNTER · 5 STA</button>' : ''}<button class="continue-button" data-pass-reaction>${available ? 'PASS' : 'NO STAMINA · PASS'}</button></div>
     </section>`;
 }
 
