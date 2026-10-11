@@ -1,10 +1,10 @@
-import { animationByMove } from './combat-animation-map.js?v=1.10.0';
-import { portrait, moveArt, damageDiagram } from './ui-art.js?v=1.10.0';
-import { emptyProgress, loadProgress, saveProgress, recordResult, resetProgress } from './progression.js?v=1.10.0';
-import { DEFAULT_PRESENTATION, readSettings, saveSettings, delayFor, tacticalLabel, chanceToHit, MatchAudio } from './presentation.js?v=1.10.0';
-import { demoMoves } from './moves.js?v=1.10.0';
-import { bodyLabel, resolveTargetDecision } from './flow-engine.js?v=1.10.0';
-import { IsoStage } from './iso-stage.js?v=1.10.0';
+import { animationByMove } from './combat-animation-map.js?v=1.11.0';
+import { portrait, moveArt, damageDiagram } from './ui-art.js?v=1.11.0';
+import { emptyProgress, loadProgress, saveProgress, recordResult, resetProgress } from './progression.js?v=1.11.0';
+import { DEFAULT_PRESENTATION, readSettings, saveSettings, delayFor, tacticalLabel, chanceToHit, MatchAudio } from './presentation.js?v=1.11.0';
+import { demoMoves } from './moves.js?v=1.11.0';
+import { bodyLabel, resolveTargetDecision } from './flow-engine.js?v=1.11.0';
+import { IsoStage } from './iso-stage.js?v=1.11.0';
 let rendererMode = 'iso';
 try { const saved=localStorage.getItem('fh-renderer-v15'); if(['iso','sprite','compare'].includes(saved)) rendererMode=saved; } catch {}
 const requestedRenderer=new URLSearchParams(location.search).get('renderer');
@@ -30,7 +30,7 @@ import {
   catchBreathToNeutral,
   scrambleUp,
   totalBodyMarks
-} from './match-engine.js?v=1.10.0';
+} from './match-engine.js?v=1.11.0';
 
 const app = document.querySelector('#app');
 let progression=loadProgress(localStorage);
@@ -54,6 +54,7 @@ let ui = {
   event: null,
   filter: 'all',
   moreMoves: false,
+  railOffset: 0,
   pinCount: 0,
   pinRolls: null,
   neutralRolls: null
@@ -250,38 +251,61 @@ function renderMoveCards() {
       </section>`;
   }
 
-  const filtered = ui.filter === 'all' ? allLegal : allLegal.filter(move => move.category === ui.filter);
-  const expanded = ui.moreMoves || ui.filter !== 'all';
-  const moves = expanded ? filtered : filtered.slice(0, 4);
-  const hiddenCount = Math.max(0, filtered.length - moves.length);
-  const showFilters = expanded && allLegal.length > 4;
-  const cards = moves.map(move => {
+  // Only legal moves appear; the ribbon contains the entire contextual roster.
+  const categories = ['all','strike','grapple','setup','special'];
+  const labels = {all:'ALL',strike:'STRIKES',grapple:'GRAPPLES',setup:'SETUPS',special:'FINISHERS'};
+  const present = categories.filter(category => category === 'all' || allLegal.some(move => move.category === category));
+  const activeCategory = present.includes(ui.filter) ? ui.filter : 'all';
+  const moves = activeCategory === 'all' ? allLegal : allLegal.filter(move => move.category === activeCategory);
+  const cards = moves.map((move, index) => {
     const decision = resolveTargetDecision(move, perspectiveState(state));
-    const choice = decision.kind === 'choice';
-    const target = choice ? 'Choose target' : resolvedTargetLabel(move);
-    const tactic=tacticalLabel(move);
+    const target = decision.kind === 'choice' ? 'CHOOSE TARGET' : resolvedTargetLabel(move);
+    const tactic = tacticalLabel(move);
+    const categoryName = labels[move.category] || move.category.toUpperCase();
     return `
-      <button class="move-card move-card--${move.category} ${move.category === 'special' ? 'is-special' : ''}" data-move="${move.id}">
-        <span class="move-art">${moveArt(move.id)}</span>
-        <span class="move-main"><small class="move-category">${escapeHtml(move.category)}</small><strong>${escapeHtml(move.name)}</strong><small>${escapeHtml(target)} · ${tactic}</small></span>
-        <span class="move-cost"><b>${move.staminaCost}</b><small>STA</small></span>
+      <button class="action-slot action-slot--${escapeHtml(move.category)}" data-move="${escapeHtml(move.id)}" aria-label="${escapeHtml(move.name)}, ${move.staminaCost} stamina, ${escapeHtml(target)}" type="button">
+        <span class="action-slot-art">${moveArt(move.id)}</span>
+        <span class="action-slot-index" aria-hidden="true">${String(index+1).padStart(2,'0')}</span>
+        <span class="action-slot-heading"><span class="action-slot-category">${escapeHtml(categoryName)}</span><strong>${escapeHtml(move.name)}</strong></span>
+        <span class="action-slot-foot"><span class="action-slot-target">${escapeHtml(target)}</span><span class="action-slot-cost"><b>${move.staminaCost}</b><small>STA</small></span></span>
+        <span class="action-slot-tactic">${escapeHtml(tactic)}</span>
       </button>`;
   }).join('');
 
   const recoverButton = actor.crowdResource > 0 && actor.stamina <= actor.maxStamina - 5
-    ? `<button class="recover-mini" data-recover>+10 STA · 1 ${escapeHtml(actor.crowdResourceName)}</button>` : '';
+    ? `<button class="recover-mini" data-recover type="button">+10 STA · 1 ${escapeHtml(actor.crowdResourceName)}</button>` : '';
   const finishNotice = state.mustFinishTargetId === defender.id && defender.stamina <= 0
     ? `<div class="finish-required">FINISH REQUIRED · ${escapeHtml(defender.name)} IS OUT OF STAMINA</div>` : '';
 
   return `
-    <section class="decision-panel decision-panel--moves">
+    <section class="decision-panel decision-panel--moves" aria-label="Ringside action bar">
       ${finishNotice}
-      <div class="decision-heading"><div><small>${roleFor(state,actor.id) === 'N' ? 'NEUTRAL ACTION' : `${roleFor(state,actor.id)} CONTROL`}</small><strong>${escapeHtml(actor.name)} · choose a move</strong></div>
-        <div class="decision-tools">${recoverButton}${allLegal.length > 4 ? `<button class="more-moves" data-more-moves>${expanded ? 'LESS' : `MORE +${allLegal.length - 4}`}</button>` : ''}</div>
+      <div class="action-ribbon-heading">
+        <div class="action-ribbon-title">
+          <small><span class="action-live-dot"></span>${roleFor(state,actor.id) === 'N' ? 'NEUTRAL' : 'HIGH CONTROL'} / ${escapeHtml(actor.name)}</small>
+          <strong>CHOOSE YOUR NEXT MOVE</strong>
+        </div>
+        <div class="action-ribbon-tools">${recoverButton}<span class="action-available">${String(moves.length).padStart(2,'0')} READY</span></div>
       </div>
-      ${showFilters ? `<div class="filter-row">${['all','strike','grapple','special'].map(filter => `<button data-filter="${filter}" class="filter-chip ${ui.filter === filter ? 'is-active' : ''}">${filter.toUpperCase()}</button>`).join('')}</div>` : ''}
-      <div class="move-grid">${cards}</div>
-      ${hiddenCount > 0 && !expanded ? `<div class="move-hint">Four legal moves shown · ${hiddenCount} more available</div>` : ''}
+      <div class="action-ribbon-controls">
+        <div class="action-category-tabs" role="group" aria-label="Move type">
+          ${present.map(category => `<button type="button" class="action-category action-category--${category} ${activeCategory === category ? 'is-active' : ''}" data-filter="${category}" aria-pressed="${activeCategory === category}">${labels[category]}</button>`).join('')}
+        </div>
+        <div class="action-ribbon-navigation">
+          <output class="action-ribbon-count" data-rail-counter aria-live="off">01 / ${String(moves.length).padStart(2,'0')}</output>
+          <button type="button" class="action-ribbon-arrow" data-rail-step="-1" aria-label="Scroll to previous moves">‹</button>
+          <button type="button" class="action-ribbon-arrow" data-rail-step="1" aria-label="Scroll to next moves">›</button>
+        </div>
+      </div>
+      <div class="action-ribbon-window">
+        <div class="action-ribbon-track" data-action-rail tabindex="0" role="region" aria-label="Available wrestling moves. Swipe horizontally, or use left and right arrow keys.">
+          ${cards}
+        </div>
+      </div>
+      <div class="action-ribbon-footer">
+        <span class="action-ribbon-progress" aria-hidden="true"><i data-rail-progress></i></span>
+        <span>SWIPE / SCROLL TO BROWSE <span aria-hidden="true">→</span> TAP TO INSPECT</span>
+      </div>
     </section>`;
 }
 
@@ -425,6 +449,8 @@ function render() {
   const openedDrawer = ui.drawer && ui.drawer !== previousDrawer;
   previousDrawer = ui.drawer;
   syncUiToEngine();
+  const previousRail = app.querySelector('[data-action-rail]');
+  if (previousRail && ui.phase === 'ACTION_SELECT') ui.railOffset = previousRail.scrollLeft;
   const oldCanvas = document.querySelector('#match-canvas');
   app.innerHTML = `<div class="game-shell phase-${ui.phase.toLowerCase()} ${progression.theme==='championship'?'is-championship':''}">${renderHeader()}<div class="arena-combat-zone">${renderArena()}<div class="tactical-menu-anchor">${renderDecisionDock()}</div></div><footer><span>RINGSIDE LIVE · ${state.turnCounter} ACTIONS</span><button data-drawer="log">MATCH LOG</button></footer></div>${renderDrawer()}${introOpen ? renderMatchIntro() : ''}`;
   const canvas = document.querySelector('#match-canvas');
@@ -445,8 +471,36 @@ function render() {
     const key=closedDrawer?returnFocus:focused;
     if(key) [...app.querySelectorAll('button,input')].find(el=>el.dataset[key[0]]===key[1])?.focus({preventScroll:true});
   }
+  const rail=app.querySelector('[data-action-rail]');
+  if(rail){rail.scrollLeft=ui.railOffset;updateActionRail(rail);}
   stage.mode=rendererMode;stage.fast=settings.fast;stage.reducedMotion=settings.reducedMotion;stage.reducedFlash=settings.reducedFlash;
 
+}
+
+
+// Native horizontal scrolling drives the ribbon. DOM can be rebuilt during rolls
+// and HUD updates; offset is retained without losing a player's place in the list.
+function updateActionRail(rail) {
+  if(!rail)return;
+  const max=Math.max(0,rail.scrollWidth-rail.clientWidth);
+  const position=Math.max(0,Math.min(max,rail.scrollLeft));
+  const cards=[...rail.querySelectorAll('[data-move]')];
+  const stride=cards.length>1?cards[1].offsetLeft-cards[0].offsetLeft:(cards[0]?.offsetWidth||1);
+  const first=cards.length?Math.min(cards.length-1,Math.floor((position+2)/Math.max(1,stride))):0;
+  const visible=Math.max(1,Math.ceil((rail.clientWidth-12)/Math.max(1,stride)));
+  const last=Math.min(cards.length,first+visible);
+  const header=rail.closest('.decision-panel');
+  const output=header?.querySelector('[data-rail-counter]');
+  if(output)output.textContent=`${String(first+1).padStart(2,'0')}–${String(last).padStart(2,'0')} / ${String(cards.length).padStart(2,'0')}`;
+  const indicator=header?.querySelector('[data-rail-progress]');
+  if(indicator) {
+    const share=rail.scrollWidth?Math.min(100,rail.clientWidth/rail.scrollWidth*100):100;
+    indicator.style.width=`${share}%`;
+    indicator.style.left=`${max?(position/max)*(100-share):0}%`;
+  }
+  const prev=header?.querySelector('[data-rail-step="-1"]'),next=header?.querySelector('[data-rail-step="1"]');
+  if(prev)prev.disabled=position<2;
+  if(next)next.disabled=position>=max-2;
 }
 
 function announce(title, detail = '', kind = 'major', impact = false, ms = 1050) {
@@ -555,6 +609,7 @@ async function playSuccessfulMove(move, result) {
   ui.selectedTarget = null;
   ui.spendCrowd = 0;
   ui.phase = state.pinEligible ? 'OPPORTUNITY' : 'ACTION_SELECT';
+  ui.railOffset=0;ui.filter='all';
   render();
   if (move.category === 'setup') announce(move.name.toUpperCase(), 'POSITION SECURED · HIGH CONTROL', 'major', false, 720);
 }
@@ -721,12 +776,36 @@ function resetSelection() {
   ui.selectedMove = null;
   ui.selectedTarget = null;
   ui.spendCrowd = 0;
-  ui.moreMoves = false;
-  ui.filter = 'all';
   render();
 }
 
 app.addEventListener('change',event=>{const input=event.target.closest('[data-setting]');if(!input)return;settings=saveSettings(localStorage,{...settings,[input.dataset.setting]:input.checked});audio.muted=settings.muted;if(stage){stage.reducedMotion=settings.reducedMotion;stage.reducedFlash=settings.reducedFlash;}document.documentElement.classList.toggle('user-reduced-motion',settings.reducedMotion);document.documentElement.classList.toggle('user-reduced-flash',settings.reducedFlash);});
+
+// Scroll is capture-phase because the event does not bubble. Wheel input is
+// translated to horizontal motion only while the pointer is over the ribbon.
+app.addEventListener('scroll',event=>{
+  const rail=event.target.closest?.('[data-action-rail]');
+  if(rail){ui.railOffset=rail.scrollLeft;updateActionRail(rail);}
+},true);
+app.addEventListener('wheel',event=>{
+  const rail=event.target.closest?.('[data-action-rail]');
+  if(!rail)return;
+  const delta=Math.abs(event.deltaX)>Math.abs(event.deltaY)?event.deltaX:event.deltaY;
+  const limit=rail.scrollWidth-rail.clientWidth;
+  if(limit<2||(!delta))return;
+  if((delta>0&&rail.scrollLeft>=limit-1)||(delta<0&&rail.scrollLeft<=1))return;
+  event.preventDefault();
+  rail.scrollLeft+=delta;
+},{passive:false});
+app.addEventListener('keydown',event=>{
+  const rail=event.target.closest?.('[data-action-rail]');
+  if(!rail||!['ArrowRight','ArrowLeft','Home','End'].includes(event.key))return;
+  event.preventDefault();
+  const move=rail.querySelector('[data-move]');
+  const stride=(move?.offsetWidth||150)+12;
+  rail.scrollTo({left:event.key==='Home'?0:event.key==='End'?rail.scrollWidth:(rail.scrollLeft+(event.key==='ArrowRight'?stride:-stride)),behavior:settings.reducedMotion?'instant':'smooth'});
+});
+
 app.addEventListener('click', event => {
   audio.unlock();
   const el = event.target.closest('button,[data-close-drawer]');
@@ -749,9 +828,21 @@ app.addEventListener('click', event => {
   if (el.dataset.catchBreath !== undefined) { catchBreath(); return; }
   if(el.dataset.toggleCareer!==undefined){progression.mode=progression.mode==='championship'?'quick':'championship';saveProgress(localStorage,progression);render();return;}
   if(el.dataset.resetProgress!==undefined){if(confirm('Reset all local championship results and rewards?')){progression=resetProgress(localStorage);render();}return;}
-  if (el.dataset.newMatch !== undefined) { location.href='./?fhbuild=1.10.0&t='+Date.now(); return; }
-  if (el.dataset.moreMoves !== undefined) { ui.moreMoves=!ui.moreMoves; if(!ui.moreMoves) ui.filter='all'; render(); return; }
-  if (el.dataset.filter) { ui.filter=el.dataset.filter; ui.moreMoves=true; render(); return; }
+  if (el.dataset.newMatch !== undefined) { location.href='./?fhbuild=1.11.0&t='+Date.now(); return; }
+  if (el.dataset.railStep !== undefined) {
+    const rail=app.querySelector('[data-action-rail]');
+    const card=rail?.querySelector('[data-move]');
+    if(rail&&card)rail.scrollBy({left:Number(el.dataset.railStep)*(card.offsetWidth+12)*Math.max(1,Math.floor(rail.clientWidth/(card.offsetWidth+12))),behavior:settings.reducedMotion?'instant':'smooth'});
+    return;
+  }
+  if (el.dataset.filter) {
+    if(ui.filter!==el.dataset.filter){
+      ui.filter=el.dataset.filter;ui.railOffset=0;
+      const oldRail=app.querySelector('[data-action-rail]');if(oldRail)oldRail.scrollLeft=0;
+      render();
+    }
+    return;
+  }
   if (el.dataset.body) { ui.drawer=el.dataset.body; render(); return; }
   if (el.dataset.drawer) { ui.drawer=el.dataset.drawer; render(); return; }
   if (el.dataset.closeDrawer !== undefined) { ui.drawer=null; render(); return; }
