@@ -18,8 +18,13 @@ const palettes={stone:{skin:'#de8b4c',hair:'#f7c33e',gear:'#d0182d',trim:'#ffc11
 function shade(hex,k){let n=parseInt(hex.slice(1),16);return `rgb(${[n>>16,(n>>8)&255,n&255].map(v=>Math.round(Math.min(255,v*k))).join(',')})`}
 export { samplePair } from './choreography.js?v=1.14.0';
 export class IsoStage extends SpriteStage {
-  constructor(canvas){super(canvas);this.meshRenderer=new MeshRenderer();this.mode='iso';this.postures={};this.pinId=null;this.preview=null;this.compareCanvas=document.createElement('canvas');this.spriteView=new SpriteStage(this.compareCanvas);this.spriteView.resizeObserver.disconnect();this.spriteView.active=false;}
+  constructor(canvas){super(canvas);this.meshRenderer=new MeshRenderer();this.mode='iso';this.postures={};this.pinId=null;this.activeHold=null;this.holdStarted=0;this.preview=null;this.compareCanvas=document.createElement('canvas');this.spriteView=new SpriteStage(this.compareCanvas);this.spriteView.resizeObserver.disconnect();this.spriteView.active=false;}
   setRestingState(options={}){super.setRestingState(options);if(!this.playback){this.transition=this.lastPair?{from:this.lastPair,start:performance.now(),duration:750}:null;this.postures=options.postures||{};this.pinId=null;}}
+  setHold(hold){
+    this.activeHold=hold?{...hold}:null;
+    this.holdStarted=performance.now();
+    if(this.activeHold){this.mode='iso';this.transition=null;}
+  }
   playPair(a,d,o={}){
     this.pinId=null;const name=o.choreography,timing=MOVE_TIMING[name];
     const options={...o};this.entryPair=this.lastPair;this.transition=null;
@@ -67,6 +72,15 @@ export class IsoStage extends SpriteStage {
     let name=p?.isoName||p?.choreography,attacker=p?.attackerId||'stone';
     if(this.pinId){name='pin';attacker=this.pinId;t=1;}
     if(this.preview){({name,t,attacker='stone'}=this.preview);}
+    if(!p&&!this.preview&&!this.pinId&&this.activeHold){
+      const holdName={armbar:'armbar','ankle-lock':'ankle_lock','ground-headlock':'headlock'}[this.activeHold.moveId];
+      if(holdName){
+        name=holdName;attacker=this.activeHold.holderId;
+        // Subtle controlled resistance. The two models remain gripping each
+        // other rather than snapping back to idle between decisions.
+        t=.60+(this.reducedMotion?0:Math.sin(now/400)*.013);
+      }
+    }
     let pair=samplePair(name,t,attacker,this.postures,this.reducedMotion?0:now);
     if(!this.preview){
       if(p&&this.entryPair&&t<.14)pair=blendPairs(this.entryPair,pair,ease(t/.14));
