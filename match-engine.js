@@ -131,7 +131,7 @@ export function getLegalMoves(state, actorId = state.activeWrestlerId) {
   let moves = demoMoves.filter(move => isMoveLegal(move, perspective));
   const defender = perspective.defender;
   if (state.mustFinishTargetId === defender.id && defender.stamina <= 0 && defender.posture !== 'prone') {
-    moves = moves.filter(move => move.result?.defenderPosture === 'prone');
+    moves = moves.filter(move => move.result?.defenderPosture === 'prone' && move.staminaDamage > 0);
   }
   return moves;
 }
@@ -218,7 +218,7 @@ export function resolveMoveAttempt(state, {
   const modifier = statModifier(attacker.stats[move.stat]);
   const targetNumber = conditioning(defender);
   const total = attackRoll + modifier + spentCrowd;
-  const success = total >= targetNumber;
+  const success = move.automatic === true || total >= targetNumber;
 
   state.turnCounter += 1;
   state.pinEligible = false;
@@ -257,7 +257,7 @@ export function resolveMoveAttempt(state, {
   defender.stamina = Math.max(0, defender.stamina - Number(move.staminaDamage || 0));
   result.staminaDamage = Number(move.staminaDamage || 0);
   result.crowdGained = awardCrowd(attacker, move.crowdGain || 0);
-  if (resolvedTarget) result.damage = applyDamageMark(defender, resolvedTarget, damageRoll);
+  if (resolvedTarget && move.staminaDamage > 0) result.damage = applyDamageMark(defender, resolvedTarget, damageRoll);
 
   if (move.result?.defenderPosture) defender.posture = move.result.defenderPosture;
   if (move.result?.attackerPosture) attacker.posture = move.result.attackerPosture;
@@ -272,7 +272,7 @@ export function resolveMoveAttempt(state, {
   if (defender.stamina <= 0) state.mustFinishTargetId = defenderId;
   else if (state.mustFinishTargetId === defenderId) state.mustFinishTargetId = null;
 
-  state.pinEligible = defender.posture === 'prone';
+  state.pinEligible = defender.posture === 'prone' && move.category !== 'setup';
   state.pinningWrestlerId = state.pinEligible ? attackerId : null;
   result.pinEligible = state.pinEligible;
   result.forcedPin = state.pinEligible && defender.stamina <= 0;
