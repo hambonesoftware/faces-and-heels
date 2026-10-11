@@ -1,7 +1,7 @@
-import { MeshRenderer } from './mesh-renderer.js?v=1.11.0';
-import { drawBlockModel } from './block-model.js?v=1.11.0';
-import { samplePair, blendPairs, MOVE_TIMING, transformJoint } from './choreography.js?v=1.11.0';
-import { SpriteStage } from './sprite-stage.js?v=1.11.0';
+import { MeshRenderer } from './mesh-renderer.js?v=1.12.0';
+import { drawBlockModel } from './block-model.js?v=1.12.0';
+import { samplePair, blendPairs, MOVE_TIMING, transformJoint } from './choreography.js?v=1.12.0';
+import { SpriteStage } from './sprite-stage.js?v=1.12.0';
 
 // The original procedural pipeline's tapered solids, faceted lighting and
 // identity palette, implemented as runtime meshes. No network artwork/library.
@@ -16,7 +16,7 @@ const RIGHT=[.8,0,-.6], UP=[-.342,.821,-.456], VIEW=[.493,.571,.657];
 const LIGHT=unit([-.5,1,.7]);
 const palettes={stone:{skin:'#de8b4c',hair:'#f7c33e',gear:'#d0182d',trim:'#ffc11b',boot:'#ffc11b'},viper:{skin:'#c87955',hair:'#18151a',gear:'#161a22',trim:'#d1263d',boot:'#171b22'}};
 function shade(hex,k){let n=parseInt(hex.slice(1),16);return `rgb(${[n>>16,(n>>8)&255,n&255].map(v=>Math.round(Math.min(255,v*k))).join(',')})`}
-export { samplePair } from './choreography.js?v=1.11.0';
+export { samplePair } from './choreography.js?v=1.12.0';
 export class IsoStage extends SpriteStage {
   constructor(canvas){super(canvas);this.meshRenderer=new MeshRenderer();this.mode='iso';this.postures={};this.pinId=null;this.preview=null;this.compareCanvas=document.createElement('canvas');this.spriteView=new SpriteStage(this.compareCanvas);this.spriteView.resizeObserver.disconnect();this.spriteView.active=false;}
   setRestingState(options={}){super.setRestingState(options);if(!this.playback){this.transition=this.lastPair?{from:this.lastPair,start:performance.now(),duration:750}:null;this.postures=options.postures||{};this.pinId=null;}}
