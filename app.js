@@ -423,7 +423,7 @@ function renderHoldDock() {
         </div>
         <div class="hold-ribbon-actions">
           ${defending
-            ?`<button type="button" class="hold-primary hold-escape" data-hold-escape>ESCAPE <small>d20 + AGI · −${spec.escapeCost} STA</small></button>`
+            ?`<button type="button" class="hold-primary hold-escape" data-hold-escape>${finalAttempt?"FINAL ESCAPE":"ESCAPE"} <small>d20 + AGI · ${trapped.stamina===0?"NO STA AVAILABLE":`−${Math.min(spec.escapeCost,trapped.stamina)} STA`}</small></button>`
             :`<button type="button" class="hold-primary" data-hold-squeeze ${able?'':'disabled'}>TIGHTEN <small>−${spec.tickCost} STA / −${spec.tickDamage} OPP</small></button>
               <button type="button" class="hold-secondary" data-hold-release>RELEASE HOLD <small>${trapped.posture==='prone'?'PIN AVAILABLE':'KEEP CONTROL'}</small></button>`}
         </div>
