@@ -1,6 +1,6 @@
 // Runtime counterpart of art_pipeline/procedural_wrestler.py's chamfered
 // rectangular blocks. Broad planar faces, narrow edge bevels, no round muscle mesh.
-import { transformJoint } from './choreography.js?v=1.9.0';
+import { transformJoint } from './choreography.js?v=1.10.0';
 const add=(a,b)=>a.map((v,i)=>v+b[i]),sub=(a,b)=>a.map((v,i)=>v-b[i]);
 const mul=(a,s)=>a.map(v=>v*s),mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
 const dot=(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0);
