@@ -492,7 +492,7 @@ export const demoMoves = [
       defenderPostures: ['standing', 'kneeling']
     },
     targeting: { mode: 'fixed', bodyParts: ['head'] },
-    result: { defenderPosture: 'standing' }
+    result: { defenderPosture: 'standing', preserveDefenderPosture: true }
   },
   {
     id: 'running-clothesline',
