@@ -39,7 +39,7 @@ function choose(rng, list) {
 function chooseMove(rng, legal, state) {
   const actor = wrestler(state, state.activeWrestlerId);
   const defender = wrestler(state, opponentId(state.activeWrestlerId));
-  const finisher = legal.find(move => move.id === 'flash-finisher');
+  const finisher = legal.find(move => move.legendary === true);
   if (finisher && (defender.stamina <= 20 || rng() < 0.45)) return finisher;
   const proneMakers = legal.filter(move => move.result?.defenderPosture === 'prone');
   if (state.mustFinishTargetId === defender.id && proneMakers.length) return choose(rng, proneMakers);
