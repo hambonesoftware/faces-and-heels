@@ -1,11 +1,11 @@
 {
   "name": "faces-and-heels-pwa",
-  "version": "1.12.0",
+  "version": "1.13.0",
   "type": "module",
   "private": true,
-  "description": "Faces & Heels v1.12.0 stamina-balanced moves, physically sampled move art and corrected kneeling choreography",
+  "description": "Faces & Heels v1.13.0 compact below-ring action bar and unobstructed 2016-style wrestler arena",
   "scripts": {
-    "test": "node test-flow.mjs && node test-v11.mjs && node test-v13.mjs && node test-presentation.mjs && node test-action-ribbon.mjs && node test-simulations.mjs && node test-isometric.mjs && node test-transition-choreography.mjs && node test-animation-roster.mjs && node test-stamina-art.mjs && node test-move-transitions.mjs && node test-block-model.mjs && node test-package.cjs",
+    "test": "node test-flow.mjs && node test-v11.mjs && node test-v13.mjs && node test-presentation.mjs && node test-action-ribbon.mjs && node test-compact-layout.mjs && node test-simulations.mjs && node test-isometric.mjs && node test-transition-choreography.mjs && node test-animation-roster.mjs && node test-stamina-art.mjs && node test-move-transitions.mjs && node test-block-model.mjs && node test-package.cjs",
     "test:flow": "node test-flow.mjs",
     "test:v11": "node test-v11.mjs",
     "test:v13": "node test-v13.mjs",
@@ -13,7 +13,7 @@
     "sprites": "python art_pipeline/generate_match_sprites.py",
     "start": "node serve.cjs",
     "test:animation": "node test-isometric.mjs && node test-transition-choreography.mjs && node test-animation-roster.mjs && node test-stamina-art.mjs",
-    "test:ui": "node test-action-ribbon.mjs && node test-presentation.mjs",
+    "test:ui": "node test-compact-layout.mjs && node test-action-ribbon.mjs && node test-presentation.mjs",
     "test:balance": "node test-stamina-art.mjs && node test-move-transitions.mjs"
   },
   "facesAndHeels": {
