@@ -6,6 +6,7 @@ import {
   opponentId,
   resolveNeutralRoll,
   getLegalMoves,
+  checkCombatFlow,
   resolveMoveAttempt,
   canReact,
   resolveReaction,
@@ -53,6 +54,8 @@ function chooseMove(rng, legal, state) {
 }
 
 function validateState(state, context) {
+  const audit=checkCombatFlow(state);
+  assert.ok(audit.ok, `Turn-controller deadlock at ${context}: ${audit.issues.join('; ')} phase=${state.phase}`);
   const roles = Object.values(state.roles);
   const h = roles.filter(role => role === 'H').length;
   const l = roles.filter(role => role === 'L').length;
