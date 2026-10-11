@@ -142,7 +142,7 @@ assert(demoMoves.find(move=>move.id==='pick-up-opponent').result.attackerPosture
 assert(demoMoves.find(move=>move.id==='forearm-smash').result.preserveDefenderPosture,'forearm must not levitate kneeling opponent');
 
 const app=readFileSync('app.js','utf8');
-assert(app.includes('OPP STA'),'Action bar should reveal expected opponent drain');
+assert(app.includes('action-slot-effect')&&app.includes('−${move.staminaDamage}'),'Compact action bar should reveal opponent stamina drain');
 assert(app.includes('OPPONENT ON HIT'),'Move inspection should reveal expected opponent drain');
 assert(app.includes('OPPONENT EXERTION'),'Setup screen should explain its stamina penalty');
 
