@@ -194,7 +194,7 @@ function renderArenaOverlay() {
     return `<div class="turn-chip"><span>N / N</span><strong>FIGHT FOR CONTROL</strong></div>`;
   }
   if (state.winnerId) {
-    return `<div class="event-overlay event-overlay--spectacle"><small>WINNER</small><strong>${escapeHtml(wrestler(state,state.winnerId).name)}</strong><span>PINfall victory</span></div>`;
+    return `<div class="event-overlay event-overlay--spectacle"><small>WINNER</small><strong>${escapeHtml(wrestler(state,state.winnerId).name)}</strong><span>${state.winMethod==='submission'?'SUBMISSION':'PINFALL'} VICTORY</span></div>`;
   }
   const actor = currentActor();
   const defender = currentDefender();
@@ -392,7 +392,7 @@ function renderMatchComplete() {
   const winner = wrestler(state, state.winnerId);
   return `
     <section class="decision-panel decision-panel--winner"><div class="winner-portrait">${portrait(winner.id)}</div>
-      <div class="opportunity-copy"><small>MATCH COMPLETE</small><strong>${escapeHtml(winner.name)} WINS</strong><span>${state.winMethod==='submission'?'Submission':'Pinfall'} · ${state.turnCounter} resolved actions · ${highlights.length} highlights</span><div class="result-record">STONE ${progression.wins.stone} — ${progression.wins.viper} VIPER</div><p class="result-highlight">${escapeHtml(highlights.at(-1) || 'The final three-count settles the match.')}</p></div>
+      <div class="opportunity-copy"><small>MATCH COMPLETE</small><strong>${escapeHtml(winner.name)} WINS</strong><span>${state.winMethod==='submission'?'Submission':'Pinfall'} · ${state.turnCounter} resolved actions · ${highlights.length} highlights</span><div class="result-record">STONE ${progression.wins.stone} — ${progression.wins.viper} VIPER</div><p class="result-highlight">${escapeHtml(highlights.at(-1) || (state.winMethod==='submission'?'The wrestler finally taps out.':'The final three-count settles the match.'))}</p></div>
       <div class="victory-actions"><button class="pin-button" data-new-match>REMATCH</button><button class="continue-button" data-drawer="highlights">HIGHLIGHTS</button><button class="continue-button" data-drawer="progress">CAREER</button></div>
     </section>`;
 }
@@ -713,7 +713,9 @@ function performHoldPressure(){
     stage?.setHold(null);
     stage?.setRestingState({postures:{stone:wrestler(state,'stone').posture,viper:wrestler(state,'viper').posture}});
     log(`${trapped.name} submits to ${holder.name}!`);
-    audio.cue('finisher');
+    audio.cue('victory');
+    if(!resultRecorded){progression=recordResult(progression,result.holderId,result.defenderId,state.turnCounter,highlights);saveProgress(localStorage,progression);resultRecorded=true;}
+    highlights.push(`${holder.name} forces ${trapped.name} to submit.`);
     announce('SUBMISSION!',`${holder.name} WINS`,'spectacle',false,1200);
   }else{
     stage?.setHold(state.activeHold);
