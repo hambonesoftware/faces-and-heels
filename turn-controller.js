@@ -21,7 +21,6 @@ export const ACTION_IDS=Object.freeze({
   HOLD_RELEASE:'hold-release',
   HOLD_ESCAPE:'hold-escape'
 });
-const both=['stone','viper'];
 const other=id=>id==='stone'?'viper':'stone';
 function option(id,actorId,{label=id,enabled=true,reason='',roll=null,role='actor'}={}){
   return {id,actorId,label,enabled,reason,roll,role};
@@ -52,17 +51,14 @@ export function getTurnContext(state,legalMoves=[]){
         option(ACTION_IDS.HOLD_ESCAPE,defenderId,{label:hold.finishPending?'Final escape roll':'Escape grapple',roll:'d20 + Agility',role:'defender'})
       ],{defenderId:holderId,controlId:holderId,reason:'Low may escape despite High control'});
     }
-    const source=(state.moves||[]).find(m=>m.id===hold.moveId);
-    // The engine owns move metadata. Expose the availability it can determine
-    // from persisted hold data; if not given, default to the v1.15 tick cost.
-    const tickCost=Number(hold.tickCost??source?.sustained?.tickCost??2);
+    const tickCost=Number(hold.tickCost??2);
     const stamina=state.wrestlers[holderId]?.stamina??0;
     return seal('HOLD',holderId,[
       option(ACTION_IDS.HOLD_SQUEEZE,holderId,{label:'Tighten hold',enabled:stamina>=tickCost,reason:stamina>=tickCost?'':'Insufficient stamina'}),
       option(ACTION_IDS.HOLD_RELEASE,holderId,{label:'Release hold'})
     ],{defenderId,controlId:holderId,reason:'Holder controls pressure; Low gets a roll after every squeeze'});
   }
-  if(state.pendingFailure||state.phase==='REACTION'){
+  if(state.phase==='REACTION'){
     const pending=state.pendingFailure;
     if(!pending)return seal('INVALID',null,[],{reason:'Reaction phase without failure details'});
     const actorId=pending.defenderId,stamina=state.wrestlers[actorId]?.stamina??0;
@@ -80,7 +76,7 @@ export function getTurnContext(state,legalMoves=[]){
       option(ACTION_IDS.COUNT_PIN,pinnedId,{label:'Resolve opposed pin and kickout dice',roll:'Opposed d20',role:'defender'})
     ],{defenderId:state.pinningWrestlerId,controlId:state.pinningWrestlerId});
   }
-  if(state.phase==='PIN_OPPORTUNITY'||state.pinEligible){
+  if(state.phase==='PIN_OPPORTUNITY'||(state.pinEligible&&state.phase==='ACTION_SELECT')){
     const actorId=state.pinningWrestlerId,defenderId=actorId?other(actorId):null;
     const exhausted=Boolean(defenderId&&state.wrestlers[defenderId]?.stamina<=0);
     return seal('PIN_OPPORTUNITY',actorId,[
@@ -126,4 +122,26 @@ export function getDefensiveWindow(state){
   return ['interrupt','hold-defense','pin-defense'].includes(turn.kind)
     ?{actorId:turn.actorId,kind:turn.kind,roll:turn.actions.find(a=>a.roll)?.roll??null,controlId:turn.controlId}
     :null;
+}
+
+/** Defensive windows never require the defending wrestler to hold High. */
+export function auditTurnState(state,legalMoves=[]){
+  const turn=getTurnContext(state,legalMoves);
+  const issues=[];
+  if(turn.phase==='INVALID')issues.push(turn.reason);
+  if(!state.winnerId&&turn.actions.filter(a=>a.enabled).length===0)
+    issues.push('Live turn has no executable action');
+  if(state.activeHold&&state.phase!=='HOLD'&&state.phase!=='HOLD_ESCAPE')
+    issues.push('Persisted grapple is outside grapple flow');
+  if(state.phase==='REACTION'&&!state.pendingFailure)
+    issues.push('Reaction has no pending failed action');
+  if(state.phase==='PIN'&&!state.pinningWrestlerId)
+    issues.push('Pinned defender has no identified attacker');
+  if(state.phase==='PIN_OPPORTUNITY'&&!state.pinEligible)
+    issues.push('Pin opportunity is not available');
+  if(turn.kind==='hold-defense'&&turn.actorId!==state.activeHold?.defenderId)
+    issues.push('Defender does not own grapple escape');
+  if(turn.kind==='pin-defense'&&turn.actorId===turn.controlId)
+    issues.push('Pinned wrestler must oppose the pinning wrestler');
+  return {ok:issues.length===0,issues,turn};
 }
