@@ -253,7 +253,7 @@ function renderMoveCards() {
 
   // Only legal moves appear; the ribbon contains the entire contextual roster.
   const categories = ['all','strike','grapple','setup','special'];
-  const labels = {all:'ALL',strike:'HITS',grapple:'GRABS',setup:'SETUP',special:'FINISH'};
+  const labels = {all:'ALL',strike:'HITS',grapple:'GRABS',setup:'SETUP',special:'SIGNATURE'};
   const present = categories.filter(category => category === 'all' || allLegal.some(move => move.category === category));
   // A new posture can invalidate a previous category (for example, pickup
   // ends the ground-attack list). Always show legal actions after the turn.
@@ -605,7 +605,7 @@ async function playSuccessfulMove(move, result) {
       ring?.classList.add(anim.kind === 'slam' ? 'ring-bounce--slam' : 'ring-bounce');
       setTimeout(() => { arena?.classList.remove('impact-shake','impact-shake--slam'); ring?.classList.remove('ring-bounce','ring-bounce--slam'); }, anim.kind === 'slam' ? 260 : 180);
       const damageText = result.target ? (result.damage?.marked ? `${bodyLabel(result.target).toUpperCase()} MARK +1` : `${bodyLabel(result.target).toUpperCase()} HOLDS`) : 'POSITION CONTROL';
-      ui.event = { title: move.id === 'flash-finisher' ? 'FLASHPOINT DRIVER!' : `${move.name.toUpperCase()}!`, detail: `${damageText} · -${result.staminaDamage} STA`, kind: move.category === 'special' ? 'spectacle' : 'major', impact: true };
+      ui.event = { title: `${move.name.toUpperCase()}!`, detail: `${damageText} · -${result.staminaDamage} STA`, kind: move.category === 'special' ? 'spectacle' : 'major', impact: true };
       render();
     }
   });
