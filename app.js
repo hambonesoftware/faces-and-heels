@@ -22,6 +22,8 @@ import {
   resolveNeutralRoll,
   getLegalMoves,
   canReact,
+  getAvailableReactions,
+  resolveGroundDefense,
   resolveMoveAttempt,
   resolveReaction,
   declineReaction,
@@ -132,7 +134,7 @@ function syncUiToEngine() {
   const turn=turnDecision();
   if (turn.phase==='ACTION_SELECT' && ['TARGET_CHOICE','SELECTED'].includes(ui.phase)) return;
   ui.phase=({NEUTRAL_ROLL:'NEUTRAL_ROLL',ACTION_SELECT:'ACTION_SELECT',
-    HOLD:'HOLD',HOLD_ESCAPE:'HOLD_ESCAPE',PIN_OPPORTUNITY:'OPPORTUNITY',
+    HOLD:'HOLD',HOLD_ESCAPE:'HOLD_ESCAPE',GROUND_DEFENSE:'GROUND_DEFENSE',PIN_OPPORTUNITY:'OPPORTUNITY',
     PIN:'PIN_DEFENSE',REACTION:'REACTION',MATCH_COMPLETE:'MATCH_COMPLETE'}[turn.phase])||'ACTION_SELECT';
 }
 
@@ -401,22 +403,36 @@ function renderPinDefense() {
 }
 
 function renderReaction() {
-  const pending = state.pendingFailure;
-  if (!pending) return renderMoveCards();
-  const reactor = wrestler(state, pending.defenderId);
-  const target = wrestler(state, pending.attackerId);
-  const available = canReact(state);
+  const pending=state.pendingFailure;
+  if(!pending)return renderMoveCards();
+  const reactor=wrestler(state,pending.defenderId),target=wrestler(state,pending.attackerId);
+  const moves=getAvailableReactions(state);
   return `
     <section class="decision-panel decision-panel--reaction">
-      <div class="reaction-performance">
-        <div class="reaction-preview-art">${moveArt('shove-counter')}</div>
-        <div class="opportunity-copy"><small>REACTION WINDOW</small><strong>${escapeHtml(reactor.name)} can steal control</strong>
-          <span>Shove Counter · d20 + Power vs ${escapeHtml(target.name)} CON ${conditioning(target)}</span>
-          <div class="move-resource-trade"><span>YOUR COST <b>−5 STA</b></span><span>OPPONENT ON HIT <b>−7 STA</b></span></div>
-        </div>
+      <div class="opportunity-copy"><small>${escapeHtml(reactor.name)} · DEFENSIVE REACTION</small>
+        <strong>COUNTER THE MISSED ATTACK</strong><span>${escapeHtml(target.name)} missed. Choose a trained Common Move to reverse control, or pass.</span></div>
+      <div class="counter-move-options">
+      ${moves.map(move=>`<button type="button" data-reaction="${escapeHtml(move.id)}" class="counter-move">
+        <span class="counter-art">${moveArt(move.id)}</span>
+        <span><strong>${escapeHtml(move.name)}</strong><small>−${move.staminaCost} YOUR STA · −${move.staminaDamage} OPP</small></span>
+      </button>`).join('')}
+      <button class="continue-button counter-pass" data-pass-reaction>${moves.length?'PASS REACTION':'NO LEGAL COUNTER · PASS'}</button>
       </div>
-      <div class="opportunity-actions">${available ? '<button class="reaction-button" data-reaction>SHOVE COUNTER · 5 STA</button>' : ''}<button class="continue-button" data-pass-reaction>${available ? 'PASS' : 'NO STAMINA · PASS'}</button></div>
     </section>`;
+}
+function renderGroundDefense(){
+ const turn=turnDecision(),defender=wrestler(state,turn.actorId);
+ const attacker=turn.controlId?wrestler(state,turn.controlId):null;
+ return `
+   <section class="decision-panel decision-panel--ground-defense" aria-label="Ground defense while opponent retains High control">
+     <div class="opportunity-copy"><small>${escapeHtml(defender.name)} · LOW DEFENSE</small>
+       <strong>GET OFF THE MAT</strong><span>${attacker?escapeHtml(attacker.name)+' remains in control. ':''}You can defend before the next attack.</span></div>
+     <div class="ground-response-actions">
+       <button class="ground-response-primary" data-ground-scramble>SCRAMBLE <small>d20 + AGI · −2 STA · rise to knees</small></button>
+       <button class="ground-response-secondary" data-ground-cover>COVER UP <small>Guard the next hit and protect body marks</small></button>
+       <button class="ground-response-pass" data-ground-pass>STAY DOWN <small>Hold position</small></button>
+     </div>
+   </section>`;
 }
 
 function renderMatchIntro() {
@@ -473,6 +489,7 @@ function renderDecisionDock() {
   if (ui.phase === 'SELECTED') return renderSelectedMove();
   if (ui.phase === 'OPPORTUNITY') return renderOpportunity();
   if (ui.phase === 'REACTION') return renderReaction();
+  if (ui.phase === 'GROUND_DEFENSE') return renderGroundDefense();
   if (ui.phase === 'PIN_DEFENSE') return renderPinDefense();
   if (ui.phase === 'MATCH_COMPLETE') return renderMatchComplete();
   if (['ROLLING','ANIMATING','PIN'].includes(ui.phase)) return '';
@@ -799,35 +816,57 @@ async function performHoldEscape(){
   }
 }
 
-async function runReaction() {
-  if (!state.pendingFailure || !canReact(state)) return;
-  const reactorId = state.pendingFailure.defenderId;
-  const reactionRoll = rollDie(20);
-  const damageRoll = rollDie(6);
-  await rollingVisual(`${wrestler(state,reactorId).name} · SHOVE COUNTER`, reactionRoll);
-  const result = resolveReaction(state, { reactionRoll, damageRoll });
-  log(`${wrestler(state,result.reactorId).name} Shove Counter: ${result.reactionRoll} ${result.modifier >= 0 ? '+' : ''}${result.modifier} = ${result.total} vs CON ${result.targetNumber}.`);
-  if (!result.success) {
-    log('Reaction failed. Existing control is maintained, or Neutral resumes if no H/L existed.');
-    ui.phase = state.phase === 'NEUTRAL_ROLL' ? 'NEUTRAL_ROLL' : 'ACTION_SELECT';
-    announce('COUNTER FAILS', state.phase === 'NEUTRAL_ROLL' ? 'Back to Neutral' : `${currentActor()?.name || 'H'} keeps control`, 'danger', false, 900);
+async function runReaction(moveId) {
+  if(!state.pendingFailure||!canReact(state))return;
+  const chosen=getAvailableReactions(state).find(move=>move.id===moveId);
+  if(!chosen)return;
+  const reactorId=state.pendingFailure.defenderId;
+  const reactionRoll=rollDie(20),damageRoll=rollDie(chosen.damageDie);
+  await rollingVisual(`${wrestler(state,reactorId).name} · ${chosen.name.toUpperCase()}`,reactionRoll);
+  const result=resolveReaction(state,{reactionMoveId:moveId,reactionRoll,damageRoll});
+  log(`${wrestler(state,result.reactorId).name} ${chosen.name}: d20 ${result.reactionRoll} ${result.modifier>=0?'+':''}${result.modifier} = ${result.total} vs CON ${result.targetNumber}.`);
+  if(!result.success){
+    ui.phase=state.phase;
+    announce('COUNTER MISSES',state.phase==='NEUTRAL_ROLL'?'NEUTRAL RESET':'HIGH CONTROL REMAINS','danger',false,850);
+    render();
     return;
   }
+  const anim=animationByMove[chosen.id];
+  if(!anim){log('Missing counter choreography '+chosen.id);return;}
   ui.phase='ANIMATING';render();
-  const damageText = result.damage?.marked ? 'CORE MARK +1' : 'CORE HOLDS';
-  await stage.playPair('idle', 'idle', {
-    attackerId: result.reactorId,
-    choreography: 'shove_counter',
-    impactFrame: 5,
-    impactKind: 'strike',
-    hitStopMs: 72,
-    onImpact: () => {audio.cue('reversal');announce('REVERSAL!' , `${damageText} · ${wrestler(state,result.reactorId).name} TAKES H`, 'major', true, 850);} 
+  await stage.playPair(anim.attacker,anim.defender,{
+    attackerId:result.reactorId,choreography:anim.choreography,
+    impactFrame:anim.impactFrame,impactKind:anim.kind||'strike',
+    hitStopMs:75,onImpact:()=>{
+      audio.cue('reversal');
+      announce('REVERSAL!',`${chosen.name.toUpperCase()} · ${wrestler(state,reactorId).name} TAKES CONTROL`,'major',true,820);
+    }
   });
   stage.resetPositions();
-  stage.setRestingState({ postures: { stone: wrestler(state,'stone').posture, viper: wrestler(state,'viper').posture } });
-  log(`${wrestler(state,result.reactorId).name} successfully steals H control.`);
-  ui.phase = 'ACTION_SELECT';
+  stage.setRestingState({postures:{stone:wrestler(state,'stone').posture,viper:wrestler(state,'viper').posture}});
+  ui.phase=state.phase==='PIN_OPPORTUNITY'?'OPPORTUNITY':'ACTION_SELECT';
   render();
+}
+async function performGroundDefense(choice){
+  const act={scramble:ACTION_IDS.GROUND_SCRAMBLE,cover:ACTION_IDS.GROUND_COVER,pass:ACTION_IDS.GROUND_PASS}[choice];
+  const actor=state.groundDefense?.defenderId;
+  if(!act||!permitted(act,actor))return;
+  const roll=choice==='scramble'?rollDie(20):undefined;
+  if(roll!==undefined)await rollingVisual(`${wrestler(state,actor).name} · SCRAMBLE`,roll);
+  const result=resolveGroundDefense(state,{choice,roll});
+  if(!result.ok)return;
+  log(`${wrestler(state,actor).name} chooses ${choice}.`+(roll!==undefined?` Roll ${roll} vs ${result.targetNumber}.`:''));
+  if(choice==='scramble'){
+    ui.phase='ANIMATING';render();
+    const kind=result.success?'ground_scramble':'ground_scramble_fail';
+    await stage.playPair('idle','idle',{attackerId:actor,choreography:kind,impactKind:'setup'});
+    stage.resetPositions();
+    stage.setRestingState({postures:{stone:wrestler(state,'stone').posture,viper:wrestler(state,'viper').posture}});
+    announce(result.success?'SCRAMBLED TO KNEES':'STILL DOWN',result.success?'BACK TO NEUTRAL':'HIGH KEEPS CONTROL','major',false,750);
+  }else {
+    announce(choice==='cover'?'COVERED UP':'STAYING DOWN',choice==='cover'?'NEXT LANDED HIT MITIGATED':'HIGH RETAINS ADVANTAGE','major',false,750);
+  }
+  ui.phase=state.phase;render();
 }
 
 function passReaction() {
@@ -968,8 +1007,11 @@ app.addEventListener('click', event => {
   if (el.dataset.holdEscape !== undefined) { if(permitted(ACTION_IDS.HOLD_ESCAPE,state.activeHold?.defenderId))performHoldEscape(); return; }
   if (el.dataset.pin !== undefined) { runPin(); return; }
   if (el.dataset.pinDefense !== undefined) { rollPinDefense(); return; }
-  if (el.dataset.continue !== undefined) { if(!permitted(ACTION_IDS.SKIP_PIN,state.pinningWrestlerId))return; const result=skipPin(state); if (!result.ok) { announce('FINISH REQUIRED','0 STA opponent must be pinned or submitted','danger',false,850); return; } ui.phase='ACTION_SELECT'; render(); return; }
-  if (el.dataset.reaction !== undefined) { if(permitted(ACTION_IDS.REACT,state.pendingFailure?.defenderId))runReaction(); return; }
+  if (el.dataset.continue !== undefined) { if(!permitted(ACTION_IDS.SKIP_PIN,state.pinningWrestlerId))return; const result=skipPin(state); if (!result.ok) { announce('FINISH REQUIRED','0 STA opponent must be pinned or submitted','danger',false,850); return; } ui.phase='GROUND_DEFENSE'; render(); return; }
+  if (el.dataset.reaction !== undefined) { if(permitted(ACTION_IDS.REACT,state.pendingFailure?.defenderId))runReaction(el.dataset.reaction); return; }
+  if (el.dataset.groundScramble !== undefined) {performGroundDefense('scramble');return;}
+  if (el.dataset.groundCover !== undefined) {performGroundDefense('cover');return;}
+  if (el.dataset.groundPass !== undefined) {performGroundDefense('pass');return;}
   if (el.dataset.passReaction !== undefined) { if(permitted(ACTION_IDS.PASS_REACTION,state.pendingFailure?.defenderId))passReaction(); return; }
   if (el.dataset.recover !== undefined) { if(permitted(ACTION_IDS.RECOVER,state.activeWrestlerId))recoverWithCrowd(); return; }
   if (el.dataset.scrambleUp !== undefined) { if(permitted(ACTION_IDS.SCRAMBLE,state.activeWrestlerId))scrambleUpAction(); return; }
