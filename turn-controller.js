@@ -19,7 +19,10 @@ export const ACTION_IDS=Object.freeze({
   COUNT_PIN:'pin-count',
   HOLD_SQUEEZE:'hold-squeeze',
   HOLD_RELEASE:'hold-release',
-  HOLD_ESCAPE:'hold-escape'
+  HOLD_ESCAPE:'hold-escape',
+  GROUND_SCRAMBLE:'ground-scramble',
+  GROUND_COVER:'ground-cover',
+  GROUND_PASS:'ground-pass'
 });
 const other=id=>id==='stone'?'viper':'stone';
 function option(id,actorId,{label=id,enabled=true,reason='',roll=null,role='actor'}={}){
@@ -34,6 +37,7 @@ const phaseKinds={
   PIN:'pin-defense',
   HOLD:'hold-control',
   HOLD_ESCAPE:'hold-defense',
+  GROUND_DEFENSE:'ground-defense',
   MATCH_COMPLETE:'complete'
 };
 function seal(phase,actorId,actions,{kind=phaseKinds[phase]||'unknown',defenderId=null,reason='',controlId=null}={}){
@@ -67,6 +71,19 @@ export function getTurnContext(state,legalMoves=[]){
       option(ACTION_IDS.REACT,actorId,{label:'Counterattack',roll:'d20 + Power',enabled:stamina>=cost,reason:stamina>=cost?'':'Insufficient stamina',role:'defender'}),
       option(ACTION_IDS.PASS_REACTION,actorId,{label:'Pass counter',role:'defender'})
     ],{defenderId:pending.attackerId,controlId:pending.attackerId,reason:'An interrupted wrestler can respond regardless of High/Low'});
+  }
+  if(state.phase==='GROUND_DEFENSE'){
+    const info=state.groundDefense;
+    if(!info)return seal('INVALID',null,[],{reason:'Missing ground defense window'});
+    const {defenderId,controllerId}=info;
+    if(state.wrestlers?.[defenderId]?.posture!=='prone')
+      return seal('INVALID',null,[],{reason:'Ground defender must be prone'});
+    return seal('GROUND_DEFENSE',defenderId,[
+      option(ACTION_IDS.GROUND_SCRAMBLE,defenderId,{label:'Scramble to knees',roll:'d20 + Agility',role:'defender'}),
+      option(ACTION_IDS.GROUND_COVER,defenderId,{label:'Cover up; cushion next impact',role:'defender'}),
+      option(ACTION_IDS.GROUND_PASS,defenderId,{label:'Stay down',role:'defender'})
+    ],{defenderId:controllerId,controlId:controllerId,
+      reason:'Low may scramble or cover despite High control'});
   }
   if(state.phase==='PIN'){
     const pinnedId=state.pinningWrestlerId?other(state.pinningWrestlerId):null;
@@ -119,7 +136,7 @@ export function canPerformAction(state,actionId,actorId,legalMoves=[]){
 }
 export function getDefensiveWindow(state){
   const turn=getTurnContext(state);
-  return ['interrupt','hold-defense','pin-defense'].includes(turn.kind)
+  return ['interrupt','hold-defense','pin-defense','ground-defense'].includes(turn.kind)
     ?{actorId:turn.actorId,kind:turn.kind,roll:turn.actions.find(a=>a.roll)?.roll??null,controlId:turn.controlId}
     :null;
 }
@@ -135,6 +152,7 @@ export function auditTurnState(state,legalMoves=[]){
     issues.push('Persisted grapple is outside grapple flow');
   if(state.phase==='REACTION'&&!state.pendingFailure)
     issues.push('Reaction has no pending failed action');
+  if(state.phase==='GROUND_DEFENSE'&&!state.groundDefense)issues.push('No grounded defender');
   if(state.phase==='PIN'&&!state.pinningWrestlerId)
     issues.push('Pinned defender has no identified attacker');
   if(state.phase==='PIN_OPPORTUNITY'&&!state.pinEligible)
