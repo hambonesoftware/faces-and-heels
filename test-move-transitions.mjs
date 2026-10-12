@@ -18,8 +18,10 @@ assert.equal(s.pinEligible, true);
 assert.equal(s.activeWrestlerId, 'stone');
 
 // Skipping the pin must retain control and open contextual ground actions.
-import { skipPin } from './match-engine.js';
+import { skipPin,resolveGroundDefense } from './match-engine.js';
 assert(skipPin(s).ok);
+assert.equal(s.phase,'GROUND_DEFENSE');
+assert(resolveGroundDefense(s,{choice:'pass'}).ok,'Low must explicitly complete the defensive window');
 assert(getLegalMoves(s).some(m => m.id === 'pick-up-opponent'));
 assert(getLegalMoves(s).some(m => m.id === 'elbow-drop'));
 const before = stone.stamina;
@@ -36,7 +38,8 @@ assert(use(s, 'vertical-suplex').success);
 assert.equal(viper.posture, 'prone');
 
 // Grounded setup should not create a pin by itself.
-skipPin(s);
+assert(skipPin(s).ok);
+assert(resolveGroundDefense(s,{choice:'pass'}).ok);
 assert(use(s, 'pull-to-knees').success);
 assert.equal(viper.posture, 'kneeling');
 assert.equal(s.activeWrestlerId, 'stone');
