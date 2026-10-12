@@ -25,14 +25,19 @@ function percentile(arr,p){const sorted=arr.slice().sort((a,b)=>a-b);return sort
 const ids=['stone','viper'];
 function play(seed,logFull=false){
   const rng=seeded(seed),state=cloneInitialState(),events=[],moves=[],opened=[];
-  let steps=0,pins=0,kickouts=0,holds=0,escapes=0,changes=0,pressure=0,finisherAttempts=0;
+  let steps=0,pins=0,kickouts=0,nearFalls=0,holds=0,escapes=0,changes=0,pressure=0,finisherAttempts=0;
+  // Preserve the last actual controller across neutral phases. Otherwise
+  // a wrestler who wins back initiative after a lockup is incorrectly omitted
+  // from our comeback/advantage-swing count.
   let lastControl=null;const say=(actor,action,details='')=>{
     const entry={step:steps,actor,action,details};events.push(entry);
   };
-  const sample=(prev)=>{
+  const sample=()=>{
     const now=Object.entries(state.roles).find(([,role])=>role==='H')?.[0]||null;
-    if(prev&&now&&prev!==now){changes++;say(now,'COMEBACK',prev+' loses control');}
-    lastControl=now;
+    if(lastControl&&now&&lastControl!==now){
+      changes++;say(now,'CONTROL SWING',lastControl+' loses control');
+    }
+    if(now)lastControl=now;
     const report=checkCombatFlow(state);
     assert(report.ok,`Invalid combat step ${steps} seed ${seed}: ${report.issues.join('; ')}`);
   };
@@ -48,7 +53,6 @@ function play(seed,logFull=false){
     const setup={mode:'solo',playerId:actorId?opponentId(actorId):'stone',difficulty:'standard',tutorial:false};
     const decision=chooseAiAction(state,{setup,rng});
     assert(decision,`No playable intent seed ${seed}, step ${steps}, phase ${phase}`);
-    const before=lastControl;
     switch(decision.type){
       case 'neutral':{
         const o=resolveNeutralRoll(state,die(rng),die(rng));
@@ -84,7 +88,7 @@ function play(seed,logFull=false){
         const p=state.pinningWrestlerId;
         const out=resolvePinCount(state,{pinningId:p,count:state.pinCount+1,
           pinningRoll:die(rng),pinnedRoll:die(rng)});
-        if(out.kickout)kickouts++;
+        if(out.kickout){kickouts++;if(out.count===2)nearFalls++;}
         say(actorId,out.kickout?'KICKOUT AT '+out.count:out.pinfall?'PINFALL':'COUNT '+out.count);break;
       }
       case 'escape-hold':{
@@ -102,7 +106,7 @@ function play(seed,logFull=false){
       case 'breath':{const o=catchBreathToNeutral(state,actorId);assert(o.recovered>0);say(actorId,'CATCH BREATH');break;}
       default:throw Error('Unknown '+decision.type);
     }
-    sample(before);
+    sample();
   }
   assert(state.winnerId,`Bout seed ${seed} did not finish after ${steps}`);
   const attacks=moves.filter(m=>!m.setup),successful=attacks.filter(m=>m.success);
@@ -124,7 +128,7 @@ function play(seed,logFull=false){
     openingBig:opening.filter(m=>['flash-finisher','viper-bite','ddt','spinebuster','vertical-suplex'].includes(m.id)).length,
     earlyFinishers:earlyFinishers.length,
     finishers:finisherAttempts,signature,setup:moves.filter(m=>m.setup).length,
-    holds,pressure,escapes,pins,kickouts,changes,repeats,repeatStreakMax,
+    holds,pressure,escapes,pins,kickouts,nearFalls,changes,repeats,repeatStreakMax,
     grounding:attacks.filter(m=>m.success&&m.posture==='prone').length,
     closingBigger:closing.filter(m=>m.finisher||['ddt','spinebuster','vertical-suplex','body-slam'].includes(m.id)).length,
     moves,events:logFull?events:[]
@@ -147,7 +151,13 @@ const report={
   averageAttacks:Number(mean('attackCount')),medianAttacks:percentile(bouts.map(b=>b.attackCount),.5),
   p90Attacks:percentile(bouts.map(b=>b.attackCount),.9),
   uniqueMovesPerMatch:Number(mean('unique')),avgSetups:Number(mean('setup')),
-  averageComebacks:Number(mean('changes')),boutsWithoutComeback:noComeback,
+  averageControlSwings:Number(mean('changes')),boutsWithNoControlSwing:noComeback,
+  matchesUnderTenAttacks:bouts.filter(b=>b.attackCount<10).length,
+  matchesOverThirtyAttacks:bouts.filter(b=>b.attackCount>30).length,
+  matchesWithTwoCountKickout:bouts.filter(b=>b.nearFalls>0).length,
+  totalTwoCountKickouts:metric('nearFalls'),
+  matchesWithFinisherAttempt:bouts.filter(b=>b.finishers>0).length,
+  matchesWithSuccessfulFinisher:bouts.filter(b=>b.signature>0).length,
   boutsWithSubmissionHolds:REPORT_COUNT-noHold,
   averageHolds:Number(mean('holds')),averagePins:Number(mean('pins')),
   boutsWithThreeSameMoveInRow:duplicate.length,
