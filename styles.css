@@ -863,3 +863,113 @@ footer{grid-column:1;grid-row:4}
  .hold-ribbon-actions{flex-wrap:wrap}
  .hold-ribbon-actions button.hold-switch{flex:1 1 100%;min-height:35px}
 }
+
+
+/* v1.19 — PLAYER-FIRST MATCH SETUP, SOLO TURN HUD AND RINGSIDE COACH
+   Fixed 2016 console-sports UI: high contrast, hard-edged controls and in-ring
+   focus; no floating blue SaaS tiles or additional wrestler obstruction. */
+.match-intro {overflow-y:auto;overscroll-behavior:contain;padding:12px;align-items:flex-start}
+.match-intro .intro-poster--setup {
+  width:min(560px,100%);max-width:100%;margin:auto;
+  display:flex;flex-direction:column;align-items:stretch;gap:10px;
+  padding:19px 22px 18px;
+  border:1px solid #60799f;border-top:4px solid #ffc84d;
+  border-radius:4px;background:linear-gradient(160deg,#303a59,#131d34 78%);
+  box-shadow:0 16px 65px #03050ee6,0 0 0 3px #0c1427;
+}
+.intro-poster--setup h1{
+ font:900 clamp(32px,5vh,54px)/.94 Impact,"Arial Narrow",system-ui,sans-serif;
+ letter-spacing:.07em;color:#fff;text-shadow:3px 3px #1b2742;
+ margin:0 0 4px;
+}
+.intro-poster--setup .poster-kicker{font-size:10px;letter-spacing:.2em;color:#ffcd62;margin:0}
+.match-setup-modes {display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:4px 0 0}
+.match-setup-modes button,.setup-fighter-choices button,.setup-difficulty button,.setup-guide-choice{
+ border:1px solid #546b94;border-radius:3px;background:linear-gradient(165deg,#273550,#182740);
+ color:#e5f0ff;box-shadow:0 3px 0 #070d1f;
+}
+.match-setup-modes button{
+ min-height:59px;padding:10px;display:flex;flex-direction:column;gap:5px;text-align:left;
+ font:900 15px/1 Impact,"Arial Narrow",system-ui,sans-serif;
+ letter-spacing:.07em;
+}
+.match-setup-modes small{font:700 10px/1.15 system-ui,sans-serif;letter-spacing:0;color:#a9c2df}
+.match-setup-modes button.is-selected,.setup-fighter-choices button.is-selected,.setup-difficulty button.is-selected{
+ border-color:#ffd277;box-shadow:inset 0 0 0 1px #ffd27773,0 3px 0 #a06a2e;
+ background:linear-gradient(150deg,#555073,#293e65);
+}
+.setup-section-label{font:900 10px/1 system-ui,sans-serif;letter-spacing:.13em;color:#ffd175;margin:6px 0 0}
+.setup-fighter-choices{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.setup-fighter-choices button{
+ display:grid;grid-template-columns:57px minmax(0,1fr);grid-template-rows:1fr auto;
+ gap:3px 8px;text-align:left;padding:5px 9px 5px 5px;min-height:72px;align-items:center
+}
+.setup-fighter-portrait{grid-row:1 / 3;grid-column:1;display:block;width:53px;height:60px;overflow:hidden;background:#20304c}
+.setup-fighter-portrait svg{display:block;width:100%;height:100%}
+.setup-fighter-choices strong{grid-column:2;align-self:end;font:900 19px/1 Impact,system-ui,sans-serif;color:#fff}
+.setup-fighter-choices small{grid-column:2;align-self:start;font:800 9px/1.2 system-ui,sans-serif;color:#b4cce7}
+.setup-difficulty{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;margin-top:5px}
+.setup-difficulty>span{color:#c6d8ed;font:900 10px/1.2 system-ui,sans-serif;letter-spacing:.07em}
+.setup-difficulty>div{display:flex;gap:4px}
+.setup-difficulty button{padding:7px 9px;font:900 9px/1 system-ui,sans-serif;letter-spacing:.05em}
+.setup-guide-choice{display:flex;align-items:center;justify-content:space-between;gap:9px;
+ text-align:left;padding:10px 12px;font:900 11px/1.2 system-ui,sans-serif}
+.setup-guide-choice small{color:#b6cbe4;font-weight:600;font-size:10px}
+.setup-enter-button{min-height:55px;margin:6px 0 0;background:linear-gradient(#ffd76a,#dd9d37)!important;color:#211a1a!important;border-color:#ffdb83!important}
+.setup-enter-button strong{font:900 21px/1 Impact,system-ui,sans-serif;letter-spacing:.05em}
+.setup-enter-button small{color:#574126!important;font-size:9px}
+.setup-local-note{border-left:3px solid #56cbe5;background:#20344e;padding:15px;font:600 12px/1.55 system-ui,sans-serif;color:#d2e6f8}
+.intro-poster--setup .intro-help{font:600 10px/1.4 system-ui,sans-serif;color:#c0cfe5;text-align:center;margin:0}
+.fighter-player-label{
+ display:inline-block;padding:3px 5px;color:#171c2d;background:#ffd15b;
+ font:900 8px/1 system-ui,sans-serif;letter-spacing:.08em;vertical-align:middle
+}
+.fighter-player-label.is-cpu{background:#42c9e6;color:#082e46}
+.ringside-coach{
+ display:flex;align-items:center;gap:9px;min-height:26px;
+ padding:5px 9px;background:#0f2039;color:#cedff5;
+ border-left:3px solid #f4b750;border-right:1px solid #4d6488;
+ font:700 10px/1.3 system-ui,sans-serif;
+}
+.coach-tag{color:#ffc866;white-space:nowrap;font:900 9px/1 system-ui,sans-serif;letter-spacing:.07em}
+.ringside-coach>span:nth-child(2){flex:1}
+.ringside-coach button{flex:none;min-width:27px;min-height:25px;border:0;border-radius:0;background:#30415e;font:900 18px/1 system-ui,sans-serif;color:#fff}
+.tactical-menu-anchor>.decision-panel--cpu{
+ width:100%;min-height:41px;padding:11px 14px;
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ border-top:3px solid #57cae3!important;border-radius:0 0 4px 4px;
+ background:linear-gradient(90deg,#20324f,#111e34);
+}
+.decision-panel--cpu .cpu-indicator{color:#59d4eb;font-size:17px}
+.decision-panel--cpu strong{color:#dfefff;font:900 13px/1 Impact,system-ui,sans-serif;letter-spacing:.07em}
+.decision-panel--cpu>span:last-child{color:#99b8d7;font:800 9px/1.15 system-ui,sans-serif;letter-spacing:.08em;text-align:right}
+@media(max-width:540px){
+ .match-intro{padding:5px}
+ .match-intro .intro-poster--setup{padding:11px 12px;gap:8px}
+ .intro-poster--setup h1{font-size:35px}
+ .match-setup-modes button{font-size:12px;min-height:52px;padding:8px}
+ .match-setup-modes small{font-size:9px}
+ .setup-fighter-choices button{grid-template-columns:42px 1fr;gap:3px 5px;min-height:59px;padding:4px}
+ .setup-fighter-portrait{width:40px;height:51px}
+ .setup-fighter-choices strong{font-size:15px}
+ .setup-fighter-choices small{font-size:8px}
+ .setup-difficulty{grid-template-columns:1fr;gap:6px}
+ .setup-difficulty>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+ .setup-difficulty button{padding:8px 3px}
+ .setup-guide-choice{font-size:10px;padding:8px}
+ .setup-guide-choice small{font-size:9px}
+ .ringside-coach{gap:5px;padding:3px 6px;font-size:9px;min-height:22px}
+ .coach-tag{font-size:8px}
+ .tactical-menu-anchor>.decision-panel--cpu{min-height:35px;padding:8px}
+ .decision-panel--cpu strong{font-size:11px}
+ .decision-panel--cpu>span:last-child{font-size:8px}
+}
+@media(orientation:landscape) and (max-height:600px){
+ .match-intro .intro-poster--setup{width:min(620px,100%);padding:10px 17px}
+ .intro-poster--setup h1{font-size:31px}
+ .setup-fighter-choices button{min-height:50px}
+ .setup-fighter-portrait{height:45px}
+}
+@media(prefers-reduced-motion:reduce){
+ .cpu-indicator{animation:none!important}
+}
