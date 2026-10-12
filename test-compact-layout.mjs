@@ -58,6 +58,6 @@ assert(!html.includes('CHOOSE YOUR NEXT MOVE'),'Overlong heading must be removed
 
 assert(app.includes('arena-combat-zone'),'Ring and decision dock missing from root renderer');
 const root=app.slice(app.indexOf('function render() {'),app.indexOf('function updateActionRail('));
-assert(root.includes('${renderArena()}<div class="tactical-menu-anchor">${renderDecisionDock()}</div>'),'Render order should keep controls after ring');
+assert(root.includes('${renderArena()}<div class="tactical-menu-anchor">${renderCoachHint()}${renderDecisionDock()}</div>'), 'Ring must render before the optional guided tip and below-ring controls');
 assert(app.includes("ui.phase === 'ACTION_SELECT'"),'Gameplay phases must remain contextual');
 console.log('Compact ringside layout passed: wrestler-first viewport, no overlaid dock, small swipeable move cards and restrained details.');
