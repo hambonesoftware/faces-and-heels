@@ -65,10 +65,10 @@ export function getTurnContext(state,legalMoves=[]){
   if(state.phase==='REACTION'){
     const pending=state.pendingFailure;
     if(!pending)return seal('INVALID',null,[],{reason:'Reaction phase without failure details'});
-    const actorId=pending.defenderId,stamina=state.wrestlers[actorId]?.stamina??0;
-    const cost=Number(state.reactionCost??5);
+    const actorId=pending.defenderId;
+    const options=pending.counterOptions||[];
     return seal('REACTION',actorId,[
-      option(ACTION_IDS.REACT,actorId,{label:'Counterattack',roll:'d20 + Power',enabled:stamina>=cost,reason:stamina>=cost?'':'Insufficient stamina',role:'defender'}),
+      option(ACTION_IDS.REACT,actorId,{label:'Choose trained counter',roll:'d20 + move stat',enabled:options.length>0,reason:options.length?'':'No trained counter is legal',role:'defender'}),
       option(ACTION_IDS.PASS_REACTION,actorId,{label:'Pass counter',role:'defender'})
     ],{defenderId:pending.attackerId,controlId:pending.attackerId,reason:'An interrupted wrestler can respond regardless of High/Low'});
   }
