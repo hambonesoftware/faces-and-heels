@@ -1,13 +1,13 @@
-import {ACTION_IDS} from './turn-controller.js?v=1.18.0';
-import {DEFAULT_MATCH_SETUP,readMatchSetup,saveMatchSetup,aiWrestlerId,isAiDecision,chooseAiAction} from './solo-ai.js?v=1.18.0';
-import { animationByMove } from './combat-animation-map.js?v=1.18.0';
-import { portrait, moveArt, damageDiagram } from './ui-art.js?v=1.18.0';
-import { emptyProgress, loadProgress, saveProgress, recordResult, resetProgress } from './progression.js?v=1.18.0';
-import { DEFAULT_PRESENTATION, readSettings, saveSettings, delayFor, tacticalLabel, chanceToHit, MatchAudio } from './presentation.js?v=1.18.0';
-import { demoMoves } from './moves.js?v=1.18.0';
-import { LEGENDARY_CATALOG,MAX_LEGENDARY_MOVES } from './legendary-catalog.js?v=1.18.0';
-import { bodyLabel, resolveTargetDecision } from './flow-engine.js?v=1.18.0';
-import { IsoStage } from './iso-stage.js?v=1.18.0';
+import {ACTION_IDS} from './turn-controller.js?v=1.19.0';
+import {DEFAULT_MATCH_SETUP,readMatchSetup,saveMatchSetup,aiWrestlerId,isAiDecision,chooseAiAction} from './solo-ai.js?v=1.19.0';
+import { animationByMove } from './combat-animation-map.js?v=1.19.0';
+import { portrait, moveArt, damageDiagram } from './ui-art.js?v=1.19.0';
+import { emptyProgress, loadProgress, saveProgress, recordResult, resetProgress } from './progression.js?v=1.19.0';
+import { DEFAULT_PRESENTATION, readSettings, saveSettings, delayFor, tacticalLabel, chanceToHit, MatchAudio } from './presentation.js?v=1.19.0';
+import { demoMoves } from './moves.js?v=1.19.0';
+import { LEGENDARY_CATALOG,MAX_LEGENDARY_MOVES } from './legendary-catalog.js?v=1.19.0';
+import { bodyLabel, resolveTargetDecision } from './flow-engine.js?v=1.19.0';
+import { IsoStage } from './iso-stage.js?v=1.19.0';
 let rendererMode = 'iso';
 try { const saved=localStorage.getItem('fh-renderer-v15'); if(['iso','sprite','compare'].includes(saved)) rendererMode=saved; } catch {}
 const requestedRenderer=new URLSearchParams(location.search).get('renderer');
@@ -44,7 +44,7 @@ import {
   getAvailableActions,
   validateCombatAction,
   checkCombatFlow
-} from './match-engine.js?v=1.18.0';
+} from './match-engine.js?v=1.19.0';
 
 const app = document.querySelector('#app');
 let progression=loadProgress(localStorage);
@@ -588,7 +588,7 @@ function renderLogDrawer() {
   return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer drawer--wide"><header><div><small>TRANSPARENT RULES</small><strong>Match Log</strong></div><button data-close-drawer aria-label="Close panel">×</button></header><div class="log-list">${matchLog.slice().reverse().map((entry,i) => `<div><span>${matchLog.length-i}</span><p>${escapeHtml(entry)}</p></div>`).join('')}</div></aside>`;
 }
 
-function renderSettingsDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer"><header><strong>Presentation settings</strong><button data-close-drawer aria-label="Close panel">×</button></header><p class="drawer-note">These settings change presentation only. Dice rolls and rules are identical.</p>${[['muted','Mute sound'],['reducedMotion','Reduced motion'],['reducedFlash','Reduced flash'],['fast','Fast presentation']].map(([key,label])=>`<label class="setting-option"><span>${label}</span><input type="checkbox" data-setting="${key}" ${settings[key]?'checked':''}></label>`).join('')}<details class="developer-options"><summary>Arena tools &amp; build info</summary><div class="lab-controls">${[['iso','Isometric'],['sprite','Sprites'],['compare','Compare']].map(([mode,label])=>`<button data-renderer="${mode}" aria-pressed="${rendererMode===mode}">${label}</button>`).join('')}</div><a href="./motion-lab.html">Open motion lab ↗</a><p>Build 1.18.0 · provisional digital rules</p></details></aside>`;}
+function renderSettingsDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer"><header><strong>Presentation settings</strong><button data-close-drawer aria-label="Close panel">×</button></header><p class="drawer-note">These settings change presentation only. Dice rolls and rules are identical.</p>${[['muted','Mute sound'],['reducedMotion','Reduced motion'],['reducedFlash','Reduced flash'],['fast','Fast presentation']].map(([key,label])=>`<label class="setting-option"><span>${label}</span><input type="checkbox" data-setting="${key}" ${settings[key]?'checked':''}></label>`).join('')}<details class="developer-options"><summary>Arena tools &amp; build info</summary><div class="lab-controls">${[['iso','Isometric'],['sprite','Sprites'],['compare','Compare']].map(([mode,label])=>`<button data-renderer="${mode}" aria-pressed="${rendererMode===mode}">${label}</button>`).join('')}</div><a href="./motion-lab.html">Open motion lab ↗</a><p>Build 1.19.0 · provisional digital rules</p></details></aside>`;}
 function renderProgressDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer drawer--wide"><header><strong>Championship journey</strong><button data-close-drawer aria-label="Close panel">×</button></header><div class="championship-track">${[1,2,3].map(n=>`<span class="${progression.series>=n?'is-earned':''}"><b>${n}</b>${['DEBUT','SPOTLIGHT','TITLE ARENA'][n-1]}</span>`).join('')}</div><p class="drawer-note">Three-match championship series. Results and cosmetic unlocks live only on this device. No combat bonuses.</p><div class="stat-summary"><span>Stone wins <b>${progression.wins.stone}</b></span><span>Viper wins <b>${progression.wins.viper}</b></span><span>Matches <b>${progression.series}</b></span><span>Champion <b>${progression.champion?.toUpperCase()||'UNDECIDED'}</b></span></div><button class="drawer-action" data-toggle-career><strong>${progression.mode==='championship'?'CHAMPIONSHIP ACTIVE':'START CHAMPIONSHIP SERIES'}</strong></button><p class="drawer-note">Rewards: ${progression.palette==='spotlight'?'Spotlight palette unlocked':'Spotlight palette after 2 matches'} · ${progression.theme==='championship'?'Championship arena unlocked':'Championship arena after 3 matches'}</p>${progression.history.slice(-6).reverse().map(m=>`<p class="history-row">MATCH ${m.number} · ${m.winner.toUpperCase()} won · ${m.actions} actions</p>`).join('')}<div class="legendary-progress"><strong>LEGENDARY FINISHERS</strong><span>${progression.matPasses} / 10 MAT PASSES AVAILABLE</span></div>${['stone','viper'].map(id=>{const w=wrestler(state,id),candidates=LEGENDARY_CATALOG[w.style]||[];return `<details class="legendary-catalog"><summary>${escapeHtml(w.name)} · ${escapeHtml(w.style)} · ${w.legendaryMoves.length}/${MAX_LEGENDARY_MOVES} LEARNED</summary><div class="legendary-catalog-list">${candidates.map(candidate=>`<div><span>${escapeHtml(candidate.name)}${candidate.signatureFor===id?' · SIGNATURE':''}</span><em>${w.legendaryMoves.includes(candidate.id)?'LEARNED':candidate.status==='planned'?'CHOREOGRAPHY PENDING':'AVAILABLE'}</em></div>`).join('')}</div></details>`}).join('')}<p class="drawer-note">The original rules allow up to four style Legendary Moves per wrestler, learned with Mat Passes. Only fully animated finishers are playable; upcoming entries cannot be selected or unlocked yet.</p><button class="continue-button" data-reset-progress>RESET PROGRESSION</button></aside>`;}
 function renderHighlightsDrawer(){return `<div class="drawer-backdrop" data-close-drawer></div><aside class="drawer drawer--wide"><header><strong>Match highlights</strong><button data-close-drawer aria-label="Close panel">×</button></header>${highlights.length?highlights.slice(-12).reverse().map(x=>`<p class="history-row">${escapeHtml(x)}</p>`).join(''):'<p>No highlights yet.</p>'}</aside>`;}
 function renderDrawer() {
@@ -1099,7 +1099,7 @@ app.addEventListener('click', event => {
   if (el.dataset.catchBreath !== undefined) { if(permitted(ACTION_IDS.BREATH,state.activeWrestlerId))catchBreath(); return; }
   if(el.dataset.toggleCareer!==undefined){progression.mode=progression.mode==='championship'?'quick':'championship';saveProgress(localStorage,progression);render();return;}
   if(el.dataset.resetProgress!==undefined){if(confirm('Reset all local championship results and rewards?')){progression=resetProgress(localStorage);render();}return;}
-  if (el.dataset.newMatch !== undefined) { location.href='./?fhbuild=1.18.0&t='+Date.now(); return; }
+  if (el.dataset.newMatch !== undefined) { location.href='./?fhbuild=1.19.0&t='+Date.now(); return; }
   if (el.dataset.railStep !== undefined) {
     const rail=app.querySelector('[data-action-rail]');
     const card=rail?.querySelector('[data-move]');
