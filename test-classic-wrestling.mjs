@@ -161,5 +161,17 @@ const report={
 };
 assert.equal(report.completed,REPORT_COUNT);
 assert(report.pinfallWins+report.submissionWins===REPORT_COUNT);
+// Playtest quality gates, not claimed measurements of historical broadcasts.
+// We require recognizable pacing and diverse legal wrestling, not scripted wins.
+if(REPORT_COUNT===100){
+ assert(report.boutsWithEarlyFinisher<=10,'Finishers appear too often during opening third');
+ assert(report.boutsWithThreeSameMoveInRow<=10,'Move selection repeats too often');
+ assert(report.uniqueMovesPerMatch>=5,'Match move lists lack variety');
+ assert(report.avgSetups<=5,'Automatic setup moves overwhelm real wrestling offense');
+ assert(report.boutsWithOpeningTechnicalOrStrike>=80,'Opening needs recognisable basic wrestling');
+ assert(report.boutsWithSubmissionHolds>=25,'Ground/chain wrestling is absent from most bouts');
+ assert((report.byStyle.stone['body-slam']||0)>0,'Stone must show Powerhouse offense');
+ assert((report.byStyle.viper['dropkick']||0)>0,'Viper must show Daredevil offense');
+}
 console.log('CLASSIC WRESTLING AUDIT REPORT (qualitative references, not an exact recreation):');
 console.log(JSON.stringify(report,null,2));
