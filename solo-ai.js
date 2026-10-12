@@ -47,19 +47,56 @@ function chooseWeighted(scored,rng,difficulty){
  for(let i=0;i<pool.length;i++){needle-=weights[i];if(needle<0)return pool[i].value;}
  return pool.at(-1).value;
 }
-function moveRating(move,attacker,defender){
+// Classic territory wrestling favors coherent sequences over perpetual
+// guaranteed takedowns or opening-bell finishers. The AI reads only state from
+// attempts actually made; players remain free to choose any legal move.
+const CLASSIC_OPENERS=Object.freeze({
+  'forearm-smash':10,'knee-lift':10,'hip-toss':12,'dragon-screw':7,
+  'body-slam':4,'dropkick':6,'running-clothesline':4
+});
+export function classicMoveRating(move,attacker,defender,state){
  const hitChance=move.automatic?1:Math.max(.05,Math.min(.95,
    (21+statModifier(attacker.stats[move.stat])-conditioning(defender))/20));
  const effectiveDamage=Math.min(move.staminaDamage,defender.stamina);
- const control=move.sustained?5:0;
- const pin=move.result?.defenderPosture==='prone'?4:0;
- const signature=move.legendary?6:0;
- const pace=attacker.stamina<=move.staminaCost+3?3:0;
- const setup=move.category==='setup'?(defender.posture!=='standing'&&defender.stamina<=0?9:2):0;
- return hitChance*(effectiveDamage*.95+pin+signature+control+setup)
-   -move.staminaCost*.52-pace
-   +(move.automatic?2:0)
-   +(move.crowdGain||0)*.6;
+ const crowd=Number(move.crowdGain||0);
+ const prior=state?.moveHistory||[];
+ const attempts=prior.length;
+ const personal=prior.filter(x=>x.actorId===attacker.id);
+ const last=personal.at(-1),beforeLast=personal.at(-2);
+ const health=defender.maxStamina>0?defender.stamina/defender.maxStamina:1;
+ const opening=attempts<6&&health>.65;
+ const windingDown=health<.42&&attempts>=6;
+ let score=hitChance*(effectiveDamage*.88+
+   (move.result?.defenderPosture==='prone'?3:0)) -
+   move.staminaCost*.52 +(move.automatic?1:0)+crowd*.8;
+ if(opening){
+   score+=CLASSIC_OPENERS[move.id]||0;
+   if(move.category==='grapple'&&!move.sustained)score+=2;
+ }
+ if(move.category==='setup'){
+   // Picks and snap downs are useful positional tools, not an infinite source
+   // of uncontested offense. The original CPU spammed 826 snap downs/100 bouts.
+   score-=move.id==='snap-down'?20:move.id==='pull-to-knees'?9:7;
+   if(defender.stamina<=0&&move.id==='pick-up-opponent')score+=10;
+ }
+ if(move.sustained){
+   score+=opening?-14:health>.53?-5:4;
+ }
+ if(move.legendary){
+   // A finisher is the payoff after meaningful work, not the opening move.
+   score+=windingDown?16:health>.53||attempts<7?-35:-5;
+ }
+ if(opening&&['ddt','spinebuster','neckbreaker'].includes(move.id))score-=4;
+ if(!opening&&!move.sustained&&!move.legendary&&move.category!=='setup'){
+   // Old matches progress from strikes and hip tosses toward slams/dropkicks.
+   score+=(health<.68?3:0);
+ }
+ if(last?.moveId===move.id)score-=20;
+ if(beforeLast?.moveId===move.id)score-=7;
+ if(personal.slice(-5).some(h=>h.moveId===move.id))score-=2;
+ else if(personal.length>=2)score+=2;
+ if(attacker.stamina<=move.staminaCost+3)score-=4;
+ return score;
 }
 function chooseTarget(state,move,rng){
  const actor=state.activeWrestlerId;
@@ -83,7 +120,10 @@ export function chooseAiAction(state,{setup=DEFAULT_MATCH_SETUP,rng=Math.random}
  case 'NEUTRAL_ROLL':return {type:'neutral'};
  case 'PIN':return {type:'pin-defense'};
  case 'PIN_OPPORTUNITY':
-   return {type:opponent.stamina===0||opponent.stamina<=12||difficulty==='veteran'?'pin':(rng()<.72?'pin':'skip-pin')};
+   if(opponent.stamina===0||opponent.stamina<=12)return {type:'pin'};
+   // A near-fall matters more after accumulated wear. Veteran AI still rolls
+   // honestly rather than getting an automatic three-count.
+   return {type:rng()<(opponent.stamina/opponent.maxStamina>.75?.36:.70)?'pin':'skip-pin'};
  case 'HOLD_ESCAPE':return {type:'escape-hold'};
  case 'GROUND_DEFENSE':
    return {type:ai.stamina<=1?'scramble-ground':(rng()<.77?'scramble-ground':'cover-ground')};
@@ -91,7 +131,7 @@ export function chooseAiAction(state,{setup=DEFAULT_MATCH_SETUP,rng=Math.random}
    const moves=getAvailableReactions(state);
    if(!moves.length)return {type:'pass-reaction'};
    if(difficulty==='rookie'&&rng()<.30)return {type:'pass-reaction'};
-   const selected=chooseWeighted(moves.map(move=>({value:move,score:moveRating(move,ai,opponent)})),rng,difficulty);
+   const selected=chooseWeighted(moves.map(move=>({value:move,score:classicMoveRating(move,ai,opponent,state)})),rng,difficulty);
    return selected?{type:'reaction',moveId:selected.id}:{type:'pass-reaction'};
  }
  case 'HOLD':{
@@ -102,7 +142,7 @@ export function chooseAiAction(state,{setup=DEFAULT_MATCH_SETUP,rng=Math.random}
    if(ai.stamina<tickCost)return {type:'release-hold'};
    if(options.length&&ai.stamina>9&&current?.stamina>8&&rng()<(difficulty==='veteran'?.28:.15))
      return {type:'switch-hold',moveId:options[0].id};
-   if(current?.stamina<8||rng()>.18)return {type:'tighten-hold'};
+   if(current?.stamina<8||rng()>(current?.stamina/current?.maxStamina>.68?.40:.22))return {type:'tighten-hold'};
    return {type:'release-hold'};
  }
  case 'ACTION_SELECT':{
