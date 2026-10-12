@@ -4,6 +4,7 @@ import { isMoveLegal, resolveTargetDecision } from './flow-engine.js';
 import {ACTION_IDS,getTurnContext,canPerformAction,getDefensiveWindow,auditTurnState} from './turn-controller.js';
 import {GROUND_SCRAMBLE_COST,GROUND_GUARD_VALUE,groundDefenseWindow,groundScrambleTarget} from './ground-defense.js';
 import {legalCounterMoves} from './reaction-selection.js';
+import {getHoldTransitionOptions,HOLD_TRANSITION_COST,HOLD_TRANSITION_DAMAGE} from './hold-transitions.js';
 
 export const CROWD_CAP = 5;
 export const BODY_MARK_CAP = 3;
@@ -407,6 +408,30 @@ export function maintainHold(state){
     holderId:hold.holderId,defenderId:hold.defenderId,cost:spec.tickCost,
     staminaDamage:actual,ticks:hold.ticks};
 }
+export function availableHoldTransitions(state){
+ return getHoldTransitionOptions(state,demoMoves);
+}
+export function transitionHold(state,{moveId}={}){
+ const hold=state.activeHold,holderId=hold?.holderId;
+ if(!hold||!validateCombatAction(state,ACTION_IDS.HOLD_SWITCH,holderId).ok)
+   return {ok:false,reason:'Not the holder\'s transition turn'};
+ const option=availableHoldTransitions(state).find(o=>o.id===moveId);
+ if(!option)return {ok:false,reason:'Unlearned, unsupported or illegal hold transition'};
+ const holder=wrestler(state,holderId),defender=wrestler(state,hold.defenderId);
+ const previous=hold.moveId;
+ holder.stamina-=HOLD_TRANSITION_COST;
+ const before=defender.stamina;
+ defender.stamina=Math.max(0,defender.stamina-HOLD_TRANSITION_DAMAGE);
+ state.turnCounter++;
+ holder.condition=deriveCondition(holder);defender.condition=deriveCondition(defender);
+ state.activeHold={...hold,moveId,ticks:hold.ticks+1,
+   finishPending:hold.finishPending||defender.stamina===0};
+ state.phase='HOLD_ESCAPE';
+ return {ok:true,from:previous,to:moveId,holderId,defenderId:hold.defenderId,
+   cost:HOLD_TRANSITION_COST,staminaDamage:before-defender.stamina,
+   finishPending:state.activeHold.finishPending};
+}
+
 export function releaseHold(state){
   const hold=state.activeHold;
   if(!hold||!validateCombatAction(state,ACTION_IDS.HOLD_RELEASE,hold.holderId).ok)return {ok:false,reason:'No releasable hold'};
