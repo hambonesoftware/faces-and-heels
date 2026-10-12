@@ -8,5 +8,6 @@ export function legalCounterMoves({moves=[],reactor,opponent,state}={}){
     &&reactor.stamina>=move.staminaCost
     &&move.requirements?.attackerPostures?.includes(reactor.posture)
     &&move.requirements?.defenderPostures?.includes(opponent.posture)
-    &&move.category!=='special'&&!move.sustained);
+    &&move.category!=='special'&&!move.sustained)
+    .sort((a,b)=>COUNTER_MOVE_IDS.indexOf(a.id)-COUNTER_MOVE_IDS.indexOf(b.id));
 }
