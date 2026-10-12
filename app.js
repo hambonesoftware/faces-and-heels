@@ -36,6 +36,8 @@ import {
   totalBodyMarks,
   setLegendaryLoadout,
   maintainHold,
+  availableHoldTransitions,
+  transitionHold,
   escapeHold,
   releaseHold,
   getAvailableActions,
@@ -459,6 +461,7 @@ function renderHoldDock() {
   const defending=state.phase==='HOLD_ESCAPE';
   const finalAttempt=Boolean(hold.finishPending);
   const able=holder.stamina>=spec.tickCost;
+  const transitions=defending?[]:availableHoldTransitions(state);
   return `
     <section class="decision-panel decision-panel--hold ${defending?'is-escape':'is-holder'}" aria-label="Active wrestling submission">
       <div class="hold-ribbon-head">
@@ -476,6 +479,7 @@ function renderHoldDock() {
           ${defending
             ?`<button type="button" class="hold-primary hold-escape" data-hold-escape>${finalAttempt?"FINAL ESCAPE":"ESCAPE"} <small>d20 + AGI · ${trapped.stamina===0?"NO STA AVAILABLE":`−${Math.min(spec.escapeCost,trapped.stamina)} STA`}</small></button>`
             :`<button type="button" class="hold-primary" data-hold-squeeze ${able?'':'disabled'}>TIGHTEN <small>−${spec.tickCost} STA / −${spec.tickDamage} OPP</small></button>
+              ${transitions.map(t=>`<button type="button" class="hold-switch" data-hold-switch="${escapeHtml(t.id)}">SWITCH → ${escapeHtml(t.name.toUpperCase())}<small>−${t.cost} STA · −${t.damage} OPP · ESCAPE FOLLOWS</small></button>`).join('')}
               <button type="button" class="hold-secondary" data-hold-release>RELEASE HOLD <small>${trapped.posture==='prone'?'PIN AVAILABLE':'KEEP CONTROL'}</small></button>`}
         </div>
       </div>
@@ -777,6 +781,18 @@ function performHoldPressure(){
   }
   render();
 }
+function performHoldSwitch(moveId){
+  if(state.phase!=='HOLD'||ui.phase!=='HOLD')return;
+  const result=transitionHold(state,{moveId});
+  if(!result.ok){announce('SWITCH UNAVAILABLE',result.reason,'danger',false,700);return;}
+  const name=demoMoves.find(m=>m.id===result.to)?.name||result.to;
+  stage?.playHoldTransition(result.from,result.to,result.holderId);
+  log(`${wrestler(state,result.holderId).name} switches to ${name}: -${result.cost} stamina, -${result.staminaDamage} opponent stamina. New escape window.`);
+  ui.phase='HOLD_ESCAPE';
+  announce('HOLD TRANSITION',name.toUpperCase()+' · ESCAPE WINDOW','major',false,760);
+  render();
+}
+
 function performHoldRelease(){
   if(state.phase!=='HOLD'||ui.phase!=='HOLD')return;
   const result=releaseHold(state);
@@ -1003,6 +1019,7 @@ app.addEventListener('click', event => {
   if (el.dataset.boost !== undefined) { const actor=currentActor(); ui.spendCrowd = ui.spendCrowd ? 0 : (actor?.crowdResource > 0 ? 1 : 0); render(); return; }
   if (el.dataset.back !== undefined) { resetSelection(); return; }
   if (el.dataset.holdSqueeze !== undefined) { if(permitted(ACTION_IDS.HOLD_SQUEEZE,state.activeHold?.holderId))performHoldPressure(); return; }
+  if (el.dataset.holdSwitch !== undefined) {if(permitted(ACTION_IDS.HOLD_SWITCH,state.activeHold?.holderId))performHoldSwitch(el.dataset.holdSwitch);return;}
   if (el.dataset.holdRelease !== undefined) { if(permitted(ACTION_IDS.HOLD_RELEASE,state.activeHold?.holderId))performHoldRelease(); return; }
   if (el.dataset.holdEscape !== undefined) { if(permitted(ACTION_IDS.HOLD_ESCAPE,state.activeHold?.defenderId))performHoldEscape(); return; }
   if (el.dataset.pin !== undefined) { runPin(); return; }
