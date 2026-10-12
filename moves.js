@@ -666,6 +666,7 @@ export const demoState = {
   neutralAction: false,
   winnerId: null,
   turnCounter: 0,
+  moveHistory: [],
   pendingFailure: null,
   activeHold: null,
   groundDefense: null,
