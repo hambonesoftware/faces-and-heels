@@ -156,7 +156,7 @@ export function chooseAiAction(state,{setup=DEFAULT_MATCH_SETUP,rng=Math.random}
      if(actions.some(x=>x.id==='scramble-up'))return {type:'stand'};
      return {type:'breath'};
    }
-   const scored=legal.map(move=>({value:move,score:moveRating(move,ai,opponent)}));
+   const scored=legal.map(move=>({value:move,score:classicMoveRating(move,ai,opponent,state)}));
    const move=chooseWeighted(scored,rng,difficulty);
    return {
      type:'move',moveId:move.id,target:chooseTarget(state,move,rng),
