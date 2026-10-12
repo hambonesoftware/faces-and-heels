@@ -10,6 +10,7 @@
  * and no human hand-entered sequences; records reproducible seeded bouts.
  */
 import assert from 'node:assert/strict';
+import {mkdirSync,writeFileSync} from 'node:fs';
 import {chooseAiAction} from './solo-ai.js';
 import {cloneInitialState,opponentId,wrestler,getLegalMoves,checkCombatFlow,
  resolveNeutralRoll,resolveMoveAttempt,resolveReaction,declineReaction,resolvePinCount,
@@ -131,7 +132,7 @@ function play(seed,logFull=false){
 }
 const REPORT_COUNT=Number(process.env.FH_CLASSIC_AUDIT_MATCHES||100);
 assert(Number.isInteger(REPORT_COUNT)&&REPORT_COUNT>0);
-const bouts=Array.from({length:REPORT_COUNT},(_,i)=>play(0xFACED000+i+1,i<3));
+const bouts=Array.from({length:REPORT_COUNT},(_,i)=>play(0xFACED000+i+1,true));
 const metric=n=>sum(bouts,b=>b[n]);
 const mean=n=>(metric(n)/bouts.length).toFixed(2);
 const allMoves=bouts.flatMap(b=>b.moves);
@@ -173,5 +174,12 @@ if(REPORT_COUNT===100){
  assert((report.byStyle.stone['body-slam']||0)>0,'Stone must show Powerhouse offense');
  assert((report.byStyle.viper['dropkick']||0)>0,'Viper must show Daredevil offense');
 }
+mkdirSync('audit-output',{recursive:true});
+writeFileSync('audit-output/classic-match-100.json',JSON.stringify({
+ note:'100 complete deterministic engine matches, not video recordings of real wrestlers',
+ builtAt:'v1.19.1',report,
+ bouts:bouts.map(b=>({seed:b.seed,winner:b.winner,method:b.method,steps:b.steps,
+   attackCount:b.attackCount,moves:b.moves,events:b.events}))
+},null,2)+'\\n');
 console.log('CLASSIC WRESTLING AUDIT REPORT (qualitative references, not an exact recreation):');
 console.log(JSON.stringify(report,null,2));
