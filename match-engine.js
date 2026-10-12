@@ -316,6 +316,12 @@ export function resolveMoveAttempt(state, {
     forcedPin: false
   };
 
+  // Keep a compact, replayable record for CPU match psychology: variety and
+  // repetition are determined by moves actually attempted, not guessed phases.
+  state.moveHistory ??= [];
+  state.moveHistory.push({step:state.turnCounter,actorId:attackerId,moveId,success});
+  if(state.moveHistory.length>80)state.moveHistory.shift();
+
   if (!success) {
     state.pendingFailure = { attackerId, defenderId, moveId };
     state.phase = 'REACTION';
