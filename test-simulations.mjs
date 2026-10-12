@@ -21,7 +21,8 @@ import {
   totalBodyMarks,
   maintainHold,
   escapeHold,
-  releaseHold
+  releaseHold,
+  resolveGroundDefense
 } from './match-engine.js';
 import { resolveTargetDecision } from './flow-engine.js';
 
@@ -161,6 +162,15 @@ function simulateMatch(seed, maxSteps = 600) {
       continue;
     }
 
+    if(state.phase==='GROUND_DEFENSE'){
+      const actor=state.groundDefense?.defenderId;
+      assert.ok(actor,'Ground defender is missing');
+      const choice=rng()<.65?'scramble':rng()<.75?'cover':'pass';
+      const reply=resolveGroundDefense(state,{choice,roll:choice==='scramble'?die(rng,20):undefined});
+      assert.ok(reply.ok,'Ground response must be valid');
+      validateState(state,`seed ${seed} ground defense`);
+      continue;
+    }
     if (state.phase === 'PIN_OPPORTUNITY') {
       const pinningId = state.pinningWrestlerId;
       const pinnedId = opponentId(pinningId);
