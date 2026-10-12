@@ -21,3 +21,9 @@ jobs:
         env:
           FH_SIM_MATCHES: '1000'
         run: npm test
+      - name: Save 100-match professional wrestling audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: faces-heels-classic-100-match-transcripts
+          path: audit-output/classic-match-100.json
+          retention-days: 30
