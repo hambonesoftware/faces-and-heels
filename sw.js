@@ -1,25 +1,37 @@
-const CACHE = 'faces-heels-v1.17.0-central-combat-flow-r2';
+const CACHE = 'faces-heels-v1.18.0-all-six-defensive-flow-issues';
 const CORE = [
-  './index.html?v=1.17.0',
-  './styles.css?v=1.17.0',
-  './app.js?v=1.17.0',
-  './combat-animation-map.js?v=1.17.0',
-  './legendary-catalog.js?v=1.17.0',
-  './turn-controller.js?v=1.17.0',
-  './ui-art.js?v=1.17.0',
-  './moves.js?v=1.17.0',
-  './flow-engine.js?v=1.17.0',
-  './match-engine.js?v=1.17.0',
-  './sprite-stage.js?v=1.17.0',
-  './iso-stage.js?v=1.17.0',
-  './block-model.js?v=1.17.0',
-  './mesh-renderer.js?v=1.17.0',
-  './choreography.js?v=1.17.0',
+  './index.html?v=1.18.0',
+  './styles.css?v=1.18.0',
+  './app.js?v=1.18.0',
+  './combat-animation-map.js?v=1.18.0',
+  './legendary-catalog.js?v=1.18.0',
+  './turn-controller.js?v=1.18.0',
+  './ground-defense.js?v=1.18.0',
+  './reaction-selection.js?v=1.18.0',
+  './hold-transitions.js?v=1.18.0',
+  // ESM imports from the match engine are unversioned. Cache those exact URLs
+  // as well so a previously installed PWA remains playable offline.
+  './turn-controller.js',
+  './ground-defense.js',
+  './reaction-selection.js',
+  './hold-transitions.js',
+  './legendary-catalog.js',
+  './moves.js',
+  './flow-engine.js',
+  './ui-art.js?v=1.18.0',
+  './moves.js?v=1.18.0',
+  './flow-engine.js?v=1.18.0',
+  './match-engine.js?v=1.18.0',
+  './sprite-stage.js?v=1.18.0',
+  './iso-stage.js?v=1.18.0',
+  './block-model.js?v=1.18.0',
+  './mesh-renderer.js?v=1.18.0',
+  './choreography.js?v=1.18.0',
   './motion-lab.html',
-  './motion-lab.js?v=1.17.0',
-  './manifest.webmanifest?v=1.17.0',
-  './presentation.js?v=1.17.0',
-  './progression.js?v=1.17.0',
+  './motion-lab.js?v=1.18.0',
+  './manifest.webmanifest?v=1.18.0',
+  './presentation.js?v=1.18.0',
+  './progression.js?v=1.18.0',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/sprites/generated/manifest.json',
@@ -78,7 +90,7 @@ async function cachedModuleResponse(req){
   if(exact)return exact;
   const url=new URL(req.url);
   if(/\.(?:js|css|json|webmanifest)$/.test(url.pathname)){
-    url.searchParams.set('v','1.17.0');
+    url.searchParams.set('v','1.18.0');
     return caches.match(url.toString());
   }
   return undefined;
@@ -91,7 +103,7 @@ self.addEventListener('fetch', event => {
 
   // Always prefer the running Docker build for page navigations.
   if (req.mode === 'navigate') {
-    const pageKey = url.pathname.endsWith('/motion-lab.html') ? './motion-lab.html' : './index.html?v=1.17.0';
+    const pageKey = url.pathname.endsWith('/motion-lab.html') ? './motion-lab.html' : './index.html?v=1.18.0';
     event.respondWith((async () => {
       try {
         const fresh = await fetch(req, { cache: 'no-store' });
@@ -106,7 +118,7 @@ self.addEventListener('fetch', event => {
   }
 
   // Versioned code files should come from network first during development.
-  if (url.searchParams.get('v') === '1.17.0' || /\.(?:js|css|json|webmanifest)$/.test(url.pathname)) {
+  if (url.searchParams.get('v') === '1.18.0' || /\.(?:js|css|json|webmanifest)$/.test(url.pathname)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(req, { cache: 'no-store' });
