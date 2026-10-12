@@ -13,6 +13,7 @@ import {
   startPin,
   resolvePinCount,
   skipPin,
+  resolveGroundDefense,
   scrambleUp,
   spendCrowdForStamina
 } from './match-engine.js';
@@ -21,7 +22,7 @@ assert.equal(statModifier(16), 3);
 assert.equal(statModifier(15), 2);
 assert.equal(conditioning(cloneInitialState().wrestlers.stone), 12);
 
-const state = cloneInitialState();
+let state = cloneInitialState();
 assert.equal(state.phase, 'NEUTRAL_ROLL');
 const neutral = resolveNeutralRoll(state, 18, 9);
 assert.equal(neutral.winnerId, 'stone');
@@ -46,22 +47,25 @@ assert.equal(state.wrestlers.viper.bodyDamage.head, 1);
 assert.equal(state.wrestlers.stone.crowdResource, 3, 'crowd-gaining move should award Pop');
 
 assert.equal(skipPin(state).ok, true);
-assert.equal(state.phase, 'ACTION_SELECT');
-
-// Missed ground control opens a real reaction, and successful reaction transfers H.
+assert.equal(state.phase,'GROUND_DEFENSE','Declining a pin allows Low to defend');
+assert(resolveGroundDefense(state,{choice:'cover'}).ok,'Low may cover up under High control');
+assert.equal(state.phase,'ACTION_SELECT');
+// With Viper prone, a missed ground headlock cannot magically become a
+// standing strike counter; grounded defense has already been offered.
 const headlock = getLegalMoves(state).find(move => move.id === 'ground-headlock');
 assert.ok(headlock);
-const miss = resolveMoveAttempt(state, {
-  moveId: headlock.id,
-  target: 'core',
-  attackRoll: 1,
-  damageRoll: 1,
-  crowdSpend: 0
-});
-assert.equal(miss.success, false);
-assert.equal(state.phase, 'REACTION');
-assert.equal(canReact(state), true);
-const reaction = resolveReaction(state, { reactionRoll: 20, damageRoll: 6 });
+const missGround=resolveMoveAttempt(state,{moveId:headlock.id,target:'head',attackRoll:1,damageRoll:1});
+assert.equal(missGround.success,false);
+assert.equal(canReact(state),false);
+assert.equal(state.phase,'ACTION_SELECT');
+// A standing defender does get a learned Common Move counter after a miss.
+state=cloneInitialState();
+giveControl(state,'stone');
+const miss=resolveMoveAttempt(state,{moveId:'forearm-smash',target:'head',attackRoll:1,damageRoll:1});
+assert.equal(miss.success,false);
+assert.equal(state.phase,'REACTION');
+assert.equal(canReact(state),true);
+const reaction=resolveReaction(state,{reactionMoveId:'forearm-smash',reactionRoll:20,damageRoll:6});
 assert.equal(reaction.success, true);
 assert.equal(state.activeWrestlerId, 'viper');
 assert.equal(state.roles.viper, 'H');
