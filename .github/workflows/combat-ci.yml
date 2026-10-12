@@ -1,0 +1,23 @@
+name: Faces & Heels combat regression
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rules-and-match-loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify combat rules, animation and one thousand full matches
+        env:
+          FH_SIM_MATCHES: '1000'
+        run: npm test
