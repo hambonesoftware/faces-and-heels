@@ -281,7 +281,9 @@ export function resolveMoveAttempt(state, {
   const targetDecision = resolveTargetDecision(move, perspective);
   let resolvedTarget = target;
   if (!resolvedTarget && targetDecision.kind === 'resolved') resolvedTarget = targetDecision.values[0] || null;
-  if (targetDecision.kind === 'choice' && !targetDecision.values.includes(resolvedTarget)) {
+  if (targetDecision.kind === 'unavailable' ||
+      (targetDecision.kind === 'choice' && !targetDecision.values.includes(resolvedTarget)) ||
+      (resolvedTarget!==null && !targetDecision.values.includes(resolvedTarget))) {
     throw new Error(`${move.name} requires a legal target choice.`);
   }
 
