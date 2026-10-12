@@ -1,4 +1,4 @@
-const CACHE = 'faces-heels-v1.19.0-solo-showdown-r1';
+const CACHE = 'faces-heels-v1.19.0-classic-wrestling-r2';
 const CORE = [
   './index.html?v=1.19.0',
   './styles.css?v=1.19.0',
