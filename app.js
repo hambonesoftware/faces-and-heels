@@ -1130,6 +1130,69 @@ document.addEventListener('keydown',event=>{
   else if(!event.shiftKey&&(document.activeElement===last||!modal.contains(document.activeElement))){event.preventDefault();first.focus();}
 });
 
+// Solo-play orchestration stays outside match-engine.js. The bot chooses an
+// intention only; each action goes through the same roll, animation and rules
+// handlers as the human. Exactly one queued/active bot action may exist.
+function queueAiTurn(){
+  if(!aiEnabled()||introOpen||ui.drawer||aiBusy||aiTimer||!stage||state.winnerId)return;
+  if(['ROLLING','ANIMATING','SELECTED','TARGET_CHOICE'].includes(ui.phase))return;
+  if(!isAiDecision(state,matchSetup))return;
+  aiTimer=setTimeout(async()=>{
+    aiTimer=null;
+    if(aiBusy||introOpen||ui.drawer||!isAiDecision(state,matchSetup))return;
+    aiBusy=true;
+    try{
+      await performAiTurn();
+    }catch(error){
+      console.error('CPU turn failed',error);
+      log('CPU turn issue: '+error.message);
+      // Fail visibly, never silently fake a successful attack.
+      announce('CPU TURN ERROR','Open Match Log for details','danger',false,1100);
+    }finally{
+      aiBusy=false;
+      if(!state.winnerId)queueAiTurn();
+    }
+  },settings.fast?140:420);
+}
+async function performAiTurn(){
+  const decision=chooseAiAction(state,{setup:matchSetup,rng:random01});
+  if(!decision)return;
+  switch(decision.type){
+    case 'neutral':await rollNeutral();break;
+    case 'move':{
+      const move=getLegalMoves(state).find(m=>m.id===decision.moveId);
+      if(!move)throw Error('CPU selected an unavailable move: '+decision.moveId);
+      selectMove(move);
+      // The player uses the target-choice screen; CPU chooses from the exact
+      // same target list, then resolves the standard dice rolls.
+      ui.selectedTarget=decision.target;
+      ui.spendCrowd=decision.crowdSpend||0;
+      ui.phase='SELECTED';
+      render();
+      await rollMove();break;
+    }
+    case 'pin':await runPin();break;
+    case 'skip-pin':{
+      const skipped=skipPin(state);
+      if(!skipped.ok)throw Error('CPU could not decline pin');
+      ui.phase='GROUND_DEFENSE';render();break;
+    }
+    case 'pin-defense':await rollPinDefense();break;
+    case 'reaction':await runReaction(decision.moveId);break;
+    case 'pass-reaction':passReaction();break;
+    case 'tighten-hold':performHoldPressure();break;
+    case 'switch-hold':performHoldSwitch(decision.moveId);break;
+    case 'release-hold':performHoldRelease();break;
+    case 'escape-hold':await performHoldEscape();break;
+    case 'scramble-ground':await performGroundDefense('scramble');break;
+    case 'cover-ground':await performGroundDefense('cover');break;
+    case 'stand':scrambleUpAction();break;
+    case 'recover':recoverWithCrowd();break;
+    case 'breath':catchBreath();break;
+    default:throw Error('Unsupported CPU decision '+decision.type);
+  }
+}
+
 function applyDemoQuery() {
   const demo = params.get('demo');
   if (!demo) return;
