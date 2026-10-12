@@ -73,6 +73,10 @@ export function classicMoveRating(move,attacker,defender,state){
    score+=CLASSIC_OPENERS[move.id]||0;
    if(move.category==='grapple'&&!move.sustained)score+=2;
  }
+ // Preserve the wrestlers' style signatures without inventing unavailable
+ // animations: Stone favors power slams, Viper prioritizes his real dropkick.
+ if(attacker.style==='Powerhouse'&&['body-slam','vertical-suplex'].includes(move.id))score+=3;
+ if(attacker.style==='Daredevil'&&move.id==='dropkick')score+=7;
  if(move.category==='setup'){
    // Picks and snap downs are useful positional tools, not an infinite source
    // of uncontested offense. The original CPU spammed 826 snap downs/100 bouts.
