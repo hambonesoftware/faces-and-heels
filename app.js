@@ -1,4 +1,5 @@
 import {ACTION_IDS} from './turn-controller.js?v=1.18.0';
+import {DEFAULT_MATCH_SETUP,readMatchSetup,saveMatchSetup,aiWrestlerId,isAiDecision,chooseAiAction} from './solo-ai.js?v=1.18.0';
 import { animationByMove } from './combat-animation-map.js?v=1.18.0';
 import { portrait, moveArt, damageDiagram } from './ui-art.js?v=1.18.0';
 import { emptyProgress, loadProgress, saveProgress, recordResult, resetProgress } from './progression.js?v=1.18.0';
@@ -47,6 +48,9 @@ import {
 
 const app = document.querySelector('#app');
 let progression=loadProgress(localStorage);
+let matchSetup=readMatchSetup(localStorage);
+let aiBusy=false,aiTimer=null;
+const aiEnabled=()=>matchSetup.mode==='solo'&&!new URLSearchParams(location.search).has('demo');
 let settings=readSettings(localStorage);
 const audio=new MatchAudio();audio.muted=settings.muted;
 const highlights=[];let resultRecorded=false;
@@ -72,7 +76,8 @@ let ui = {
   pinCount: 0,
   pinRolls: null,
   pinInfo: null,
-  neutralRolls: null
+  neutralRolls: null,
+  coachingDismissed: false
 };
 
 let introOpen = !new URLSearchParams(location.search).has('demo');
@@ -173,7 +178,7 @@ function renderFighterHud(w, side) {
     <button class="fighter-hud fighter-hud--${side} ${active ? 'is-active-control' : ''}" data-body="${w.id}" aria-label="Open ${escapeHtml(w.name)} body status">
       <div class="hud-portrait hud-portrait--${w.id}">${portrait(w.id)}</div>
       <div class="fighter-copy">
-        <div class="fighter-name-row"><strong>${escapeHtml(w.name)}</strong><span class="momentum-role momentum-role--${role.toLowerCase()}">${roleText}</span>${statusWarning(w) ? `<span class="status-chip">${escapeHtml(statusWarning(w))}</span>` : ''}</div>
+        <div class="fighter-name-row"><strong>${escapeHtml(w.name)}</strong>${matchSetup.mode==='solo'?`<span class="fighter-player-label ${w.id===matchSetup.playerId?'is-human':'is-cpu'}">${w.id===matchSetup.playerId?'YOU':'CPU'}</span>`:''}<span class="momentum-role momentum-role--${role.toLowerCase()}">${roleText}</span>${statusWarning(w) ? `<span class="status-chip">${escapeHtml(statusWarning(w))}</span>` : ''}</div>
         <div class="stamina-row"><span>STA</span><div class="stamina"><em class="stamina-trail" data-trail="${w.id}" style="width:${trailing[w.id]}%"></em><i style="width:${now}%"></i></div><b>${w.stamina}/${w.maxStamina}</b></div>
         <div class="crowd-row"><em>${escapeHtml(w.crowdResourceName)}</em>${crowdPips(w)}</div>
       </div>
@@ -438,9 +443,59 @@ function renderGroundDefense(){
 }
 
 function renderMatchIntro() {
-  return `<div class="match-intro" role="dialog" aria-modal="true" aria-label="Tonight's match"><div class="intro-poster"><p class="poster-kicker">FACES &amp; HEELS PRESENTS</p><h1>MAIN<br>EVENT</h1><div class="poster-match"><div>${portrait('stone')}<strong>STONE</strong><span>POWERHOUSE · FACE</span></div><b>VS</b><div>${portrait('viper')}<strong>VIPER</strong><span>DAREDEVIL · HEEL</span></div></div><p class="intro-rivalry">${escapeHtml(rivalryLead)}</p><button class="roll-button" data-start-match><strong>ENTER THE RING</strong><small>A TACTICAL WRESTLING SHOWDOWN</small></button><p class="intro-help">Play both corners. Choose a move, roll the dice, and fight for the three-count.</p></div></div>`;
+  const solo=matchSetup.mode==='solo';
+  return `<div class="match-intro" role="dialog" aria-modal="true" aria-label="Set up your wrestling match">
+    <div class="intro-poster intro-poster--setup">
+      <p class="poster-kicker">FACES &amp; HEELS · MAIN EVENT</p>
+      <h1>ENTER THE<br>RING</h1>
+      <div class="match-setup-modes" role="group" aria-label="Choose match mode">
+        <button type="button" data-match-mode="solo" class="${solo?'is-selected':''}" aria-pressed="${solo}">SOLO vs CPU <small>YOUR wrestler against the game</small></button>
+        <button type="button" data-match-mode="local" class="${!solo?'is-selected':''}" aria-pressed="${!solo}">PASS &amp; PLAY <small>Control both wrestlers locally</small></button>
+      </div>
+      ${solo?`
+        <p class="setup-section-label">CHOOSE YOUR WRESTLER</p>
+        <div class="setup-fighter-choices">
+          ${['stone','viper'].map(id=>`<button type="button" data-player-id="${id}" class="${matchSetup.playerId===id?'is-selected':''}" aria-pressed="${matchSetup.playerId===id}">
+            <span class="setup-fighter-portrait">${portrait(id)}</span>
+            <strong>${id.toUpperCase()}</strong><small>${id==='stone'?'POWERHOUSE · FACE':'DAREDEVIL · HEEL'}</small>
+          </button>`).join('')}
+        </div>
+        <div class="setup-difficulty">
+          <span>CPU DIFFICULTY</span>
+          <div role="group" aria-label="Opponent difficulty">${[['rookie','ROOKIE'],['standard','STANDARD'],['veteran','VETERAN']].map(([value,label])=>`<button type="button" data-difficulty="${value}" class="${matchSetup.difficulty===value?'is-selected':''}" aria-pressed="${matchSetup.difficulty===value}">${label}</button>`).join('')}</div>
+        </div>
+        <button type="button" class="setup-guide-choice" data-toggle-coaching aria-pressed="${matchSetup.tutorial}">${matchSetup.tutorial?'✓':'○'} GUIDED FIRST MATCH <small>${matchSetup.tutorial?'Short tips appear only when needed':'No help overlays during play'}</small></button>
+      `:`<div class="setup-local-note">Two players share the same screen and take turns making decisions. Every move, pin, grapple and defensive roll stays manual.</div>`}
+      <button type="button" class="roll-button setup-enter-button" data-start-match><strong>${solo?'START SOLO MATCH':'START LOCAL MATCH'}</strong><small>STONE VS VIPER · 2016-STYLE ARCADE WRESTLING</small></button>
+      <p class="intro-help">${solo?'You control one wrestler. The CPU uses the same moves, stamina, dice and escape rules as you.':'Both corners are human-controlled, as in previous releases.'}</p>
+    </div>
+  </div>`;
 }
-
+function renderCoachHint(){
+  if(!aiEnabled()||!matchSetup.tutorial||ui.coachingDismissed||introOpen||state.winnerId||isAiDecision(state,matchSetup))return '';
+  const notes={
+    ACTION_SELECT:'SWIPE THE MOVE BAR. A move costs your stamina and drains more from your rival when it lands.',
+    SELECTED:'CHECK THE HIT CHANCE. Tap ATTEMPT MOVE to roll a d20, or BACK to choose another.',
+    TARGET_CHOICE:'CHOOSE A BODY PART. Damage marks make escaping pins harder.',
+    REACTION:'YOUR RIVAL MISSED. Counter with a learned move or pass.',
+    HOLD_ESCAPE:'YOU ARE GRAPPLED. Roll to escape even while the opponent has control.',
+    HOLD:'YOUR HOLD IS LOCKED. Apply pressure, switch holds or release for a pin chance.',
+    GROUND_DEFENSE:'WHILE PRONE, YOU CAN SCRAMBLE, COVER UP OR STAY DOWN.',
+    OPPORTUNITY:'YOUR RIVAL IS DOWN. Try a three-count pin or continue offense.',
+    PIN_DEFENSE:'YOU ARE PINNED. ROLL TO KICK OUT ON EACH COUNT.',
+    MATCH_COMPLETE:'MATCH COMPLETE. WIN OR LOSE, TRY A REMATCH TO LEARN THE TIMING.'
+  };
+  const note=notes[ui.phase];
+  if(!note)return '';
+  return `<div class="ringside-coach"><span class="coach-tag">RINGSIDE COACH</span><span>${escapeHtml(note)}</span><button type="button" data-dismiss-guide aria-label="Turn off gameplay tips">×</button></div>`;
+}
+function renderAiThinking(){
+  const id=aiWrestlerId(matchSetup),who=id?wrestler(state,id):null;
+  return `<section class="decision-panel decision-panel--cpu" aria-label="Computer opponent thinking">
+    <span class="cpu-indicator" aria-hidden="true">◉</span><strong>${who?escapeHtml(who.name):'CPU'} · CPU TURN</strong>
+    <span>READING THE RING · CHOOSING AN ACTION</span>
+  </section>`;
+}
 function renderMatchComplete() {
   const winner = wrestler(state, state.winnerId);
   return `
@@ -487,6 +542,7 @@ function renderHoldDock() {
 }
 
 function renderDecisionDock() {
+  if(aiEnabled()&&isAiDecision(state,matchSetup)&&!['ROLLING','ANIMATING'].includes(ui.phase))return renderAiThinking();
   if (ui.phase === 'NEUTRAL_ROLL') return renderNeutral();
   if (ui.phase === 'HOLD' || ui.phase === 'HOLD_ESCAPE') return renderHoldDock();
   if (ui.phase === 'TARGET_CHOICE') return renderTargetChoice();
@@ -559,7 +615,7 @@ function render() {
   const previousRail = app.querySelector('[data-action-rail]');
   if (previousRail && ui.phase === 'ACTION_SELECT') ui.railOffset = previousRail.scrollLeft;
   const oldCanvas = document.querySelector('#match-canvas');
-  app.innerHTML = `<div class="game-shell phase-${ui.phase.toLowerCase()} ${progression.theme==='championship'?'is-championship':''}">${renderHeader()}<div class="arena-combat-zone">${renderArena()}<div class="tactical-menu-anchor">${renderDecisionDock()}</div></div><footer><span>RINGSIDE LIVE · ${state.turnCounter} ACTIONS</span><button data-drawer="log">MATCH LOG</button></footer></div>${renderDrawer()}${introOpen ? renderMatchIntro() : ''}`;
+  app.innerHTML = `<div class="game-shell phase-${ui.phase.toLowerCase()} ${progression.theme==='championship'?'is-championship':''}">${renderHeader()}<div class="arena-combat-zone">${renderArena()}<div class="tactical-menu-anchor">${renderCoachHint()}${renderDecisionDock()}</div></div><footer><span>RINGSIDE LIVE · ${state.turnCounter} ACTIONS</span><button data-drawer="log">MATCH LOG</button></footer></div>${renderDrawer()}${introOpen ? renderMatchIntro() : ''}`;
   const canvas = document.querySelector('#match-canvas');
   if (!stage) {
     stage = new IsoStage(canvas);
@@ -581,6 +637,7 @@ function render() {
   const rail=app.querySelector('[data-action-rail]');
   if(rail){rail.scrollLeft=ui.railOffset;updateActionRail(rail);}
   stage.mode=state.activeHold?'iso':rendererMode;stage.fast=settings.fast;stage.reducedMotion=settings.reducedMotion;stage.reducedFlash=settings.reducedFlash;
+  queueAiTurn();
 
 }
 
@@ -1010,7 +1067,14 @@ app.addEventListener('click', event => {
   const el = event.target.closest('button,[data-close-drawer]');
   if (!el) return;
   if (['ROLLING','ANIMATING','PIN'].includes(ui.phase) && !el.dataset.renderer && !el.dataset.drawer && el.dataset.closeDrawer===undefined) return;
-  if (el.dataset.startMatch !== undefined) { introOpen=false; audio.cue('bell'); render(); document.querySelector('[data-neutral-roll]')?.focus(); return; }
+  if (el.dataset.matchMode !== undefined) {matchSetup=saveMatchSetup(localStorage,{...matchSetup,mode:el.dataset.matchMode});render();return;}
+  if (el.dataset.playerId !== undefined) {matchSetup=saveMatchSetup(localStorage,{...matchSetup,playerId:el.dataset.playerId});render();return;}
+  if (el.dataset.difficulty !== undefined) {matchSetup=saveMatchSetup(localStorage,{...matchSetup,difficulty:el.dataset.difficulty});render();return;}
+  if (el.dataset.toggleCoaching !== undefined) {matchSetup=saveMatchSetup(localStorage,{...matchSetup,tutorial:!matchSetup.tutorial});render();return;}
+  if (el.dataset.startMatch !== undefined) { introOpen=false;matchSetup=saveMatchSetup(localStorage,matchSetup);audio.cue('bell');render();document.querySelector('[data-neutral-roll]')?.focus();return;}
+  if (el.dataset.dismissGuide !== undefined){matchSetup=saveMatchSetup(localStorage,{...matchSetup,tutorial:false});ui.coachingDismissed=true;render();return;}
+  // Human cannot click on the CPU's turn before its scheduled action runs.
+  if(aiEnabled()&&(aiBusy||isAiDecision(state,matchSetup))&&!el.dataset.drawer&&!el.dataset.closeDrawer&&!el.dataset.renderer)return;
   if (el.dataset.neutralRoll !== undefined) { if(permitted(ACTION_IDS.NEUTRAL,null))rollNeutral(); return; }
   if (el.dataset.move) { const move = demoMoves.find(m => m.id === el.dataset.move); if (move&&permitted(ACTION_IDS.MOVE,state.activeWrestlerId)) selectMove(move); return; }
   if (el.dataset.renderer) {rendererMode=el.dataset.renderer;try{localStorage.setItem('fh-renderer-v15',rendererMode)}catch{} render();return;}
