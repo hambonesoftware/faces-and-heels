@@ -180,6 +180,6 @@ writeFileSync('audit-output/classic-match-100.json',JSON.stringify({
  builtAt:'v1.19.1',report,
  bouts:bouts.map(b=>({seed:b.seed,winner:b.winner,method:b.method,steps:b.steps,
    attackCount:b.attackCount,moves:b.moves,events:b.events}))
-},null,2)+'\\n');
+},null,2)+'\n');
 console.log('CLASSIC WRESTLING AUDIT REPORT (qualitative references, not an exact recreation):');
 console.log(JSON.stringify(report,null,2));
