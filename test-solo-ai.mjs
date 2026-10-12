@@ -71,7 +71,7 @@ function simulate(seed,playerId,difficulty){
     case 'cover-ground':assert(resolveGroundDefense(state,{choice:'cover'}).ok);break;
     case 'stand':assert(scrambleUp(state,state.activeWrestlerId).ok);break;
     case 'recover':assert(spendCrowdForStamina(state,state.activeWrestlerId,1).ok);break;
-    case 'breath':assert(catchBreathToNeutral(state,state.activeWrestlerId).ok);break;
+    case 'breath':assert(catchBreathToNeutral(state,state.activeWrestlerId).recovered>0);break;
     default:throw Error('Unsupported CPU phase decision '+intent.type);
    }
    const audit=checkCombatFlow(state);
