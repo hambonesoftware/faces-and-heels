@@ -3,6 +3,7 @@ import {isLegendaryLearnable,MAX_LEGENDARY_MOVES,getLegendaryCandidate} from './
 import { isMoveLegal, resolveTargetDecision } from './flow-engine.js';
 import {ACTION_IDS,getTurnContext,canPerformAction,getDefensiveWindow,auditTurnState} from './turn-controller.js';
 import {GROUND_SCRAMBLE_COST,GROUND_GUARD_VALUE,groundDefenseWindow,groundScrambleTarget} from './ground-defense.js';
+import {legalCounterMoves} from './reaction-selection.js';
 
 export const CROWD_CAP = 5;
 export const BODY_MARK_CAP = 3;
@@ -193,10 +194,16 @@ function requireCombatAction(state,id,actorId){
   return check;
 }
 
+export function getAvailableReactions(state){
+ const pending=state.pendingFailure;
+ if(state.phase!=='REACTION'||!pending||state.activeHold)return [];
+ return legalCounterMoves({moves:demoMoves,
+    reactor:wrestler(state,pending.defenderId),opponent:wrestler(state,pending.attackerId),state});
+}
+
 export function canReact(state) {
   if (!state.pendingFailure || state.phase!=='REACTION' || state.activeHold) return false;
-  const reactor = wrestler(state, state.pendingFailure.defenderId);
-  return reactor.stamina >= REACTION_COST;
+  return getAvailableReactions(state).length>0;
 }
 
 export function spendCrowdForStamina(state, wrestlerId, amount = 1) {
@@ -309,6 +316,7 @@ export function resolveMoveAttempt(state, {
   if (!success) {
     state.pendingFailure = { attackerId, defenderId, moveId };
     state.phase = 'REACTION';
+    state.pendingFailure.counterOptions=legalCounterMoves({moves:demoMoves,reactor:defender,opponent:attacker}).map(m=>({id:m.id,name:m.name,staminaCost:m.staminaCost}));
     const reactionAvailable=canReact(state);
     if (!reactionAvailable) {
       state.phase = 'ACTION_SELECT';
@@ -461,17 +469,19 @@ export function declineReaction(state) {
   return { ok: true, retainedBy: attackerId };
 }
 
-export function resolveReaction(state, { reactionRoll, damageRoll }) {
+export function resolveReaction(state, { reactionRoll, damageRoll, reactionMoveId=null }) {
   if (!state.pendingFailure) throw new Error('No reaction is pending.');
   requireCombatAction(state,ACTION_IDS.REACT,state.pendingFailure.defenderId);
   const originalAttackerId = state.pendingFailure.attackerId;
   const reactorId = state.pendingFailure.defenderId;
   const originalAttacker = wrestler(state, originalAttackerId);
   const reactor = wrestler(state, reactorId);
-  if (reactor.stamina < REACTION_COST) return declineReaction(state);
-
-  reactor.stamina = Math.max(0, reactor.stamina - REACTION_COST);
-  const modifier = statModifier(reactor.stats[reactionMove.stat]);
+  const legal=getAvailableReactions(state);
+  const selected=legal.find(m=>m.id===(reactionMoveId||legal[0]?.id));
+  if(!selected)throw new Error('Unlearned or illegal counter move');
+  if(!Number.isInteger(reactionRoll)||reactionRoll<1||reactionRoll>20)throw new Error('Invalid counter d20');
+  reactor.stamina = Math.max(0, reactor.stamina - selected.staminaCost);
+  const modifier = statModifier(reactor.stats[selected.stat]);
   const targetNumber = conditioning(originalAttacker);
   const total = reactionRoll + modifier;
   const success = total >= targetNumber;
@@ -479,6 +489,7 @@ export function resolveReaction(state, { reactionRoll, damageRoll }) {
     success,
     reactorId,
     originalAttackerId,
+    move:selected,
     reactionRoll,
     modifier,
     total,
@@ -502,17 +513,22 @@ export function resolveReaction(state, { reactionRoll, damageRoll }) {
   }
 
   const opponentBefore = originalAttacker.stamina;
-  originalAttacker.stamina = Math.max(0, originalAttacker.stamina - reactionMove.staminaDamage);
+  originalAttacker.stamina = Math.max(0, originalAttacker.stamina - selected.staminaDamage);
   result.staminaDamage = opponentBefore - originalAttacker.stamina;
-  result.listedStaminaDamage = reactionMove.staminaDamage;
-  result.damage = applyDamageMark(originalAttacker, 'core', damageRoll);
-  result.crowdGained = awardCrowd(reactor, reactionMove.crowdGain || 0);
-  reactor.posture = reactionMove.result.attackerPosture || 'standing';
-  originalAttacker.posture = reactionMove.result.defenderPosture || 'standing';
+  result.listedStaminaDamage = selected.staminaDamage;
+  const target=selected.targeting?.bodyParts?.[0]||'core';
+  result.target=target;
+  result.damage = applyDamageMark(originalAttacker, target, damageRoll);
+  result.crowdGained = awardCrowd(reactor, selected.crowdGain || 0);
+  reactor.posture = selected.result?.attackerPosture || reactor.posture;
+  originalAttacker.posture = selected.result?.preserveDefenderPosture?originalAttacker.posture:(selected.result?.defenderPosture||originalAttacker.posture);
   reactor.condition = deriveCondition(reactor);
   originalAttacker.condition = deriveCondition(originalAttacker);
   if (originalAttacker.stamina <= 0) state.mustFinishTargetId = originalAttackerId;
   giveControl(state, reactorId);
+  if(originalAttacker.posture==='prone'){
+    state.pinEligible=true;state.pinningWrestlerId=reactorId;state.phase='PIN_OPPORTUNITY';
+  }
   return result;
 }
 
