@@ -49,4 +49,4 @@ Match setup is saved under `fh-match-setup-v1` in local storage, progression und
 
 This is an early public playtest, not an online multiplayer game. The AI is a deterministic heuristic policy, not machine learning. The game currently does **not** save an unfinished match for resume. The 3D models use authored synchronized moves and conservative joint/core collision checks—not complete mesh-level rigid-body physics. Touch ergonomics, visual contact and performance need real-device playtesting.
 
-See [combat-flow audit](docs/combat-flow-audit.md) and [animation update](ANIMATION_UPDATE.md) for the state matrix and renderer limitations. All original tabletop content not explicitly established by the source mind map is a provisional digital design choice.
+See the [100-match classic wrestling review](docs/classic-wrestling-100-match-review.md), [combat-flow audit](docs/combat-flow-audit.md) and [animation update](ANIMATION_UPDATE.md) for the state matrix and renderer limitations. All original tabletop content not explicitly established by the source mind map is a provisional digital design choice.
