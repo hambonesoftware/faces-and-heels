@@ -7,6 +7,7 @@
  * defender's interruption window explicitly.
  */
 import {getHoldTransitionOptions,HOLD_TRANSITION_COST} from './hold-transitions.js';
+import {demoMoves} from './moves.js';
 
 export const ACTION_IDS=Object.freeze({
   NEUTRAL:'neutral-roll',
@@ -62,7 +63,7 @@ export function getTurnContext(state,legalMoves=[]){
     const stamina=state.wrestlers[holderId]?.stamina??0;
     return seal('HOLD',holderId,[
       option(ACTION_IDS.HOLD_SQUEEZE,holderId,{label:'Tighten hold',enabled:stamina>=tickCost,reason:stamina>=tickCost?'':'Insufficient stamina'}),
-      option(ACTION_IDS.HOLD_SWITCH,holderId,{label:'Switch learned hold',enabled:stamina>=HOLD_TRANSITION_COST&&(state.wrestlers[holderId]?.commonMoves||[]).some(id=>id!==hold.moveId&&['armbar','ankle-lock','ground-headlock'].includes(id)),
+      option(ACTION_IDS.HOLD_SWITCH,holderId,{label:'Switch learned hold',enabled:stamina>=HOLD_TRANSITION_COST&&getHoldTransitionOptions(state,demoMoves).length>0,
         reason:'Requires another learned submission and 3 stamina'}),
       option(ACTION_IDS.HOLD_RELEASE,holderId,{label:'Release hold'})
     ],{defenderId,controlId:holderId,reason:'Holder controls pressure; Low gets a roll after every squeeze'});
