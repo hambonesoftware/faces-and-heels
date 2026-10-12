@@ -1,6 +1,6 @@
-import { samplePair } from './choreography.js?v=1.18.0';
-import { animationByMove } from './combat-animation-map.js?v=1.18.0';
-import { demoMoves, reactionMove } from './moves.js?v=1.18.0';
+import { samplePair } from './choreography.js?v=1.19.0';
+import { animationByMove } from './combat-animation-map.js?v=1.19.0';
+import { demoMoves, reactionMove } from './moves.js?v=1.19.0';
 // Original vector artwork. No external assets or font requests.
 const frame = (content, viewBox='0 0 120 90', label='') => `<svg viewBox="${viewBox}" xmlns="http://www.w3.org/2000/svg" ${label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"'}>${content}</svg>`;
 export function portrait(id) {
