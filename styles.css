@@ -822,3 +822,44 @@ footer{grid-column:1;grid-row:4}
 .turn-chip--defense{border-left:3px solid #ff718e;background:linear-gradient(90deg,#392341d9,#17243edb)}
 .turn-chip--defense strong{color:#ffe3a7}
 .fighter-hud.is-active-control .momentum-role--l{outline:2px solid #ff8faa;outline-offset:2px}
+
+
+/* v1.18 controlled defensive turns, trained reaction choices and hold chains */
+.decision-panel--ground-defense,.decision-panel--reaction{
+  border-radius:0 0 7px 7px!important;background:linear-gradient(145deg,#15243b,#24304e)!important;
+  border-top:3px solid #52cde9!important;padding:9px 12px!important;
+}
+.decision-panel--ground-defense .opportunity-copy,.decision-panel--reaction .opportunity-copy{margin-bottom:8px}
+.ground-response-actions,.counter-move-options{display:flex;align-items:stretch;gap:7px;flex-wrap:wrap}
+.ground-response-actions button,.counter-move-options button{
+ border:1px solid #5a759f;background:#273955;color:#f0f7ff;border-radius:3px;
+ padding:10px 12px;font:900 12px/1.05 Impact,"Arial Narrow",sans-serif;min-height:52px;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;flex:1;
+}
+.ground-response-actions small,.counter-move-options small{font:700 9px/1.2 system-ui,sans-serif;color:#bfcee6}
+.ground-response-primary{background:linear-gradient(#3aa0dc,#24578b)!important;border-color:#70d6ff!important}
+.ground-response-secondary{background:linear-gradient(#6450a1,#383666)!important;border-color:#b19cfc!important}
+.ground-response-pass{background:#25314c!important;flex:.65!important}
+.counter-move-options .counter-move{
+  flex:1 1 155px;display:flex;flex-direction:row;justify-content:start;text-align:left;padding:5px 8px;
+  background:linear-gradient(#334669,#23314f);gap:8px;
+}
+.counter-move span:last-child{display:flex;flex-direction:column;gap:5px}
+.counter-art{display:block;width:49px;height:47px;flex-shrink:0;overflow:hidden;border:1px solid #6e9ab9}
+.counter-art svg{display:block;width:100%;height:100%}
+.counter-pass{max-width:180px}
+.hold-ribbon-actions button.hold-switch{
+  background:linear-gradient(#4d8a81,#315b64);border-color:#80dfc8!important;
+  color:#e8fff8;font-size:11px;
+}
+@media(max-width:540px){
+ .ground-response-actions{flex-wrap:nowrap;gap:4px}
+ .ground-response-actions button{padding:7px 3px;font-size:10px;min-height:47px}
+ .ground-response-actions small{font-size:7px}
+ .counter-move-options{gap:5px}
+ .counter-move-options .counter-move{min-height:47px;flex:1 1 40%;font-size:10px}
+ .counter-art{width:36px;height:37px}
+ .counter-pass{max-width:none;flex:1 1 100%!important;min-height:35px!important}
+ .hold-ribbon-actions{flex-wrap:wrap}
+ .hold-ribbon-actions button.hold-switch{flex:1 1 100%;min-height:35px}
+}
