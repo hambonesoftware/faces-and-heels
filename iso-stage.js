@@ -22,8 +22,20 @@ export class IsoStage extends SpriteStage {
   setRestingState(options={}){super.setRestingState(options);if(!this.playback){this.transition=this.lastPair?{from:this.lastPair,start:performance.now(),duration:750}:null;this.postures=options.postures||{};this.pinId=null;}}
   setHold(hold){
     this.activeHold=hold?{...hold}:null;
+    if(!hold)this.holdBlend=null;
     this.holdStarted=performance.now();
     if(this.activeHold){this.mode='iso';this.transition=null;}
+  }
+  playHoldTransition(fromMoveId,toMoveId,holderId){
+    const names={'ground-headlock':'headlock','armbar':'armbar','ankle-lock':'ankle_lock'};
+    const a=names[fromMoveId],b=names[toMoveId];
+    if(!a||!b||a===b)return false;
+    const now=performance.now();
+    const previous=this.lastPair||samplePair(a,.60,holderId,this.postures);
+    const next=samplePair(b,.60,holderId,this.postures);
+    this.setHold({...(this.activeHold||{}),holderId,moveId:toMoveId});
+    this.holdBlend={from:previous,to:next,start:now,duration:this.reducedMotion?0:1050};
+    return true;
   }
   playPair(a,d,o={}){
     this.pinId=null;const name=o.choreography,timing=MOVE_TIMING[name];
@@ -83,7 +95,12 @@ export class IsoStage extends SpriteStage {
     }
     let pair=samplePair(name,t,attacker,this.postures,this.reducedMotion?0:now);
     if(!this.preview){
-      if(p&&this.entryPair&&t<.14)pair=blendPairs(this.entryPair,pair,ease(t/.14));
+      if(!p&&this.holdBlend){
+        const h=this.holdBlend,u=h.duration?clamp((now-h.start)/h.duration):1;
+        pair=blendPairs(h.from,h.to,ease(u));
+        if(u>=1)this.holdBlend=null;
+      }
+      else if(p&&this.entryPair&&t<.14)pair=blendPairs(this.entryPair,pair,ease(t/.14));
       else if(!p&&this.transition){const u=clamp((now-this.transition.start)/this.transition.duration);pair=blendPairs(this.transition.from,pair,ease(u));if(u===1)this.transition=null;}
       this.lastPair=pair;
     }
