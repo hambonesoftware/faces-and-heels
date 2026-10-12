@@ -2,6 +2,7 @@ import { demoMoves, demoState, reactionMove } from './moves.js';
 import {isLegendaryLearnable,MAX_LEGENDARY_MOVES,getLegendaryCandidate} from './legendary-catalog.js';
 import { isMoveLegal, resolveTargetDecision } from './flow-engine.js';
 import {ACTION_IDS,getTurnContext,canPerformAction,getDefensiveWindow,auditTurnState} from './turn-controller.js';
+import {GROUND_SCRAMBLE_COST,GROUND_GUARD_VALUE,groundDefenseWindow,groundScrambleTarget} from './ground-defense.js';
 
 export const CROWD_CAP = 5;
 export const BODY_MARK_CAP = 3;
@@ -83,6 +84,7 @@ export function giveControl(state, id) {
   state.activeWrestlerId = id;
   setRoles(state, id);
   state.neutralAction = false;
+  state.groundDefense = null;
   state.activeHold = null;
   state.phase = 'ACTION_SELECT';
 }
@@ -93,6 +95,7 @@ export function beginNeutral(state, { resetPostures = false } = {}) {
   state.neutralAction = false;
   state.pinEligible = false;
   state.pinningWrestlerId = null;
+  state.groundDefense = null;
   state.pendingFailure = null;
   state.activeHold = null;
   state.pinCount = 0;
@@ -240,8 +243,8 @@ function awardCrowd(wrestlerState, amount) {
   return wrestlerState.crowdResource - before;
 }
 
-function applyDamageMark(defender, target, damageRoll) {
-  const threshold = bodyThreshold(defender, target);
+function applyDamageMark(defender, target, damageRoll, defenseBonus=0) {
+  const threshold = bodyThreshold(defender, target)+defenseBonus;
   const marked = Number(damageRoll) > threshold;
   if (marked) {
     defender.bodyDamage[target] = Math.min(BODY_MARK_CAP, (defender.bodyDamage[target] || 0) + 1);
@@ -319,13 +322,19 @@ export function resolveMoveAttempt(state, {
 
   state.pendingFailure = null;
   const listedStaminaDamage = Number(move.staminaDamage || 0);
+  // Cover Up cushions one incoming landed move, but cannot reduce its nominal
+  // damage to the point that attacking becomes net stamina-negative.
+  const guard=Number(defender.groundGuard||0);
+  const mitigated=Math.min(guard,Math.max(0,listedStaminaDamage-move.staminaCost-1));
+  defender.groundGuard=0;
   const defenderBefore = defender.stamina;
-  defender.stamina = Math.max(0, defender.stamina - listedStaminaDamage);
+  defender.stamina = Math.max(0, defender.stamina - (listedStaminaDamage-mitigated));
+  result.guardAbsorbed=mitigated;
   // Reports actual stamina drained, never a value greater than what remains.
   result.staminaDamage = defenderBefore - defender.stamina;
   result.listedStaminaDamage = listedStaminaDamage;
   result.crowdGained = awardCrowd(attacker, move.crowdGain || 0);
-  if (resolvedTarget && move.category !== 'setup') result.damage = applyDamageMark(defender, resolvedTarget, damageRoll);
+  if (resolvedTarget && move.category !== 'setup') result.damage = applyDamageMark(defender, resolvedTarget, damageRoll, guard?2:0);
 
   if (move.result?.defenderPosture && !move.result.preserveDefenderPosture) defender.posture = move.result.defenderPosture;
   if (move.result?.attackerPosture) attacker.posture = move.result.attackerPosture;
@@ -579,15 +588,56 @@ export function resolvePinCount(state, { pinningId, count, pinningRoll, pinnedRo
   return result;
 }
 
+// High can choose to forgo a pin, but cannot skip the prone opponent's
+// defensive get-up/cover window. Only the Low wrestler owns this decision.
+export function resolveGroundDefense(state,{choice,roll}={}){
+ const window=groundDefenseWindow(state),id=window?.defenderId;
+ if(!window)return {ok:false,reason:'No grounded defensive window'};
+ const action=choice==='scramble'?ACTION_IDS.GROUND_SCRAMBLE:
+   choice==='cover'?ACTION_IDS.GROUND_COVER:choice==='pass'?ACTION_IDS.GROUND_PASS:null;
+ if(!action||!validateCombatAction(state,action,id).ok)return {ok:false,reason:'Illegal grounded response'};
+ const defender=wrestler(state,id),controller=wrestler(state,window.controllerId);
+ if(choice==='scramble'){
+   if(!Number.isInteger(roll)||roll<1||roll>20)return {ok:false,reason:'d20 escape roll required'};
+   const spent=Math.min(defender.stamina,GROUND_SCRAMBLE_COST);
+   defender.stamina-=spent;
+   const mod=statModifier(defender.stats.Agility),targetNumber=groundScrambleTarget(controller,defender);
+   const total=roll+mod;
+   const success=total>=targetNumber;
+   state.turnCounter++;
+   state.groundDefense=null;
+   if(success){
+     defender.posture='kneeling';
+     beginNeutral(state);
+   }else {
+     state.activeWrestlerId=controller.id;
+     state.phase='ACTION_SELECT';
+   }
+   defender.condition=deriveCondition(defender);
+   return {ok:true,choice,defenderId:id,controllerId:controller.id,success,roll,modifier:mod,total,targetNumber,cost:spent,posture:defender.posture};
+ }
+ if(choice==='cover'){
+   defender.groundGuard=GROUND_GUARD_VALUE;
+   defender.condition=deriveCondition(defender);
+ }
+ state.turnCounter++;
+ state.groundDefense=null;
+ state.activeWrestlerId=controller.id;
+ state.phase='ACTION_SELECT';
+ return {ok:true,choice,defenderId:id,controllerId:controller.id,success:choice==='cover',guard:choice==='cover'?GROUND_GUARD_VALUE:0};
+}
+
 export function skipPin(state) {
   const decision=validateCombatAction(state,ACTION_IDS.SKIP_PIN,state.pinningWrestlerId);
   if(!decision.ok)return {ok:false,forced:Boolean(state.pinEligible),reason:decision.reason};
   const forced = state.pinningWrestlerId && wrestler(state, opponentId(state.pinningWrestlerId)).stamina <= 0;
   if (forced) return { ok: false, forced: true };
+  const controllerId=state.pinningWrestlerId,defenderId=opponentId(controllerId);
   state.pinEligible = false;
   state.pinningWrestlerId = null;
-  state.phase = 'ACTION_SELECT';
-  return { ok: true };
+  state.groundDefense={controllerId,defenderId};
+  state.phase='GROUND_DEFENSE';
+  return {ok:true,defenderId,controllerId,defenseWindow:true};
 }
 
 export function matchSnapshot(state) {
