@@ -668,6 +668,7 @@ export const demoState = {
   turnCounter: 0,
   pendingFailure: null,
   activeHold: null,
+  groundDefense: null,
   mustFinishTargetId: null,
   legalBodyTargets: ['head', 'core', 'leftArm', 'rightArm', 'leftLeg', 'rightLeg'],
   wrestlers: {
@@ -677,6 +678,7 @@ export const demoState = {
       crowdResource: 2,
       posture: 'standing',
       condition: 'Mostly Healthy',
+      groundGuard: 0,
       bodyDamage: freshBodyDamage()
     },
     viper: {
