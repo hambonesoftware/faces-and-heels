@@ -78,13 +78,15 @@ export function classicMoveRating(move,attacker,defender,state){
    // of uncontested offense. The original CPU spammed 826 snap downs/100 bouts.
    score-=move.id==='snap-down'?20:move.id==='pull-to-knees'?9:7;
    if(defender.stamina<=0&&move.id==='pick-up-opponent')score+=10;
+   if(move.id==='pick-up-opponent'&&windingDown
+      &&attacker.crowdResource>=2&&attacker.stamina>=12)score+=17;
  }
  if(move.sustained){
    score+=opening?-14:health>.53?-5:4;
  }
  if(move.legendary){
    // A finisher is the payoff after meaningful work, not the opening move.
-   score+=windingDown?16:health>.53||attempts<7?-35:-5;
+   score+=windingDown?26:health>.53||attempts<7?-35:-5;
  }
  if(opening&&['ddt','spinebuster','neckbreaker'].includes(move.id))score-=4;
  if(!opening&&!move.sustained&&!move.legendary&&move.category!=='setup'){
@@ -121,9 +123,11 @@ export function chooseAiAction(state,{setup=DEFAULT_MATCH_SETUP,rng=Math.random}
  case 'PIN':return {type:'pin-defense'};
  case 'PIN_OPPORTUNITY':
    if(opponent.stamina===0||opponent.stamina<=12)return {type:'pin'};
-   // A near-fall matters more after accumulated wear. Veteran AI still rolls
-   // honestly rather than getting an automatic three-count.
-   return {type:rng()<(opponent.stamina/opponent.maxStamina>.75?.36:.70)?'pin':'skip-pin'};
+   // Early covers exist, but should usually be one-count teases rather than
+   // three-count gambling every time someone lands a hip toss.
+   const wear=opponent.stamina/opponent.maxStamina;
+   const chance=wear>.72?.12:wear>.42?.48:.81;
+   return {type:rng()<chance?'pin':'skip-pin'};
  case 'HOLD_ESCAPE':return {type:'escape-hold'};
  case 'GROUND_DEFENSE':
    return {type:ai.stamina<=1?'scramble-ground':(rng()<.77?'scramble-ground':'cover-ground')};
