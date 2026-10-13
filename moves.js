@@ -23,7 +23,7 @@ export const wrestlerDefinitions = {
     name: 'STONE',
     attitude: 'face',
     style: 'Powerhouse',
-    commonMoves:['forearm-smash','running-clothesline','knee-lift','body-slam','vertical-suplex','spinebuster','elbow-drop','stomp','ground-headlock'],
+    commonMoves:['forearm-smash','running-clothesline','knee-lift','body-slam','vertical-suplex','spinebuster','elbow-drop','stomp','ground-headlock','standing-wristlock','standing-headlock'],
     legendaryMoves:['flash-finisher'],
     crowdResourceName: 'POP',
     stats: {
@@ -41,7 +41,7 @@ export const wrestlerDefinitions = {
     name: 'VIPER',
     attitude: 'heel',
     style: 'Daredevil',
-    commonMoves:['forearm-smash','dropkick','neckbreaker','hip-toss','dragon-screw','ddt','leg-drop','knee-drop','armbar','ankle-lock'],
+    commonMoves:['forearm-smash','dropkick','neckbreaker','hip-toss','dragon-screw','ddt','leg-drop','knee-drop','armbar','ankle-lock','standing-wristlock','standing-headlock'],
     legendaryMoves:['viper-bite'],
     crowdResourceName: 'HEAT',
     stats: {
@@ -57,6 +57,24 @@ export const wrestlerDefinitions = {
 };
 
 export const demoMoves = [
+  {
+    id:'standing-wristlock',name:'Standing Wristlock',category:'grapple',stat:'Agility',
+    staminaCost:4,staminaDamage:6,damageDie:6,crowdGain:0,
+    description:'Trap the wrist while standing. Defender may escape or reverse control; holder can switch to a headlock.',
+    requirements:{attackerPostures:['standing'],defenderPostures:['standing']},
+    targeting:{mode:'fixed',bodyParts:['leftWrist']},
+    sustained:{tickCost:2,tickDamage:3,escapeCost:2,holdStat:'Agility'},
+    result:{attackerPosture:'standing',defenderPosture:'standing'}
+  },
+  {
+    id:'standing-headlock',name:'Standing Side Headlock',category:'grapple',stat:'Power',
+    staminaCost:5,staminaDamage:7,damageDie:8,crowdGain:0,
+    description:'Lock the head from standing. The opponent may fight free or reverse; holder can switch to wrist control.',
+    requirements:{attackerPostures:['standing'],defenderPostures:['standing']},
+    targeting:{mode:'fixed',bodyParts:['head']},
+    sustained:{tickCost:2,tickDamage:4,escapeCost:2,holdStat:'Power'},
+    result:{attackerPosture:'standing',defenderPosture:'standing'}
+  },
   {
     id: 'collar-elbow-tie-up',
     name: 'Collar-and-Elbow Tie-Up',
