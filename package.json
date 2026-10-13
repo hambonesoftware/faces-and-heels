@@ -1,11 +1,11 @@
 {
   "name": "faces-and-heels-pwa",
-  "version": "1.20.1",
+  "version": "1.21.0",
   "type": "module",
   "private": true,
   "description": "Faces & Heels v1.19.1 100-match classic wrestling pacing study with more credible openings, counters and signature-finisher timing",
   "scripts": {
-    "test": "node test-flow.mjs && node test-v11.mjs && node test-v13.mjs && node test-presentation.mjs && node test-action-ribbon.mjs && node test-compact-layout.mjs && node test-simulations.mjs && node test-isometric.mjs && node test-transition-choreography.mjs && node test-animation-roster.mjs && node test-stamina-art.mjs && node test-signature-loadouts.mjs && node test-sustained-holds.mjs && node test-turn-controller.mjs && node test-pin-defense-extended.mjs && node test-heat-pop-pin.mjs && node test-ground-defense.mjs && node test-reaction-selection.mjs && node test-hold-transitions.mjs && node test-standing-tie-up.mjs && node test-standing-holds.mjs && node test-combat-state-graph.mjs && node test-solo-ai.mjs && node test-classic-wrestling.mjs && node test-classic-match-pacing.mjs && node test-move-transitions.mjs && node test-block-model.mjs && node test-package.cjs",
+    "test": "node test-flow.mjs && node test-v11.mjs && node test-v13.mjs && node test-presentation.mjs && node test-action-ribbon.mjs && node test-compact-layout.mjs && node test-simulations.mjs && node test-isometric.mjs && node test-transition-choreography.mjs && node test-animation-roster.mjs && node test-stamina-art.mjs && node test-signature-loadouts.mjs && node test-sustained-holds.mjs && node test-turn-controller.mjs && node test-pin-defense-extended.mjs && node test-heat-pop-pin.mjs && node test-ground-defense.mjs && node test-reaction-selection.mjs && node test-hold-transitions.mjs && node test-standing-tie-up.mjs && node test-standing-holds.mjs && node test-ring-position.mjs && node test-combat-state-graph.mjs && node test-solo-ai.mjs && node test-classic-wrestling.mjs && node test-classic-match-pacing.mjs && node test-move-transitions.mjs && node test-block-model.mjs && node test-package.cjs",
     "test:flow": "node test-flow.mjs",
     "test:v11": "node test-v11.mjs",
     "test:v13": "node test-v13.mjs",

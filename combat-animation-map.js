@@ -1,6 +1,10 @@
 // Central choreography manifest. Every named combat move must be represented here.
 // Bespoke procedural pair tracks are rendered in 3D if no matching sprite atlas exists.
 export const animationByMove = Object.freeze({
+  "irish-whip":Object.freeze({attacker:"idle",defender:"idle",choreography:"irish_whip",kind:"setup"}),
+  "rebound-clothesline":Object.freeze({attacker:"clothesline",defender:"clothesline_hit",choreography:"rebound_clothesline",kind:"strike",impactFrame:6}),
+  "corner-whip":Object.freeze({attacker:"idle",defender:"idle",choreography:"corner_whip",kind:"setup"}),
+  "corner-splash":Object.freeze({attacker:"idle",defender:"idle",choreography:"corner_splash",kind:"strike",impactFrame:6}),
   "standing-wristlock":Object.freeze({attacker:"idle",defender:"idle",choreography:"standing_wristlock",kind:"grapple",impactFrame:6}),
   "standing-headlock":Object.freeze({attacker:"idle",defender:"idle",choreography:"standing_headlock",kind:"grapple",impactFrame:6}),
   "collar-elbow-tie-up":Object.freeze({attacker:"idle",defender:"idle",choreography:"lockup",kind:"setup"}),

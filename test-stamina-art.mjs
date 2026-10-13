@@ -37,6 +37,8 @@ for(const move of allMoves){
   if(!move.legendary && move.category!=='setup' && !actor.commonMoves.includes(move.id)) actor.commonMoves.push(move.id);
   actor.posture=move.requirements.attackerPostures[0];
   defender.posture=move.requirements.defenderPostures[0];
+  if(move.id==='rebound-clothesline')state.ringPosition={targetId:defenderId,zone:'ropes'};
+  if(move.id==='corner-splash')state.ringPosition={targetId:defenderId,zone:'corner'};
   assert(getLegalMoves(state).some(item=>item.id===move.id),move.id+': move must be legal in its declared starting position');
   const decision=resolveTargetDecision(move,perspectiveState(state));
   const originalAttacker=actor.stamina,originalDefender=defender.stamina;

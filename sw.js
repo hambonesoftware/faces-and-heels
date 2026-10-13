@@ -1,12 +1,12 @@
-const CACHE = 'faces-heels-v1.20.1-standing-holds';
+const CACHE = 'faces-heels-v1.21.0-ring-position';
 const CORE = [
-  './index.html?v=1.20.1',
+  './index.html?v=1.21.0',
   './styles.css?v=1.19.0',
-  './app.js?v=1.20.1',
+  './app.js?v=1.21.0',
   './solo-ai.js?v=1.19.2',
   './solo-ai.js',
   './match-engine.js',
-  './combat-animation-map.js?v=1.20.1',
+  './combat-animation-map.js?v=1.21.0',
   './legendary-catalog.js?v=1.19.0',
   './turn-controller.js?v=1.19.0',
   './ground-defense.js?v=1.19.0',
@@ -21,8 +21,8 @@ const CORE = [
   './legendary-catalog.js',
   './moves.js',
   './flow-engine.js',
-  './ui-art.js?v=1.20.1',
-  './moves.js?v=1.20.1',
+  './ui-art.js?v=1.21.0',
+  './moves.js?v=1.21.0',
   './flow-engine.js?v=1.19.0',
   './match-engine.js?v=1.19.0',
   './sprite-stage.js?v=1.19.0',
