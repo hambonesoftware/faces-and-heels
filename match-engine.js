@@ -88,6 +88,7 @@ export function giveControl(state, id) {
   state.neutralAction = false;
   state.groundDefense = null;
   state.activeHold = null;
+  state.standingTieUp = null;
   state.phase = 'ACTION_SELECT';
 }
 
@@ -100,6 +101,7 @@ export function beginNeutral(state, { resetPostures = false } = {}) {
   state.groundDefense = null;
   state.pendingFailure = null;
   state.activeHold = null;
+  state.standingTieUp = null;
   state.pinCount = 0;
   state.mustFinishTargetId = null;
   setRoles(state, null);
@@ -312,10 +314,13 @@ export function resolveMoveAttempt(state, {
   // A spent Heat/Pop die contributes d6 rather than a flat +1.
   // Optional supplied roll keeps the core deterministic for replays/tests.
   const crowdBonus = spentCrowd ? rollCrowdDice(spentCrowd, crowdRolls) : 0;
-  const total = attackRoll + modifier + crowdBonus;
+  const tieUpBonus = state.standingTieUp?.holderId === attackerId && move.category === 'grapple' ? 2 : 0;
+  const total = attackRoll + modifier + crowdBonus + tieUpBonus;
   const success = move.automatic === true || total >= targetNumber;
 
   state.turnCounter += 1;
+  if(move.id==='collar-elbow-tie-up')state.standingTieUp={holderId:attackerId,defenderId};
+  else state.standingTieUp=null;
   state.pinEligible = false;
   state.pinningWrestlerId = null;
 
@@ -328,6 +333,7 @@ export function resolveMoveAttempt(state, {
     modifier,
     spentCrowd,
     crowdBonus,
+    tieUpBonus,
     total,
     targetNumber,
     success,
