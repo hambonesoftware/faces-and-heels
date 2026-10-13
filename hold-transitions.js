@@ -4,12 +4,12 @@
  */
 export const HOLD_TRANSITION_COST=3;
 export const HOLD_TRANSITION_DAMAGE=4;
-const allowed=new Set(['armbar','ankle-lock','ground-headlock']);
+const allowed=new Set(['armbar','ankle-lock','ground-headlock','standing-wristlock','standing-headlock']);
 export function getHoldTransitionOptions(state,moves=[]){
  const hold=state?.activeHold;
  if(!hold||state.phase!=='HOLD')return [];
  const attacker=state.wrestlers?.[hold.holderId],target=state.wrestlers?.[hold.defenderId];
- if(!attacker||!target||target.posture!=='prone'||!['standing','kneeling'].includes(attacker.posture))return [];
+ if(!attacker||!target||!['prone','standing'].includes(target.posture)||!['standing','kneeling'].includes(attacker.posture))return [];
  return moves.filter(move=>allowed.has(move.id)&&move.id!==hold.moveId
    &&move.sustained
    &&attacker.commonMoves?.includes(move.id)
