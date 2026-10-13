@@ -1,5 +1,5 @@
 import {ACTION_IDS} from './turn-controller.js?v=1.19.0';
-import {DEFAULT_MATCH_SETUP,readMatchSetup,saveMatchSetup,aiWrestlerId,isAiDecision,chooseAiAction} from './solo-ai.js?v=1.19.0';
+import {DEFAULT_MATCH_SETUP,readMatchSetup,saveMatchSetup,aiWrestlerId,isAiDecision,chooseAiAction} from './solo-ai.js?v=1.19.1';
 import { animationByMove } from './combat-animation-map.js?v=1.19.0';
 import { portrait, moveArt, damageDiagram } from './ui-art.js?v=1.19.0';
 import { emptyProgress, loadProgress, saveProgress, recordResult, resetProgress } from './progression.js?v=1.19.0';
