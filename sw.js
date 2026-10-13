@@ -1,9 +1,9 @@
-const CACHE = 'faces-heels-v1.19.0-classic-wrestling-r2';
+const CACHE = 'faces-heels-v1.19.1-classic-match-pacing';
 const CORE = [
-  './index.html?v=1.19.0',
+  './index.html?v=1.19.1',
   './styles.css?v=1.19.0',
-  './app.js?v=1.19.0',
-  './solo-ai.js?v=1.19.0',
+  './app.js?v=1.19.1',
+  './solo-ai.js?v=1.19.1',
   './solo-ai.js',
   './match-engine.js',
   './combat-animation-map.js?v=1.19.0',
