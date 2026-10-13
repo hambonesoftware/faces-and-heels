@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {choosePinCrowdSpend} from './solo-ai.js';
 import {cloneInitialState,giveControl,wrestler,resolveMoveAttempt,startPin,resolvePinCount} from './match-engine.js';
 
 function readyPin() {
@@ -41,3 +42,18 @@ function readyPin() {
   assert.equal(wrestler(state,'stone').crowdResource,0);
 }
 console.log('Heat/Pop d6 pin and attack rules PASS');
+
+{
+  const state=cloneInitialState();
+  const stone=wrestler(state,'stone'),viper=wrestler(state,'viper');
+  stone.crowdResource=3;
+  viper.crowdResource=2;
+  assert.equal(choosePinCrowdSpend(stone,viper,{count:1}),0,'AI saves dice on first count');
+  viper.stamina=4;
+  assert.equal(choosePinCrowdSpend(stone,viper,{count:3}),2,'AI boosts finish against exhausted rival');
+  stone.bodyDamage.core=3;
+  assert.equal(choosePinCrowdSpend(stone,viper,{defending:true,count:3}),2,'AI protects late kickout');
+  stone.crowdResource=0;
+  assert.equal(choosePinCrowdSpend(stone,viper,{defending:true,count:3}),0,'AI cannot overspend');
+}
+console.log('Pinfall AI Heat/Pop spending policy PASS');
