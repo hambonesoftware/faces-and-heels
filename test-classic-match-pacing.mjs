@@ -34,7 +34,8 @@ export function playClassicSample(seed){
     const move=demoMoves.find(x=>x.id===intent.moveId);
     assert(move,'Unrecognized move');
     const result=resolveMoveAttempt(state,{moveId:move.id,target:intent.target,
-      attackRoll:die(rng),damageRoll:die(rng,move.damageDie),crowdSpend:intent.crowdSpend});
+      attackRoll:die(rng),damageRoll:die(rng,move.damageDie),crowdSpend:intent.crowdSpend,
+      crowdRolls:intent.crowdSpend?[die(rng,6)]:[]});
     moves.push({actor:result.attackerId,id:move.id,success:result.success,
       target:result.target,category:move.category,legendary:!!move.legendary});
     if(move.sustained)holdOpens++;

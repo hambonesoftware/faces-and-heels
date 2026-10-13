@@ -238,6 +238,23 @@ export function scrambleUp(state, wrestlerId) {
   return { ok: true, wrestlerId };
 }
 
+function validateCrowdDice(wrestlerState, rolls) {
+  if (!Array.isArray(rolls) || rolls.length > wrestlerState.crowdResource ||
+      !rolls.every(n => Number.isInteger(n) && n >= 1 && n <= 6)) {
+    throw new Error('Invalid Heat/Pop d6 expenditure');
+  }
+  return rolls.reduce((total, die) => total + die, 0);
+}
+
+function rollCrowdDice(count, suppliedRolls) {
+  const rolls = suppliedRolls ?? Array.from({length:count}, () => 1 + Math.floor(Math.random() * 6));
+  if (!Array.isArray(rolls) || rolls.length !== count ||
+      !rolls.every(n => Number.isInteger(n) && n >= 1 && n <= 6)) {
+    throw new Error('Invalid Heat/Pop d6 roll');
+  }
+  return rolls.reduce((sum, n) => sum + n, 0);
+}
+
 function applyCrowdSpend(wrestlerState, requested) {
   const spend = Math.max(0, Math.min(Number(requested || 0), 1, wrestlerState.crowdResource));
   wrestlerState.crowdResource -= spend;
@@ -265,7 +282,8 @@ export function resolveMoveAttempt(state, {
   target = null,
   attackRoll,
   damageRoll,
-  crowdSpend = 0
+  crowdSpend = 0,
+  crowdRolls
 }) {
   const move = demoMoves.find(item => item.id === moveId);
   if (!move) throw new Error(`Unknown move ${moveId}`);
@@ -291,7 +309,10 @@ export function resolveMoveAttempt(state, {
   const spentCrowd = applyCrowdSpend(attacker, crowdSpend);
   const modifier = statModifier(attacker.stats[move.stat]);
   const targetNumber = conditioning(defender);
-  const total = attackRoll + modifier + spentCrowd;
+  // A spent Heat/Pop die contributes d6 rather than a flat +1.
+  // Optional supplied roll keeps the core deterministic for replays/tests.
+  const crowdBonus = spentCrowd ? rollCrowdDice(spentCrowd, crowdRolls) : 0;
+  const total = attackRoll + modifier + crowdBonus;
   const success = move.automatic === true || total >= targetNumber;
 
   state.turnCounter += 1;
@@ -306,6 +327,7 @@ export function resolveMoveAttempt(state, {
     attackRoll,
     modifier,
     spentCrowd,
+    crowdBonus,
     total,
     targetNumber,
     success,
@@ -577,19 +599,24 @@ export function startPin(state) {
   };
 }
 
-export function resolvePinCount(state, { pinningId, count, pinningRoll, pinnedRoll }) {
+export function resolvePinCount(state, { pinningId, count, pinningRoll, pinnedRoll, pinningCrowdRolls = [], pinnedCrowdRolls = [] }) {
   if(pinningId!==state.pinningWrestlerId)throw new Error('Wrong pinning wrestler.');
   const pinnedId = opponentId(pinningId);
   requireCombatAction(state,ACTION_IDS.COUNT_PIN,pinnedId);
   if(count!==Number(state.pinCount||0)+1 || count<1 || count>3)throw new Error('Pin counts must resolve in order');
   if(![pinningRoll,pinnedRoll].every(n=>Number.isInteger(n)&&n>=1&&n<=20))throw new Error('Invalid opposed pin rolls');
-  state.pinCount=count;
   const pinning = wrestler(state, pinningId);
   const pinned = wrestler(state, pinnedId);
+  // Validate both sets before mutating the state or spending a resource.
+  const pinningBonus = validateCrowdDice(pinning, pinningCrowdRolls);
+  const pinnedBonus = validateCrowdDice(pinned, pinnedCrowdRolls);
+  pinning.crowdResource -= pinningCrowdRolls.length;
+  pinned.crowdResource -= pinnedCrowdRolls.length;
+  state.pinCount=count;
   const pinningPenalty = pinning.bodyDamage.core || 0;
   const pinnedPenalty = totalBodyMarks(pinned);
-  const pinningTotal = pinningRoll - pinningPenalty;
-  const pinnedTotal = pinnedRoll - pinnedPenalty;
+  const pinningTotal = pinningRoll - pinningPenalty + pinningBonus;
+  const pinnedTotal = pinnedRoll - pinnedPenalty + pinnedBonus;
   const kickout = pinnedTotal > pinningTotal;
 
   const result = {
@@ -600,6 +627,10 @@ export function resolvePinCount(state, { pinningId, count, pinningRoll, pinnedRo
     pinnedRoll,
     pinningPenalty,
     pinnedPenalty,
+    pinningCrowdRolls: [...pinningCrowdRolls],
+    pinnedCrowdRolls: [...pinnedCrowdRolls],
+    pinningBonus,
+    pinnedBonus,
     pinningTotal,
     pinnedTotal,
     kickout,

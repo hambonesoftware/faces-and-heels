@@ -64,7 +64,7 @@ function play(seed,logFull=false){
         const actor=state.activeWrestlerId,defender=opponentId(actor);
         const outcome=resolveMoveAttempt(state,{moveId:move.id,target:decision.target,
           attackRoll:move.automatic?20:die(rng),damageRoll:move.automatic?0:die(rng,move.damageDie||4),
-          crowdSpend:decision.crowdSpend});
+          crowdSpend:decision.crowdSpend,crowdRolls:decision.crowdSpend?[die(rng,6)]:[]});
         if(move.legendary)finisherAttempts++;
         moves.push({step:steps,actor,id:move.id,name:move.name,category:move.category,
           success:outcome.success,opponentDamage:outcome.staminaDamage,posture:wrestler(state,defender).posture,

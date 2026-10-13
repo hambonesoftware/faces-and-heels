@@ -258,7 +258,8 @@ function simulateMatch(seed, maxSteps = 600) {
       target,
       attackRoll: die(rng, 20),
       damageRoll: die(rng, move.damageDie),
-      crowdSpend
+      crowdSpend,
+      crowdRolls: crowdSpend ? [die(rng, 6)] : []
     });
     crowdRollSpends += result.spentCrowd;
     if (result.success) {
