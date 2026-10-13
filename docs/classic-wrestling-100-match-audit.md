@@ -84,6 +84,8 @@ Run `npm run test:pacing` to replay the **same 100 deterministic seeds** with th
 | Heavy/flashy offense within first 3 attack attempts | Unmeasured in original run | **7 of 300 (2.3%)** |
 | Legendary attempts in first 6 attacks | Unmeasured in original run | **0** |
 
+The independent, existing `test-classic-wrestling.mjs` suite also passed another 100 complete matches on the updated AI, using a **different seed family**. That second sample recorded 19.18 attack attempts, 8.45 distinct successful moves, 3.54 pins, 6.23 changes in controlling wrestler per match, and only 7 matches without a control swing (versus 35 in its original pilot). All 100 matches opened with at least one basic technical or striking move; 80 matches featured a submission hold, 26 attempted a finisher and 20 landed one. This supports the direction of the tuning without claiming that the target percentages match real-world historical data.
+
 A majority of bouts now begin with Hip Toss, Forearm Smash, Knee Lift or Dragon Screw. Those four account for **99 opening moves** out of 100; one opened with a Body Slam. Later bouts feature the larger slams, Dropkick, DDT and signatures according to posture, stamina, known wrestler repertoire and normal dice rolls. Match winners remain uncontrolled.
 
 The revised AI also favors **Knee Lift → Snap Down → mat wrestling** when the defender drops to kneeling, instead of repeating Forearm Smash simply because few other strikes remain legal from that posture. A short repeat-chain penalty limits frequent `Snap Down → Pick Up → Knee Lift → Snap Down` sequences.
