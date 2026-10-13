@@ -1,6 +1,7 @@
 // Central choreography manifest. Every named combat move must be represented here.
 // Bespoke procedural pair tracks are rendered in 3D if no matching sprite atlas exists.
 export const animationByMove = Object.freeze({
+  "collar-elbow-tie-up":Object.freeze({attacker:"idle",defender:"idle",choreography:"lockup",kind:"setup"}),
   "pick-up-opponent":Object.freeze({attacker:"idle",defender:"idle",choreography:"pick_up",kind:"setup"}),
   "pull-to-knees":Object.freeze({attacker:"idle",defender:"idle",choreography:"pull_to_knees",kind:"setup"}),
   "snap-down":Object.freeze({attacker:"idle",defender:"idle",choreography:"snap_down",kind:"setup"}),
