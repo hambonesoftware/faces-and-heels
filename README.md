@@ -1,4 +1,4 @@
-# Faces & Heels — Solo Showdown (v1.19.0)
+# Faces & Heels — Solo Showdown (v1.19.1)
 
 **[Play the wrestling game](https://hambonesoftware.github.io/faces-and-heels/)** · **[Motion Lab](https://hambonesoftware.github.io/faces-and-heels/motion-lab.html)**
 
@@ -35,6 +35,7 @@ npm start
 # http://localhost:8155
 npm test
 npm run test:solo
+npm run test:classic  # 100 recorded, seeded matches plus 100 pacing checks
 npm run test:combat-flow
 npm run test:animation
 ```
@@ -42,6 +43,8 @@ npm run test:animation
 Or run `Start-FH.bat` under Docker Desktop and `Restart-FH.bat` after updates. GitHub Pages serves the root of `main`; all paths remain relative.
 
 `npm test` runs the complete match-rules, 3D choreography, UI, PWA and solo opponent suites. **The solo policy is exercised in 180 full simulated matches**, covering both wrestlers and three difficulties, in addition to the regular 1,000-match combat suite. GitHub Actions uses Node 22.
+
+Classic match-pacing notes and before/after statistics are in [the 100-match audit](docs/classic-wrestling-100-match-audit.md). The full, time-stamped move transcripts are uploaded as a GitHub Actions artifact by the `test-classic-wrestling.mjs` suite. The updated AI emphasizes opening exchanges, variation, and later finishers rather than replaying any real wrestler's historical sequence.
 
 Match setup is saved under `fh-match-setup-v1` in local storage, progression under `fh-progress-v1`, and presentation preferences under `fh-presentation-v1`. The service worker keeps current versioned and required unversioned modules cached for offline PWA use.
 
