@@ -326,7 +326,7 @@ export function resolveMoveAttempt(state, {
   const previousRing=state.ringPosition;
   if(move.id==='irish-whip')state.ringPosition={targetId:defenderId,zone:'ropes'};
   else if(move.id==='corner-whip')state.ringPosition={targetId:defenderId,zone:'corner'};
-  else if(previousRing?.targetId===defenderId)state.ringPosition=null;
+  else if(previousRing?.targetId===defenderId && !move.sustained)state.ringPosition=null;
   if(move.id==='collar-elbow-tie-up')state.standingTieUp={holderId:attackerId,defenderId};
   else state.standingTieUp=null;
   state.pinEligible = false;
