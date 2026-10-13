@@ -812,7 +812,7 @@ async function rollMove() {
   await rollingVisual(`${currentActor().name} · ${move.name}`, attackRoll);
   const crowdRolls = ui.spendCrowd ? [rollDie(6)] : [];
   const result = resolveMoveAttempt(state, { moveId: move.id, target: ui.selectedTarget, attackRoll, damageRoll, crowdSpend: ui.spendCrowd, crowdRolls });
-  log(`${wrestler(state,result.attackerId).name} ${move.name}: d20 ${attackRoll} ${result.modifier >= 0 ? '+' : ''}${result.modifier}${result.spentCrowd ? ` +${result.crowdBonus} Heat/Pop d6` : ''} = ${result.total} vs CON ${result.targetNumber}.`);
+  log(`${wrestler(state,result.attackerId).name} ${move.name}: d20 ${attackRoll} ${result.modifier >= 0 ? '+' : ''}${result.modifier}${result.spentCrowd ? ` +${result.crowdBonus} Heat/Pop d6` : ''}${result.tieUpBonus ? ` +${result.tieUpBonus} tie-up control` : ''} = ${result.total} vs CON ${result.targetNumber}.`);
   if (!result.success) {
     log(`${move.name} missed. ${canReact(state) ? `${wrestler(state,result.defenderId).name} may react.` : 'No legal reaction; control state continues.'}`);
     ui.selectedMove = null;
