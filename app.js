@@ -884,8 +884,8 @@ async function performHoldEscape(){
   if(result.success){
     stage?.setHold(null);
     stage?.setRestingState({postures:{stone:wrestler(state,'stone').posture,viper:wrestler(state,'viper').posture}});
-    ui.phase='NEUTRAL_ROLL';
-    announce('ESCAPED!',`${name} breaks free · neutral restart`,'major',false,900);
+    ui.phase=result.reversal?'ACTION_SELECT':'NEUTRAL_ROLL';
+    announce(result.reversal?'GRAPPLE REVERSED!':'ESCAPED!',result.reversal?`${name} takes High control`:`${name} breaks free · neutral restart`,'major',false,900);
   }else if(result.submitted){
     const holder=wrestler(state,result.holderId),trapped=wrestler(state,result.defenderId);
     stage?.setHold(null);
