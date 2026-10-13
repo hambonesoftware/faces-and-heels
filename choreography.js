@@ -5,7 +5,7 @@ const dot=(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0),length=a=>Math.hypot(...a);
 const unit=a=>mul(a,1/(length(a)||1)),clamp=t=>Math.max(0,Math.min(1,t));
 const ease=t=>{t=clamp(t);return t*t*(3-2*t)},PI=Math.PI;
 const env=(t,a,b,c,d)=>ease((t-a)/(b-a))*(1-ease((t-c)/(d-c)));
-export const MOVE_TIMING={ground_scramble:{duration:1250},ground_scramble_fail:{duration:950},viper_bite:{duration:2900,impact:.8},shove_counter:{duration:1650,impact:.49},knee_lift:{duration:1580,impact:.49},dropkick:{duration:2050,impact:.57},ddt:{duration:2450,impact:.79},neckbreaker:{duration:2500,impact:.84},hip_toss:{duration:2700,impact:.87},spinebuster:{duration:3050,impact:.88},elbow_drop:{duration:2100,impact:.79},stomp:{duration:1750,impact:.63},knee_drop:{duration:2050,impact:.73},leg_drop:{duration:2250,impact:.81},armbar:{duration:2400,impact:.62},ankle_lock:{duration:2300,impact:.59},pick_up:{duration:2350},pull_to_knees:{duration:1750},snap_down:{duration:2100,impact:.77},lockup:{duration:1900},forearm:{duration:1550,impact:.5},clothesline:{duration:2050,impact:.48},suplex:{duration:3600,impact:.82},body_slam:{duration:3100,impact:.8},dragon_screw:{duration:2500,impact:.76},headlock:{duration:2300,impact:.52},pin:{duration:1500},kickout:{duration:1600,impact:.44},finisher:{duration:3700,impact:.82}};
+export const MOVE_TIMING={ground_scramble:{duration:1250},ground_scramble_fail:{duration:950},viper_bite:{duration:2900,impact:.8},shove_counter:{duration:1650,impact:.49},knee_lift:{duration:1580,impact:.49},dropkick:{duration:2050,impact:.57},ddt:{duration:2450,impact:.79},neckbreaker:{duration:2500,impact:.84},hip_toss:{duration:2700,impact:.87},spinebuster:{duration:3050,impact:.88},elbow_drop:{duration:2100,impact:.79},stomp:{duration:1750,impact:.63},knee_drop:{duration:2050,impact:.73},leg_drop:{duration:2250,impact:.81},armbar:{duration:2400,impact:.62},ankle_lock:{duration:2300,impact:.59},pick_up:{duration:2350},pull_to_knees:{duration:1750},snap_down:{duration:2100,impact:.77},standing_wristlock:{duration:2100,impact:.58},standing_headlock:{duration:2200,impact:.59},lockup:{duration:1900},forearm:{duration:1550,impact:.5},clothesline:{duration:2050,impact:.48},suplex:{duration:3600,impact:.82},body_slam:{duration:3100,impact:.8},dragon_screw:{duration:2500,impact:.76},headlock:{duration:2300,impact:.52},pin:{duration:1500},kickout:{duration:1600,impact:.44},finisher:{duration:3700,impact:.82}};
 export const ARM_LENGTH=.74;
 export function transformJoint(p,root,yaw,roll=0){const x=p[0]*Math.cos(yaw)+p[2]*Math.sin(yaw),z=-p[0]*Math.sin(yaw)+p[2]*Math.cos(yaw);return add(root,[x*Math.cos(roll)-p[1]*Math.sin(roll),x*Math.sin(roll)+p[1]*Math.cos(roll),z]);}
 const BASE={pelvis:[0,1.46,0],chest:[0,2.3,0],head:[0,3.14,0],ls:[-.55,2.65,0],rs:[.55,2.65,0],le:[-.78,2.14,.1],re:[.78,2.14,.1],lh:[-.5,2.25,.58],rh:[.5,2.25,.58],lk:[-.34,.79,.12],rk:[.34,.79,.12],la:[-.4,.25,.1],ra:[.4,.25,.1]};
@@ -113,7 +113,11 @@ function ground(r){
 function tracks(name){
   if(COMBAT_TRACKS[name])return [poseRows(COMBAT_TRACKS[name].a),poseRows(COMBAT_TRACKS[name].d,true)];
   let A=[K(0,[-1.4,1.46,0]),K(1,[-1.4,1.46,0])],D=[DK(0,[1.4,1.46,0]),DK(1,[1.4,1.46,0])];
-  if(name==='lockup'){
+  if(name==='standing_wristlock'||name==='standing_headlock'){
+    const wrist=name==='standing_wristlock';
+    A=[K(0,[-1.4,1.46,0]),K(.28,[-.8,1.36,wrist?-.35:-.15],{yaw:wrist?.12:.42,lean:.06}),K(.62,[-.76,1.32,wrist?-.38:-.18],{yaw:wrist?.16:.46,lean:.12}),K(1,[-.78,1.35,wrist?-.38:-.18],{yaw:wrist?.15:.45,lean:.09})];
+    D=[DK(0,[1.4,1.46,0]),DK(.28,[.82,1.4,wrist?.3:.25],{yaw:wrist?-.15:-.38,lean:.07}),DK(.62,[.81,1.34,wrist?.38:.28],{yaw:wrist?-.2:-.42,lean:.16}),DK(1,[.8,1.38,wrist?.38:.28],{yaw:wrist?-.18:-.4,lean:.11})];
+  }else if(name==='lockup'){
     A=[K(0,[-1.4,1.46,0]),K(.25,[-.72,1.32,-.08],{lean:.12}),K(.5,[-.67,1.28,-.08],{lean:.14}),K(.72,[-.75,1.35,-.08],{lean:.1}),K(1,[-1.4,1.46,0])];
     D=[DK(0,[1.4,1.46,0]),DK(.25,[.72,1.32,.08],{lean:.12}),DK(.5,[.77,1.35,.08],{lean:.1}),DK(.72,[.69,1.28,.08],{lean:.14}),DK(1,[1.4,1.46,0])];
   }else if(name==='forearm'){
