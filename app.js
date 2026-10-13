@@ -387,9 +387,12 @@ function renderOpportunity() {
   const pinning = wrestler(state, state.pinningWrestlerId);
   const pinned = wrestler(state, opponentId(state.pinningWrestlerId));
   const forced = pinned.stamina <= 0;
+  const available=Math.min(3,pinning.crowdResource);
+  const boostChoices=Array.from({length:available+1},(_,n)=>`<button type="button" class="boost-button ${ui.pinCrowdSpend===n?'is-on':''}" data-pin-crowd="${n}" aria-pressed="${ui.pinCrowdSpend===n}">${n}d6</button>`).join('');
   return `
     <section class="decision-panel decision-panel--opportunity">
       <div class="opportunity-copy"><small>${forced ? 'FINISH REQUIRED' : 'PIN OPPORTUNITY'}</small><strong>${escapeHtml(pinned.name)} is prone</strong><span>${forced ? `${pinned.name} has 0 STA. The H wrestler must attempt a finish.` : 'Three opposed BGD counts. Body damage makes kickouts harder.'}</span></div>
+      <div class="pin-resource-choices" role="group" aria-label="Heat or Pop dice per pin count"><span>${escapeHtml(pinning.crowdResourceName)}: ${pinning.crowdResource} available</span>${boostChoices}<small>Choose how many d6 to spend per count during the cover.</small></div>
       <div class="opportunity-actions"><button class="pin-button" data-pin>PIN NOW</button>${forced ? '' : '<button class="continue-button" data-continue>CONTINUE</button>'}</div>
     </section>`;
 }
@@ -966,7 +969,7 @@ async function runPin() {
   if(!permitted(ACTION_IDS.PIN,state.pinningWrestlerId))return;
   const pin=startPin(state);
   ui.pinInfo={...pin,count:0};
-  ui.pinCount=0;ui.pinRolls=null;ui.pinCrowdSpend=0;ui.phase='PIN_DEFENSE';
+  ui.pinCount=0;ui.pinRolls=null;ui.phase='PIN_DEFENSE';
   stage.playPin({pinningId:pin.pinningId});
   log(`${wrestler(state,pin.pinningId).name} hooks a pin. ${wrestler(state,pin.pinnedId).name} gets a roll on every count.`);
   render();
@@ -988,7 +991,8 @@ async function rollPinDefense(){
   const pinningCrowdRolls=crowdFor(pinning,false),pinnedCrowdRolls=crowdFor(pinned,true);
   await rollingVisual(`${wrestler(state,pin.pinnedId).name} · KICK OUT ${count}`,pinnedRoll);
   const result=resolvePinCount(state,{pinningId:pin.pinningId,count,pinningRoll,pinnedRoll,pinningCrowdRolls,pinnedCrowdRolls});
-  pin.count=count;ui.pinCount=count;ui.pinRolls=result;ui.pinCrowdSpend=0;
+  pin.count=count;ui.pinCount=count;ui.pinRolls=result;
+  if(!aiEnabled()||matchSetup.playerId===pin.pinnedId)ui.pinCrowdSpend=0;
   audio.cue('count');
   log(`Count ${count}: ${pinned.name} rolls ${pinnedRoll} - ${result.pinnedPenalty} + ${result.pinnedBonus} Heat/Pop (${pinnedCrowdRolls.join(',')||'none'}) = ${result.pinnedTotal}; ${pinning.name} rolls ${pinningRoll} - ${result.pinningPenalty} + ${result.pinningBonus} Heat/Pop (${pinningCrowdRolls.join(',')||'none'}) = ${result.pinningTotal}.`);
   if(result.kickout){
