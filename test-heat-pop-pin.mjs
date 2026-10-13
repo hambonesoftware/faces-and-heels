@@ -19,7 +19,7 @@ function readyPin() {
   assert.equal(result.pinningBonus,2);
   assert.equal(result.pinnedBonus,6);
   assert.equal(result.pinningTotal,10-(wrestler(state,'stone').bodyDamage.core||0));
-  assert.equal(result.pinnedTotal,13);
+  assert.equal(result.pinnedTotal,13-Object.values(wrestler(state,'viper').bodyDamage).reduce((sum,n)=>sum+Number(n||0),0));
   assert.equal(result.kickout,true);
   assert.equal(wrestler(state,'stone').crowdResource,1);
   assert.equal(wrestler(state,'viper').crowdResource,1);
