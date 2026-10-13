@@ -1,6 +1,6 @@
 # Faces & Heels — 100-Bout Classic Wrestling Sequence Audit
 
-**Build:** v1.19, Solo Showdown, classic-match pacing tuning.
+**Original benchmark:** v1.19 (initial Solo Showdown pacing, before the v1.19.1 follow-up). The first results table below is retained for comparison. The newer v1.19.1 sample appears at the bottom.
 
 **Method:** 100 *deterministically seeded AI-versus-AI engine matches*, with legal moves, actual d20 rolls, counters, pins, submission turns, and action history from the playable rules engine. The test is reproducible with `npm run test:classic` and included in `npm test`. These are **not videos of 100 historical matches**, nor an exact quantitative study of 1980s–1990s wrestling. The aim is recognizable opening-to-finish sequencing and varied match flow.
 
@@ -59,3 +59,36 @@ The `classicMoveRating()` policy in `solo-ai.js` now:
 GitHub Actions runs `node test-classic-wrestling.mjs`, writes `audit-output/classic-match-100.json` (individual seeded bouts, every attempted move, full event transcripts), then uploads the file as the **faces-heels-classic-100-match-transcripts** build artifact, retained for 30 days. Review the latest successful [Faces & Heels combat regression run](https://github.com/hambonesoftware/faces-and-heels/actions) and its Artifacts section. Rerun locally with `npm run test:classic`.
 
 The quality gates assert at least five unique moves per match on average, technical/strike foundations in at least 80 of 100 openings, no more than 10 opening-finishers or three-identical-move streaks, at least 25 bouts featuring holds, and no more than five setups on average. These are **provisional development gates**, not historical wrestling measurements.
+
+---
+
+## v1.19.1 follow-up: 100 additional controlled bouts
+
+The move-choice policy was adjusted after identifying **hard slams/dropkicks/DDTs in the opening exchanges**, occasional immediate repeat attacks, excessive early pin attempts, and finishers that rarely featured in the ending.
+
+Source comparisons remain qualitative: the [Flair–Steamboat trilogy WWE interview](https://www.wwe.com/classics/wcw/ric-flair-ricky-steamboat-trilogy-interview) emphasizes contrasting faster/slower segments, and detailed [WrestleWar 1989 coverage](https://tjrwrestling.net/feature/5-star-match-reviews-ric-flair-vs-ricky-steamboat-iii-nwa-wrestlewar-89-music-city-showdown/) documents opening lockups, headlocks, arm targeting and counters. Our game is **not recreating those matches, their exact statistics or their individual move lists**.
+
+Run `npm run test:pacing` to replay the **same 100 deterministic seeds** with the current `solo-ai.js` on both sides. This is separate from `npm run test:classic`, which also generates the complete traditional 100-bout transcript artifact.
+
+| Measured statistic | Pre-tuning 100 bouts | v1.19.1 after tuning |
+| --- | ---: | ---: |
+| Completed matches | 100 | **100** |
+| Stone wins / Viper wins | 55 / 45 | **42 / 58** |
+| Mean attack attempts | 23.13 | **21.53** |
+| Mean pin attempts | 4.46 | **3.44** |
+| Mean sustained-hold openings | 3.00 | **3.17** |
+| Mean successful escapes | 1.29 | **1.54** |
+| Legendary move attempts, all 100 bouts | 38 | **54** |
+| Submission finishes | 13 | **23** |
+| Immediate repeat move by same wrestler | 37 across 2,313 attempts | **16 across 2,153 attempts** |
+| Heavy/flashy offense within first 3 attack attempts | Unmeasured in original run | **7 of 300 (2.3%)** |
+| Legendary attempts in first 6 attacks | Unmeasured in original run | **0** |
+
+A majority of bouts now begin with Hip Toss, Forearm Smash, Knee Lift or Dragon Screw. Those four account for **99 opening moves** out of 100; one opened with a Body Slam. Later bouts feature the larger slams, Dropkick, DDT and signatures according to posture, stamina, known wrestler repertoire and normal dice rolls. Match winners remain uncontrolled.
+
+The revised AI also favors **Knee Lift → Snap Down → mat wrestling** when the defender drops to kneeling, instead of repeating Forearm Smash simply because few other strikes remain legal from that posture. A short repeat-chain penalty limits frequent `Snap Down → Pick Up → Knee Lift → Snap Down` sequences.
+
+**Five match tapes** are printed by `test-classic-match-pacing.mjs` along with the full move frequency distribution, opener counts, pin counts, finishes and repetition statistics. Individual match transcripts with intervening control, pin and escape events are available in the main `test-classic-wrestling.mjs` JSON artifact.
+
+**Remaining gaps:** Rope breaks, armdrags/wristlocks, standing chain-grapples, corner work, injury selling and referee interactions require new rules and physically correct paired animations. These should not be approximated by manipulating move priorities or falsely described as already implemented.
+
