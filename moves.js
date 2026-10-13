@@ -41,7 +41,7 @@ export const wrestlerDefinitions = {
     name: 'VIPER',
     attitude: 'heel',
     style: 'Daredevil',
-    commonMoves:['forearm-smash','dropkick','neckbreaker','hip-toss','dragon-screw','ddt','leg-drop','knee-drop','armbar','ankle-lock','standing-wristlock','standing-headlock'],
+    commonMoves:['irish-whip','rebound-clothesline','corner-whip','corner-splash','forearm-smash','dropkick','neckbreaker','hip-toss','dragon-screw','ddt','leg-drop','knee-drop','armbar','ankle-lock','standing-wristlock','standing-headlock'],
     legendaryMoves:['viper-bite'],
     crowdResourceName: 'HEAT',
     stats: {
