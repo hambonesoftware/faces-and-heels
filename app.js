@@ -1,10 +1,10 @@
 import {ACTION_IDS} from './turn-controller.js?v=1.19.0';
 import {DEFAULT_MATCH_SETUP,readMatchSetup,saveMatchSetup,aiWrestlerId,isAiDecision,chooseAiAction,choosePinCrowdSpend} from './solo-ai.js?v=1.19.2';
-import { animationByMove } from './combat-animation-map.js?v=1.19.0';
-import { portrait, moveArt, damageDiagram } from './ui-art.js?v=1.19.0';
+import { animationByMove } from './combat-animation-map.js?v=1.20.0';
+import { portrait, moveArt, damageDiagram } from './ui-art.js?v=1.20.0';
 import { emptyProgress, loadProgress, saveProgress, recordResult, resetProgress } from './progression.js?v=1.19.0';
 import { DEFAULT_PRESENTATION, readSettings, saveSettings, delayFor, tacticalLabel, chanceToHit, MatchAudio } from './presentation.js?v=1.19.0';
-import { demoMoves } from './moves.js?v=1.19.0';
+import { demoMoves } from './moves.js?v=1.20.0';
 import { LEGENDARY_CATALOG,MAX_LEGENDARY_MOVES } from './legendary-catalog.js?v=1.19.0';
 import { bodyLabel, resolveTargetDecision } from './flow-engine.js?v=1.19.0';
 import { IsoStage } from './iso-stage.js?v=1.19.0';
@@ -812,7 +812,7 @@ async function rollMove() {
   await rollingVisual(`${currentActor().name} · ${move.name}`, attackRoll);
   const crowdRolls = ui.spendCrowd ? [rollDie(6)] : [];
   const result = resolveMoveAttempt(state, { moveId: move.id, target: ui.selectedTarget, attackRoll, damageRoll, crowdSpend: ui.spendCrowd, crowdRolls });
-  log(`${wrestler(state,result.attackerId).name} ${move.name}: d20 ${attackRoll} ${result.modifier >= 0 ? '+' : ''}${result.modifier}${result.spentCrowd ? ` +${result.crowdBonus} Heat/Pop d6` : ''} = ${result.total} vs CON ${result.targetNumber}.`);
+  log(`${wrestler(state,result.attackerId).name} ${move.name}: d20 ${attackRoll} ${result.modifier >= 0 ? '+' : ''}${result.modifier}${result.spentCrowd ? ` +${result.crowdBonus} Heat/Pop d6` : ''}${result.tieUpBonus ? ` +${result.tieUpBonus} tie-up control` : ''} = ${result.total} vs CON ${result.targetNumber}.`);
   if (!result.success) {
     log(`${move.name} missed. ${canReact(state) ? `${wrestler(state,result.defenderId).name} may react.` : 'No legal reaction; control state continues.'}`);
     ui.selectedMove = null;
