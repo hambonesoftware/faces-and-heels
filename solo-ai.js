@@ -94,6 +94,9 @@ export function classicMoveRating(move,attacker,defender,state){
    if(move.id==='snap-down'&&defender.posture==='kneeling'){
      score+=27;
      if(last?.moveId==='knee-lift')score+=4;
+     // Avoid a loop of knee -> snap-down -> pickup -> knee -> snap-down
+     // whenever other viable moves and holds exist.
+     score-=personal.slice(-8).filter(h=>h.moveId==='snap-down').length*14;
    }
  }
  if(move.sustained){
