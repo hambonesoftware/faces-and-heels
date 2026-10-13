@@ -14,10 +14,10 @@
 </head>
 <body>
   <div id="app"></div>
-  <script type="module" src="./app.js?v=1.20.0"></script>
+  <script type="module" src="./app.js?v=1.20.1"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=1.20.0', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {}));
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=1.20.1', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {}));
     }
   </script>
 </body>
