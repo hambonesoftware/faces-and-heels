@@ -23,7 +23,7 @@ export const wrestlerDefinitions = {
     name: 'STONE',
     attitude: 'face',
     style: 'Powerhouse',
-    commonMoves:['forearm-smash','running-clothesline','knee-lift','body-slam','vertical-suplex','spinebuster','elbow-drop','stomp','ground-headlock','standing-wristlock','standing-headlock'],
+    commonMoves:['irish-whip','rebound-clothesline','corner-whip','corner-splash','forearm-smash','running-clothesline','knee-lift','body-slam','vertical-suplex','spinebuster','elbow-drop','stomp','ground-headlock','standing-wristlock','standing-headlock'],
     legendaryMoves:['flash-finisher'],
     crowdResourceName: 'POP',
     stats: {
@@ -57,6 +57,34 @@ export const wrestlerDefinitions = {
 };
 
 export const demoMoves = [
+  {
+    id:'irish-whip',name:'Irish Whip to Ropes',category:'setup',stat:'Power',
+    staminaCost:3,staminaDamage:4,damageDie:4,crowdGain:0,automatic:true,
+    description:'Send your standing opponent into the ropes and set up the rebound.',
+    requirements:{attackerPostures:['standing'],defenderPostures:['standing']},
+    targeting:{mode:'none',bodyParts:[]},result:{defenderPosture:'standing'}
+  },
+  {
+    id:'rebound-clothesline',name:'Rebound Clothesline',category:'strike',stat:'Power',
+    staminaCost:5,staminaDamage:9,damageDie:8,crowdGain:1,
+    description:'Catch a rival bouncing off the ropes with a timed clothesline.',
+    requirements:{attackerPostures:['standing'],defenderPostures:['standing']},
+    targeting:{mode:'fixed',bodyParts:['head']},result:{defenderPosture:'prone'}
+  },
+  {
+    id:'corner-whip',name:'Whip into Turnbuckle',category:'setup',stat:'Power',
+    staminaCost:3,staminaDamage:4,damageDie:4,crowdGain:0,automatic:true,
+    description:'Drive your rival into the turnbuckle for a corner attack.',
+    requirements:{attackerPostures:['standing'],defenderPostures:['standing']},
+    targeting:{mode:'none',bodyParts:[]},result:{defenderPosture:'standing'}
+  },
+  {
+    id:'corner-splash',name:'Turnbuckle Splash',category:'strike',stat:'Power',
+    staminaCost:6,staminaDamage:10,damageDie:8,crowdGain:0,
+    description:'Charge into a trapped opponent in the corner.',
+    requirements:{attackerPostures:['standing'],defenderPostures:['standing']},
+    targeting:{mode:'fixed',bodyParts:['core']},result:{defenderPosture:'prone'}
+  },
   {
     id:'standing-wristlock',name:'Standing Wristlock',category:'grapple',stat:'Agility',
     staminaCost:4,staminaDamage:6,damageDie:6,crowdGain:0,
@@ -702,6 +730,7 @@ export const demoState = {
   moveHistory: [],
   pendingFailure: null,
   activeHold: null,
+  ringPosition: null,
   groundDefense: null,
   mustFinishTargetId: null,
   legalBodyTargets: ['head', 'core', 'leftArm', 'rightArm', 'leftLeg', 'rightLeg'],
