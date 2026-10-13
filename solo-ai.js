@@ -88,6 +88,13 @@ export function classicMoveRating(move,attacker,defender,state){
    if(defender.stamina<=0&&move.id==='pick-up-opponent')score+=10;
    if(move.id==='pick-up-opponent'&&windingDown
       &&attacker.crowdResource>=2&&attacker.stamina>=12)score+=20;
+   // A knee to a kneeling rival naturally leads into a snap-down and mat
+   // wrestling. Otherwise Forearm Smash is one of very few legal strikes
+   // against a kneeling defender and the CPU can repeat it unnaturally.
+   if(move.id==='snap-down'&&defender.posture==='kneeling'){
+     score+=27;
+     if(last?.moveId==='knee-lift')score+=4;
+   }
  }
  if(move.sustained){
    score+=opening?-14:health>.53?-5:4;
@@ -105,7 +112,7 @@ export function classicMoveRating(move,attacker,defender,state){
    // Old matches progress from strikes and hip tosses toward slams/dropkicks.
    score+=(health<.68?3:0);
  }
- if(last?.moveId===move.id)score-=20;
+ if(last?.moveId===move.id)score-=last.success?22:28;
  if(beforeLast?.moveId===move.id)score-=7;
  // Repeated strikes are believable, but five identical attacks in a row are
  // not. Repetition is assessed per wrestler, not across both participants.
