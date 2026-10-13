@@ -497,9 +497,15 @@ export function escapeHold(state,{escapeRoll}={}){
   defender.condition=deriveCondition(defender);
   if(success){
     state.activeHold=null;
-    beginNeutral(state,{resetPostures:true});
-    state.mustFinishTargetId=null;
-    return {ok:true,success:true,escapeRoll,modifier,total,targetNumber,staminaCost:before-defender.stamina,defenderId:hold.defenderId};
+    const reversal = move.id.startsWith('standing-') && total >= targetNumber+7;
+    if(reversal){
+      giveControl(state,hold.defenderId);
+      state.mustFinishTargetId=null;
+    }else{
+      beginNeutral(state,{resetPostures:true});
+      state.mustFinishTargetId=null;
+    }
+    return {ok:true,success:true,reversal,escapeRoll,modifier,total,targetNumber,staminaCost:before-defender.stamina,defenderId:hold.defenderId};
   }
   if(hold.finishPending){
     // The defender DID receive the final escape roll; only its failure forces

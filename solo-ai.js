@@ -186,7 +186,7 @@ export function chooseAiAction(state,{setup=DEFAULT_MATCH_SETUP,rng=Math.random}
    const hold=state.activeHold;
    const current=hold?state.wrestlers[hold.defenderId]:null;
    const options=availableHoldTransitions(state);
-   const tickCost=hold?({armbar:2,'ankle-lock':2,'ground-headlock':2}[hold.moveId]||2):2;
+   const tickCost=hold?({armbar:2,'ankle-lock':2,'ground-headlock':2,'standing-wristlock':2,'standing-headlock':2}[hold.moveId]||2):2;
    if(ai.stamina<tickCost)return {type:'release-hold'};
    if(options.length&&ai.stamina>9&&current?.stamina>8&&rng()<(difficulty==='veteran'?.28:.15))
      return {type:'switch-hold',moveId:options[0].id};
