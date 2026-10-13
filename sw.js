@@ -1,9 +1,9 @@
-const CACHE = 'faces-heels-v1.19.1-classic-match-pacing';
+const CACHE = 'faces-heels-v1.19.2-pin-heat-pop';
 const CORE = [
-  './index.html?v=1.19.1',
+  './index.html?v=1.19.2',
   './styles.css?v=1.19.0',
-  './app.js?v=1.19.1',
-  './solo-ai.js?v=1.19.1',
+  './app.js?v=1.19.2',
+  './solo-ai.js?v=1.19.2',
   './solo-ai.js',
   './match-engine.js',
   './combat-animation-map.js?v=1.19.0',
