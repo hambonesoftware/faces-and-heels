@@ -51,8 +51,11 @@ function chooseWeighted(scored,rng,difficulty){
 // guaranteed takedowns or opening-bell finishers. The AI reads only state from
 // attempts actually made; players remain free to choose any legal move.
 const CLASSIC_OPENERS=Object.freeze({
-  'forearm-smash':10,'knee-lift':10,'hip-toss':12,'dragon-screw':7,
-  'body-slam':4,'dropkick':6,'running-clothesline':4
+  'forearm-smash':12,'knee-lift':10,'hip-toss':14,'dragon-screw':10,
+  // Big slams, aerial shots and clotheslines are payoffs after an exchange,
+  // rather than the default first offensive move of every match.
+  'body-slam':-11,'dropkick':-9,'running-clothesline':-8,
+  'vertical-suplex':-13,'spinebuster':-14,'ddt':-11,'neckbreaker':-11
 });
 export function classicMoveRating(move,attacker,defender,state){
  const hitChance=move.automatic?1:Math.max(.05,Math.min(.95,
@@ -64,8 +67,9 @@ export function classicMoveRating(move,attacker,defender,state){
  const personal=prior.filter(x=>x.actorId===attacker.id);
  const last=personal.at(-1),beforeLast=personal.at(-2);
  const health=defender.maxStamina>0?defender.stamina/defender.maxStamina:1;
- const opening=attempts<6&&health>.65;
- const windingDown=health<.42&&attempts>=6;
+ const opening=attempts<6&&health>.63;
+ const windingDown=health<.52&&attempts>=8;
+ const lateMatch=health<.31&&attempts>=10;
  let score=hitChance*(effectiveDamage*.88+
    (move.result?.defenderPosture==='prone'?3:0)) -
    move.staminaCost*.52 +(move.automatic?1:0)+crowd*.8;
@@ -76,31 +80,40 @@ export function classicMoveRating(move,attacker,defender,state){
  // Preserve the wrestlers' style signatures without inventing unavailable
  // animations: Stone favors power slams, Viper prioritizes his real dropkick.
  if(attacker.style==='Powerhouse'&&['body-slam','vertical-suplex'].includes(move.id))score+=3;
- if(attacker.style==='Daredevil'&&move.id==='dropkick')score+=7;
+ if(attacker.style==='Daredevil'&&move.id==='dropkick')score+=opening?-1:7;
  if(move.category==='setup'){
    // Picks and snap downs are useful positional tools, not an infinite source
    // of uncontested offense. The original CPU spammed 826 snap downs/100 bouts.
    score-=move.id==='snap-down'?20:move.id==='pull-to-knees'?9:7;
    if(defender.stamina<=0&&move.id==='pick-up-opponent')score+=10;
    if(move.id==='pick-up-opponent'&&windingDown
-      &&attacker.crowdResource>=2&&attacker.stamina>=12)score+=17;
+      &&attacker.crowdResource>=2&&attacker.stamina>=12)score+=20;
  }
  if(move.sustained){
    score+=opening?-14:health>.53?-5:4;
  }
  if(move.legendary){
    // A finisher is the payoff after meaningful work, not the opening move.
-   score+=windingDown?26:health>.53||attempts<7?-35:-5;
+   score+=lateMatch?43:windingDown?32:health>.53||attempts<8?-40:-11;
  }
- if(opening&&['ddt','spinebuster','neckbreaker'].includes(move.id))score-=4;
+ if(opening&&['ddt','spinebuster','neckbreaker','vertical-suplex'].includes(move.id))score-=8;
+ if(opening&&move.result?.defenderPosture==='prone'&&move.id!=='hip-toss'&&move.id!=='dragon-screw')
+   score-=5;
+ if(!opening&&attempts>=6&&['body-slam','dropkick','vertical-suplex','running-clothesline','ddt'].includes(move.id))
+   score+=2;
  if(!opening&&!move.sustained&&!move.legendary&&move.category!=='setup'){
    // Old matches progress from strikes and hip tosses toward slams/dropkicks.
    score+=(health<.68?3:0);
  }
  if(last?.moveId===move.id)score-=20;
  if(beforeLast?.moveId===move.id)score-=7;
- if(personal.slice(-5).some(h=>h.moveId===move.id))score-=2;
- else if(personal.length>=2)score+=2;
+ // Repeated strikes are believable, but five identical attacks in a row are
+ // not. Repetition is assessed per wrestler, not across both participants.
+ const recent=personal.slice(-6).filter(h=>h.moveId===move.id).length;
+ score-=recent*3;
+ const lifetime=personal.filter(h=>h.moveId===move.id).length;
+ if(lifetime>=4)score-=Math.min(15,(lifetime-3)*3);
+ if(!recent&&personal.length>=2)score+=2;
  if(attacker.stamina<=move.staminaCost+3)score-=4;
  return score;
 }
@@ -130,7 +143,7 @@ export function chooseAiAction(state,{setup=DEFAULT_MATCH_SETUP,rng=Math.random}
    // Early covers exist, but should usually be one-count teases rather than
    // three-count gambling every time someone lands a hip toss.
    const wear=opponent.stamina/opponent.maxStamina;
-   const chance=wear>.72?.12:wear>.42?.48:.81;
+   const chance=wear>.72?.035:wear>.42?.28:wear>.2?.60:.77;
    return {type:rng()<chance?'pin':'skip-pin'};
  case 'HOLD_ESCAPE':return {type:'escape-hold'};
  case 'GROUND_DEFENSE':
