@@ -1,10 +1,10 @@
 import {ACTION_IDS} from './turn-controller.js?v=1.19.0';
 import {DEFAULT_MATCH_SETUP,readMatchSetup,saveMatchSetup,aiWrestlerId,isAiDecision,chooseAiAction,choosePinCrowdSpend} from './solo-ai.js?v=1.19.2';
-import { animationByMove } from './combat-animation-map.js?v=1.20.0';
-import { portrait, moveArt, damageDiagram } from './ui-art.js?v=1.20.0';
+import { animationByMove } from './combat-animation-map.js?v=1.20.1';
+import { portrait, moveArt, damageDiagram } from './ui-art.js?v=1.20.1';
 import { emptyProgress, loadProgress, saveProgress, recordResult, resetProgress } from './progression.js?v=1.19.0';
 import { DEFAULT_PRESENTATION, readSettings, saveSettings, delayFor, tacticalLabel, chanceToHit, MatchAudio } from './presentation.js?v=1.19.0';
-import { demoMoves } from './moves.js?v=1.20.0';
+import { demoMoves } from './moves.js?v=1.20.1';
 import { LEGENDARY_CATALOG,MAX_LEGENDARY_MOVES } from './legendary-catalog.js?v=1.19.0';
 import { bodyLabel, resolveTargetDecision } from './flow-engine.js?v=1.19.0';
 import { IsoStage } from './iso-stage.js?v=1.19.0';
