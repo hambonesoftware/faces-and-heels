@@ -58,6 +58,21 @@ export const wrestlerDefinitions = {
 
 export const demoMoves = [
   {
+    id: 'collar-elbow-tie-up',
+    name: 'Collar-and-Elbow Tie-Up',
+    category: 'setup',
+    stat: 'Power',
+    staminaCost: 2,
+    staminaDamage: 3,
+    damageDie: 4,
+    crowdGain: 0,
+    description: 'Lock up in the center of the ring. The next standing grapple gains +2 control; a missed follow-up opens a counter.',
+    requirements: { attackerPostures: ['standing'], defenderPostures: ['standing'] },
+    targeting: { mode: 'none', bodyParts: [] },
+    result: { attackerPosture: 'standing', defenderPosture: 'standing' },
+    automatic: true
+  },
+  {
     "id": "pick-up-opponent",
     "name": "Pick Up Opponent",
     "category": "setup",
