@@ -89,6 +89,7 @@ export function giveControl(state, id) {
   state.groundDefense = null;
   state.activeHold = null;
   state.standingTieUp = null;
+  state.ringPosition = null;
   state.phase = 'ACTION_SELECT';
 }
 
@@ -102,6 +103,7 @@ export function beginNeutral(state, { resetPostures = false } = {}) {
   state.pendingFailure = null;
   state.activeHold = null;
   state.standingTieUp = null;
+  state.ringPosition = null;
   state.pinCount = 0;
   state.mustFinishTargetId = null;
   setRoles(state, null);
@@ -171,6 +173,7 @@ export function getLegalMoves(state, actorId = state.activeWrestlerId) {
   const perspective = perspectiveState(state, actorId);
   let moves = demoMoves.filter(move => isMoveKnown(perspective.attacker,move) && isMoveLegal(move, perspective));
   const defender = perspective.defender;
+  moves=moves.filter(move=>move.id==='rebound-clothesline'?state.ringPosition?.targetId===defender.id&&state.ringPosition.zone==='ropes':move.id==='corner-splash'?state.ringPosition?.targetId===defender.id&&state.ringPosition.zone==='corner':true);
   if (state.mustFinishTargetId === defender.id && defender.stamina <= 0 && defender.posture !== 'prone') {
     moves = moves.filter(move => move.category !== 'setup' && move.result?.defenderPosture === 'prone' && move.staminaDamage > 0);
   }
@@ -297,6 +300,7 @@ export function resolveMoveAttempt(state, {
   const perspective = perspectiveState(state, attackerId);
   if (state.activeHold || !isMoveKnown(attacker,move) || !isMoveLegal(move, perspective)) throw new Error(`${move.name} is not learned or legal for ${attacker.name}.`);
   requireCombatAction(state,ACTION_IDS.MOVE,attackerId);
+  if(!getLegalMoves(state).some(m=>m.id===move.id))throw new Error('Ring position does not permit '+move.name);
 
   const targetDecision = resolveTargetDecision(move, perspective);
   let resolvedTarget = target;
@@ -319,6 +323,10 @@ export function resolveMoveAttempt(state, {
   const success = move.automatic === true || total >= targetNumber;
 
   state.turnCounter += 1;
+  const previousRing=state.ringPosition;
+  if(move.id==='irish-whip')state.ringPosition={targetId:defenderId,zone:'ropes'};
+  else if(move.id==='corner-whip')state.ringPosition={targetId:defenderId,zone:'corner'};
+  else if(previousRing?.targetId===defenderId)state.ringPosition=null;
   if(move.id==='collar-elbow-tie-up')state.standingTieUp={holderId:attackerId,defenderId};
   else state.standingTieUp=null;
   state.pinEligible = false;
@@ -492,12 +500,13 @@ export function escapeHold(state,{escapeRoll}={}){
   const modifier=statModifier(defender.stats.Agility);
   const targetNumber=10+statModifier(holder.stats[spec.holdStat])+Math.min(3,hold.ticks);
   const total=escapeRoll+modifier;
-  const success=total>=targetNumber;
+  const ropeBreak=state.ringPosition?.targetId===hold.defenderId && state.ringPosition.zone==='ropes';
+  const success=ropeBreak||total>=targetNumber;
   hold.escapes++;state.turnCounter++;
   defender.condition=deriveCondition(defender);
   if(success){
     state.activeHold=null;
-    const reversal = move.id.startsWith('standing-') && total >= targetNumber+7;
+    const reversal = !ropeBreak && move.id.startsWith('standing-') && total >= targetNumber+7;
     if(reversal){
       giveControl(state,hold.defenderId);
       state.mustFinishTargetId=null;
@@ -505,7 +514,7 @@ export function escapeHold(state,{escapeRoll}={}){
       beginNeutral(state,{resetPostures:true});
       state.mustFinishTargetId=null;
     }
-    return {ok:true,success:true,reversal,escapeRoll,modifier,total,targetNumber,staminaCost:before-defender.stamina,defenderId:hold.defenderId};
+    return {ok:true,success:true,ropeBreak,reversal,escapeRoll,modifier,total,targetNumber,staminaCost:before-defender.stamina,defenderId:hold.defenderId};
   }
   if(hold.finishPending){
     // The defender DID receive the final escape roll; only its failure forces
