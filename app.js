@@ -1,5 +1,5 @@
 import {ACTION_IDS} from './turn-controller.js?v=1.19.0';
-import {DEFAULT_MATCH_SETUP,readMatchSetup,saveMatchSetup,aiWrestlerId,isAiDecision,chooseAiAction} from './solo-ai.js?v=1.19.1';
+import {DEFAULT_MATCH_SETUP,readMatchSetup,saveMatchSetup,aiWrestlerId,isAiDecision,chooseAiAction,choosePinCrowdSpend} from './solo-ai.js?v=1.19.2';
 import { animationByMove } from './combat-animation-map.js?v=1.19.0';
 import { portrait, moveArt, damageDiagram } from './ui-art.js?v=1.19.0';
 import { emptyProgress, loadProgress, saveProgress, recordResult, resetProgress } from './progression.js?v=1.19.0';
@@ -76,6 +76,7 @@ let ui = {
   pinCount: 0,
   pinRolls: null,
   pinInfo: null,
+  pinCrowdSpend: 0,
   neutralRolls: null,
   coachingDismissed: false
 };
@@ -386,9 +387,12 @@ function renderOpportunity() {
   const pinning = wrestler(state, state.pinningWrestlerId);
   const pinned = wrestler(state, opponentId(state.pinningWrestlerId));
   const forced = pinned.stamina <= 0;
+  const available=Math.min(3,pinning.crowdResource);
+  const boostChoices=Array.from({length:available+1},(_,n)=>`<button type="button" class="boost-button ${ui.pinCrowdSpend===n?'is-on':''}" data-pin-crowd="${n}" aria-pressed="${ui.pinCrowdSpend===n}">${n}d6</button>`).join('');
   return `
     <section class="decision-panel decision-panel--opportunity">
       <div class="opportunity-copy"><small>${forced ? 'FINISH REQUIRED' : 'PIN OPPORTUNITY'}</small><strong>${escapeHtml(pinned.name)} is prone</strong><span>${forced ? `${pinned.name} has 0 STA. The H wrestler must attempt a finish.` : 'Three opposed BGD counts. Body damage makes kickouts harder.'}</span></div>
+      <div class="pin-resource-choices" role="group" aria-label="Heat or Pop dice per pin count"><span>${escapeHtml(pinning.crowdResourceName)}: ${pinning.crowdResource} available</span>${boostChoices}<small>Choose how many d6 to spend per count during the cover.</small></div>
       <div class="opportunity-actions"><button class="pin-button" data-pin>PIN NOW</button>${forced ? '' : '<button class="continue-button" data-continue>CONTINUE</button>'}</div>
     </section>`;
 }
@@ -398,12 +402,20 @@ function renderPinDefense() {
   const pinning=turn.controlId?wrestler(state,turn.controlId):null;
   const next=Math.min(3,(ui.pinInfo?.count||0)+1);
   const last=ui.pinRolls;
+  const humanId=aiEnabled()?matchSetup.playerId:null;
+  const humanPinning=(!aiEnabled() || humanId===pinning?.id);
+  const humanPinned=(!aiEnabled() || humanId===pinned?.id);
+  const playerSide=humanPinned?pinned:humanPinning?pinning:null;
+  const available=Math.min(3,playerSide?.crowdResource||0);
+  const chosen=Math.min(ui.pinCrowdSpend,available);
+  const boostControls=playerSide?`<div class="pin-resource-choices" role="group" aria-label="Heat or Pop dice to spend on the next count"><span>${escapeHtml(playerSide.name)} · ${escapeHtml(playerSide.crowdResourceName)}: ${playerSide.crowdResource} available</span>${Array.from({length:available+1},(_,n)=>`<button type="button" class="boost-button ${chosen===n?'is-on':''}" data-pin-crowd="${n}" aria-pressed="${chosen===n}">${n}d6</button>`).join('')}<small>Spend on this count only. Each die adds 1–6 to your opposed d20 roll.</small></div>`:'';
   return `
     <section class="decision-panel decision-panel--pin-defense">
       <div class="pin-defense-copy"><small>DEFENSIVE TURN · ${pinned?escapeHtml(pinned.name):'PINNED WRESTLER'}</small>
         <strong>KICK OUT — COUNT ${next}</strong>
         <span>${pinning?escapeHtml(pinning.name)+' controls the pin. ':''}Opposed d20 dice determine whether the shoulders stay down.</span>
-        ${last?`<span>PREVIOUS: ${last.pinnedTotal} vs ${last.pinningTotal}</span>`:''}
+        ${last?`<span>PREVIOUS: ${last.pinnedTotal} vs ${last.pinningTotal} · Heat/Pop +${last.pinnedBonus||0}/+${last.pinningBonus||0}</span>`:''}
+        ${boostControls}
       </div>
       <button type="button" class="pin-defense-button" data-pin-defense>ROLL KICKOUT <small>BIG GOLD DICE · D20</small></button>
     </section>`;
@@ -968,11 +980,21 @@ async function rollPinDefense(){
   if(!pin||!permitted(ACTION_IDS.COUNT_PIN,pin.pinnedId))return;
   const count=pin.count+1;
   const pinningRoll=rollDie(20),pinnedRoll=rollDie(20);
+  const pinning=wrestler(state,pin.pinningId),pinned=wrestler(state,pin.pinnedId);
+  const humanId=aiEnabled()?matchSetup.playerId:null;
+  const crowdFor=(w,defending)=>{
+    const n=aiEnabled()&&w.id!==humanId
+      ?choosePinCrowdSpend(w,defending?pinning:pinned,{defending,count,difficulty:matchSetup.difficulty})
+      :ui.pinCrowdSpend;
+    return Array.from({length:Math.min(3,w.crowdResource,Math.max(0,n))},()=>rollDie(6));
+  };
+  const pinningCrowdRolls=crowdFor(pinning,false),pinnedCrowdRolls=crowdFor(pinned,true);
   await rollingVisual(`${wrestler(state,pin.pinnedId).name} · KICK OUT ${count}`,pinnedRoll);
-  const result=resolvePinCount(state,{pinningId:pin.pinningId,count,pinningRoll,pinnedRoll});
+  const result=resolvePinCount(state,{pinningId:pin.pinningId,count,pinningRoll,pinnedRoll,pinningCrowdRolls,pinnedCrowdRolls});
   pin.count=count;ui.pinCount=count;ui.pinRolls=result;
+  if(!aiEnabled()||matchSetup.playerId===pin.pinnedId)ui.pinCrowdSpend=0;
   audio.cue('count');
-  log(`Count ${count}: ${wrestler(state,pin.pinnedId).name} rolls ${pinnedRoll} - ${result.pinnedPenalty} = ${result.pinnedTotal}; ${wrestler(state,pin.pinningId).name} rolls ${pinningRoll} - ${result.pinningPenalty} = ${result.pinningTotal}.`);
+  log(`Count ${count}: ${pinned.name} rolls ${pinnedRoll} - ${result.pinnedPenalty} + ${result.pinnedBonus} Heat/Pop (${pinnedCrowdRolls.join(',')||'none'}) = ${result.pinnedTotal}; ${pinning.name} rolls ${pinningRoll} - ${result.pinningPenalty} + ${result.pinningBonus} Heat/Pop (${pinningCrowdRolls.join(',')||'none'}) = ${result.pinningTotal}.`);
   if(result.kickout){
     audio.cue('reversal');
     ui.event={title:`KICKOUT AT ${count}!`,detail:`${wrestler(state,pin.pinnedId).name} breaks the pin · +10 STA`,kind:'spectacle',impact:true};
@@ -1088,6 +1110,7 @@ app.addEventListener('click', event => {
   if (el.dataset.holdRelease !== undefined) { if(permitted(ACTION_IDS.HOLD_RELEASE,state.activeHold?.holderId))performHoldRelease(); return; }
   if (el.dataset.holdEscape !== undefined) { if(permitted(ACTION_IDS.HOLD_ESCAPE,state.activeHold?.defenderId))performHoldEscape(); return; }
   if (el.dataset.pin !== undefined) { runPin(); return; }
+  if (el.dataset.pinCrowd !== undefined) { ui.pinCrowdSpend=Math.max(0,Math.min(3,Number(el.dataset.pinCrowd)||0));render();return; }
   if (el.dataset.pinDefense !== undefined) { rollPinDefense(); return; }
   if (el.dataset.continue !== undefined) { if(!permitted(ACTION_IDS.SKIP_PIN,state.pinningWrestlerId))return; const result=skipPin(state); if (!result.ok) { announce('FINISH REQUIRED','0 STA opponent must be pinned or submitted','danger',false,850); return; } ui.phase='GROUND_DEFENSE'; render(); return; }
   if (el.dataset.reaction !== undefined) { if(permitted(ACTION_IDS.REACT,state.pendingFailure?.defenderId))runReaction(el.dataset.reaction); return; }

@@ -141,6 +141,23 @@ function chooseTarget(state,move,rng){
 /** Returns a single intention. The UI invokes its existing animation and roll
  * handlers; the engine validates permissions a second time.
  */
+
+// Spend valuable crowd dice late in a pin, or when a damaged rival is
+// vulnerable. A defender can always fight back with their own reserves.
+export function choosePinCrowdSpend(wrestlerState, opponentState, {defending=false,count=1,difficulty='standard'}={}) {
+ const available=Math.max(0,Math.floor(wrestlerState.crowdResource||0));
+ if(!available)return 0;
+ const staminaRatio=opponentState.maxStamina>0?opponentState.stamina/opponentState.maxStamina:1;
+ const marks=Object.values(opponentState.bodyDamage||{}).reduce((n,x)=>n+Number(x||0),0);
+ const ownMarks=Object.values(wrestlerState.bodyDamage||{}).reduce((n,x)=>n+Number(x||0),0);
+ if(defending){
+   const danger=count>=3||ownMarks>=3||wrestlerState.stamina<=Math.max(8,wrestlerState.maxStamina*.25);
+   return danger?Math.min(available,count>=3||ownMarks>=5?2:1):0;
+ }
+ const opportunity=count>=2&&(staminaRatio<.55||marks>=3);
+ return opportunity?Math.min(available,staminaRatio<.25||marks>=5?2:1):0;
+}
+
 export function chooseAiAction(state,{setup=DEFAULT_MATCH_SETUP,rng=Math.random}={}){
  if(!isAiDecision(state,setup))return null;
  const aiId=aiWrestlerId(setup),ai=wrestler(state,aiId),opponent=wrestler(state,opponentId(aiId));
