@@ -27,7 +27,7 @@ function readyPin() {
 {
   const state=readyPin();
   wrestler(state,'viper').crowdResource=0;
-  assert.throws(()=>resolvePinCount(state,{pinningId:'stone',count:1,pinningRoll:8,pinnedRoll:7,pinnedCrowdRolls:[6]}),/Invalid Heat/Pop/);
+  assert.throws(()=>resolvePinCount(state,{pinningId:'stone',count:1,pinningRoll:8,pinnedRoll:7,pinnedCrowdRolls:[6]}),/Invalid Heat\/Pop/);
   assert.equal(state.pinCount,0);
 }
 {
