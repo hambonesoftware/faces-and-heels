@@ -11,7 +11,7 @@ export function portrait(id) {
 // as the in-ring 3D renderer. A move can no longer show a different canned pose
 // in the action bar than the performer uses in the match.
 export const MOVE_ART_TIMES=Object.freeze({
-  'pick-up-opponent':.58,'pull-to-knees':.66,'snap-down':.57,
+  'collar-elbow-tie-up':.58,'pick-up-opponent':.58,'pull-to-knees':.66,'snap-down':.57,
   'knee-lift':.49,'dropkick':.48,'ddt':.63,'neckbreaker':.6,
   'hip-toss':.57,'spinebuster':.57,'elbow-drop':.68,'stomp':.59,
   'knee-drop':.7,'leg-drop':.75,'armbar':.6,'ankle-lock':.56,
