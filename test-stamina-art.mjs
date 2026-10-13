@@ -10,7 +10,7 @@ import {resolveTargetDecision} from './flow-engine.js';
 const distance=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i]));
 const allMoves=[...demoMoves,reactionMove];
 const moveIds=new Set(allMoves.map(move=>move.id));
-assert.equal(moveIds.size,24,'Every move ID must be unique');
+assert.equal(moveIds.size,allMoves.length,'Every move ID must be unique');
 assert.equal(Object.keys(animationByMove).length,allMoves.length,'Every move requires choreography');
 assert.equal(Object.keys(MOVE_ART_TIMES).length,allMoves.length,'Every move including the counter needs art');
 
