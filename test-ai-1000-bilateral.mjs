@@ -4,6 +4,7 @@
  * the deliberately aggressive random combat stress test.
  */
 import assert from 'node:assert/strict';
+import {mkdirSync,writeFileSync} from 'node:fs';
 import {chooseAiAction} from './solo-ai.js';
 import {demoMoves} from './moves.js';
 import {
@@ -143,6 +144,14 @@ const flow={
   submission:total(b=>b.method==='submission'),
   stats,coverage
 };
+// Wrestling can include occasional one-sided/squash bouts, but a healthy
+// match pool should provide meaningful d20 offense AND active defense to
+// both competitors in at least 90% of CPU-vs-CPU matches.
+assert(flow.bothOffense>=MATCHES*.90,'Too many matches deny one wrestler offense');
+assert(flow.bothActiveDefense>=MATCHES*.90,'Too many matches deny one wrestler defensive dice');
+assert(flow.bothOffenseAndDefense>=MATCHES*.90,'Two-way offense/defense coverage below 90%');
+assert(flow.oneSidedWithoutLoserOffense<=MATCHES*.10,'Too many one-sided bouts');
+assert(flow.averageControlSwings>=3,'Insufficient back-and-forth changes of control');
 assert.equal(wins.stone+wins.viper,MATCHES);
 assert(wins.stone>0&&wins.viper>0);
 assert.equal(stats.stone.pinAttack+stats.viper.pinAttack,
@@ -151,5 +160,21 @@ for(const id of ids){
  for(const key of ['attack','reaction','pinAttack','pinDefense','holdEscape','groundDefense','neutral'])
    assert(stats[id][key]>0,`${id} lacks ${key} across all AI matches`);
 }
+mkdirSync('audit-output',{recursive:true});
+writeFileSync('audit-output/ai-bilateral-1000.json',JSON.stringify({
+  title:'Real CPU-vs-CPU seeded 1000-match bilateral offense/defense audit',
+  scenario:'Both Stone and Viper controlled by chooseAiAction; source-rules normal attacks target static CON',
+  seedStart:0xA1B00001,
+  report:flow,
+  oneSidedExamples:bouts.filter(b=>b.noLoserOffense).slice(0,20).map(
+    b=>({seed:b.seed,winner:b.winner,method:b.method,steps:b.steps,dice:b.dice})
+  ),
+  boutSummaries:bouts.map(b=>({
+    seed:b.seed,winner:b.winner,method:b.method,steps:b.steps,
+    controlSwings:b.controlSwings,bothOffense:b.bothOffense,
+    bothDefense:b.bothDefense,fullTwoWay:b.fullTwoWay,
+    noLoserOffense:b.noLoserOffense
+  }))
+},null,2)+'\n');
 console.log('1,000-MATCH LIVE-CPU DECISION POLICY / BILATERAL DICE REPORT:');
 console.log(JSON.stringify(flow,null,2));
