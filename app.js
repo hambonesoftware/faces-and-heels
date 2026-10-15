@@ -44,7 +44,7 @@ import {
   getAvailableActions,
   validateCombatAction,
   checkCombatFlow
-} from './match-engine.js?v=1.19.0';
+} from './match-engine.js?v=1.21.1';
 
 const app = document.querySelector('#app');
 let progression=loadProgress(localStorage);
@@ -948,7 +948,7 @@ async function performGroundDefense(choice){
     await stage.playPair('idle','idle',{attackerId:actor,choreography:kind,impactKind:'setup'});
     stage.resetPositions();
     stage.setRestingState({postures:{stone:wrestler(state,'stone').posture,viper:wrestler(state,'viper').posture}});
-    announce(result.success?'SCRAMBLED TO KNEES':'STILL DOWN',result.success?'BACK TO NEUTRAL':'HIGH KEEPS CONTROL','major',false,750);
+    announce(result.comeback?'SCRAMBLE REVERSAL!':result.success?'SCRAMBLED TO KNEES':'STILL DOWN',result.comeback?'DEFENDER EARNS HIGH CONTROL':result.success?'BACK TO NEUTRAL':'HIGH KEEPS CONTROL','major',false,750);
   }else {
     announce(choice==='cover'?'COVERED UP':'STAYING DOWN',choice==='cover'?'NEXT LANDED HIT MITIGATED':'HIGH RETAINS ADVANTAGE','major',false,750);
   }
@@ -997,7 +997,8 @@ async function rollPinDefense(){
   log(`Count ${count}: ${pinned.name} rolls ${pinnedRoll} - ${result.pinnedPenalty} + ${result.pinnedBonus} Heat/Pop (${pinnedCrowdRolls.join(',')||'none'}) = ${result.pinnedTotal}; ${pinning.name} rolls ${pinningRoll} - ${result.pinningPenalty} + ${result.pinningBonus} Heat/Pop (${pinningCrowdRolls.join(',')||'none'}) = ${result.pinningTotal}.`);
   if(result.kickout){
     audio.cue('reversal');
-    ui.event={title:`KICKOUT AT ${count}!`,detail:`${wrestler(state,pin.pinnedId).name} breaks the pin · +10 STA`,kind:'spectacle',impact:true};
+    ui.event={title:result.comeback?`KICKOUT REVERSAL!`:`KICKOUT AT ${count}!`,detail:`${wrestler(state,pin.pinnedId).name} ${result.comeback?'springs up and seizes control':'breaks the pin'} · +10 STA`,kind:'spectacle',impact:true};
+    if(result.comeback)log(`${wrestler(state,pin.pinnedId).name} earns a kickout reversal (winning margin ${result.margin}); now controls the action.`);
     render();
     await stage.playKickout({pinnedId:pin.pinnedId,onImpact:()=>stage.pulseImpact('kickout')});
     ui.pinInfo=null;ui.pinCount=0;ui.pinRolls=null;ui.event=null;

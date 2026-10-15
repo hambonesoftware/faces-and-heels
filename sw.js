@@ -1,8 +1,8 @@
-const CACHE = 'faces-heels-v1.21.0-ring-position';
+const CACHE = 'faces-heels-v1.21.1-earned-comebacks';
 const CORE = [
-  './index.html?v=1.21.0',
+  './index.html?v=1.21.1',
   './styles.css?v=1.19.0',
-  './app.js?v=1.21.0',
+  './app.js?v=1.21.1',
   './solo-ai.js?v=1.19.2',
   './solo-ai.js',
   './match-engine.js',
@@ -24,7 +24,7 @@ const CORE = [
   './ui-art.js?v=1.21.0',
   './moves.js?v=1.21.0',
   './flow-engine.js?v=1.19.0',
-  './match-engine.js?v=1.19.0',
+  './match-engine.js?v=1.21.1',
   './sprite-stage.js?v=1.19.0',
   './iso-stage.js?v=1.19.0',
   './block-model.js?v=1.19.0',
