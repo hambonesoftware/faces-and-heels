@@ -639,6 +639,13 @@ export function resolvePinCount(state, { pinningId, count, pinningRoll, pinnedRo
   const pinningTotal = pinningRoll - pinningPenalty + pinningBonus;
   const pinnedTotal = pinnedRoll - pinnedPenalty + pinnedBonus;
   const kickout = pinnedTotal > pinningTotal;
+  // A clearly won kickout can become a real comeback, not a scripted turn
+  // swap. The original opposed pin dice, body penalties and crowd dice remain
+  // untouched. A seriously worn-down wrestler still gets a normal kickout.
+  const margin = pinnedTotal - pinningTotal;
+  const comeback = kickout && margin >= 7 &&
+    pinned.stamina >= Math.max(10,Math.ceil(pinned.maxStamina*.35)) &&
+    totalBodyMarks(pinned) <= 4;
 
   const result = {
     count,
@@ -654,6 +661,8 @@ export function resolvePinCount(state, { pinningId, count, pinningRoll, pinnedRo
     pinnedBonus,
     pinningTotal,
     pinnedTotal,
+    margin,
+    comeback,
     kickout,
     pinfall: false
   };
@@ -664,14 +673,18 @@ export function resolvePinCount(state, { pinningId, count, pinningRoll, pinnedRo
     state.pinCount=0;
     state.mustFinishTargetId = null;
     pinning.posture = 'prone';
-    pinned.posture = 'prone';
+    pinned.posture = comeback ? 'standing' : 'prone';
     recover(pinned, 10);
     pinning.condition = deriveCondition(pinning);
     pinned.condition = deriveCondition(pinned);
-    setRoles(state, null);
-    state.activeWrestlerId = pinnedId;
-    state.neutralAction = true;
-    state.phase = 'ACTION_SELECT';
+    if(comeback){
+      giveControl(state,pinnedId);
+    }else{
+      setRoles(state, null);
+      state.activeWrestlerId = pinnedId;
+      state.neutralAction = true;
+      state.phase = 'ACTION_SELECT';
+    }
     return result;
   }
 
@@ -705,17 +718,20 @@ export function resolveGroundDefense(state,{choice,roll}={}){
    const mod=statModifier(defender.stats.Agility),targetNumber=groundScrambleTarget(controller,defender);
    const total=roll+mod;
    const success=total>=targetNumber;
+   const margin=total-targetNumber;
+   const comeback=success && margin>=6 && defender.stamina>=6;
    state.turnCounter++;
    state.groundDefense=null;
    if(success){
-     defender.posture='kneeling';
-     beginNeutral(state);
+     defender.posture=comeback?'standing':'kneeling';
+     if(comeback)giveControl(state,id);
+     else beginNeutral(state);
    }else {
      state.activeWrestlerId=controller.id;
      state.phase='ACTION_SELECT';
    }
    defender.condition=deriveCondition(defender);
-   return {ok:true,choice,defenderId:id,controllerId:controller.id,success,roll,modifier:mod,total,targetNumber,cost:spent,posture:defender.posture};
+   return {ok:true,choice,defenderId:id,controllerId:controller.id,success,comeback,margin,roll,modifier:mod,total,targetNumber,cost:spent,posture:defender.posture};
  }
  if(choice==='cover'){
    defender.groundGuard=GROUND_GUARD_VALUE;
