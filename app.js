@@ -44,7 +44,7 @@ import {
   getAvailableActions,
   validateCombatAction,
   checkCombatFlow
-} from './match-engine.js?v=1.19.0';
+} from './match-engine.js?v=1.21.1';
 
 const app = document.querySelector('#app');
 let progression=loadProgress(localStorage);
