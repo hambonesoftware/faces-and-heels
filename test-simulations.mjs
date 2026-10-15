@@ -100,6 +100,15 @@ function simulateMatch(seed, maxSteps = 600) {
   let kickouts = 0;
   let holdPressures=0,holdEscapes=0,holdReleases=0,holdSwitches=0,groundResponses=0,submissions=0;
   const kickoutCounts = { 1: 0, 2: 0, 3: 0 };
+  // Track actual dice opportunities by wrestler. A successful attack is
+  // checked versus static CON by the source rules, NOT a defensive d20.
+  const byWrestler = Object.fromEntries(['stone','viper'].map(id => [id, {
+    attackRolls: 0, attackHits: 0, attackMisses: 0,
+    setupActions: 0, reactionRolls: 0, reactionWins: 0,
+    holdEscapeRolls: 0, holdEscapeWins: 0,
+    pinOffenseRolls: 0, pinDefenseRolls: 0,
+    scrambleDefenseRolls: 0, neutralContestRolls: 0
+  }]));
 
   validateState(state, `seed ${seed} start`);
 
@@ -109,6 +118,8 @@ function simulateMatch(seed, maxSteps = 600) {
 
     if (state.phase === 'NEUTRAL_ROLL') {
       neutralRolls += 1;
+      byWrestler.stone.neutralContestRolls++;
+      byWrestler.viper.neutralContestRolls++;
       const beforeHigh = Object.entries(state.roles).find(([, role]) => role === 'H')?.[0] || null;
       const result = resolveNeutralRoll(state, die(rng, 20), die(rng, 20));
       const nextHigh = Object.entries(state.roles).find(([, role]) => role === 'H')?.[0] || null;
@@ -120,10 +131,13 @@ function simulateMatch(seed, maxSteps = 600) {
     if (state.phase === 'REACTION') {
       if (canReact(state) && rng() < 0.72) {
         reactions += 1;
+        const reactionWrestlerId = state.pendingFailure.defenderId;
+        byWrestler[reactionWrestlerId].reactionRolls++;
         const previousHigh = Object.entries(state.roles).find(([, role]) => role === 'H')?.[0] || null;
         const result = resolveReaction(state, { reactionRoll: die(rng, 20), damageRoll: die(rng, 6) });
         if (result.success) {
           successfulReactions += 1;
+          byWrestler[reactionWrestlerId].reactionWins++;
           if (result.damage?.marked) bodyMarksAdded += 1;
         } else {
           failedReactions += 1;
@@ -161,9 +175,14 @@ function simulateMatch(seed, maxSteps = 600) {
       continue;
     }
     if(state.phase==='HOLD_ESCAPE'){
+      const escapingId = state.activeHold.defenderId;
+      byWrestler[escapingId].holdEscapeRolls++;
       const outcome=escapeHold(state,{escapeRoll:die(rng,20)});
       assert.ok(outcome.ok,'Defender must be allowed to escape');
-      if(outcome.success)holdEscapes++;
+      if(outcome.success){
+        holdEscapes++;
+        byWrestler[escapingId].holdEscapeWins++;
+      }
       if(outcome.submitted)submissions++;
       validateState(state,`seed ${seed} hold escape`);
       continue;
@@ -173,6 +192,7 @@ function simulateMatch(seed, maxSteps = 600) {
       const actor=state.groundDefense?.defenderId;
       assert.ok(actor,'Ground defender is missing');
       const choice=rng()<.65?'scramble':rng()<.75?'cover':'pass';
+      if(choice==='scramble')byWrestler[actor].scrambleDefenseRolls++;
       const reply=resolveGroundDefense(state,{choice,roll:choice==='scramble'?die(rng,20):undefined});
       assert.ok(reply.ok,'Ground response must be valid');
       groundResponses++;
@@ -191,6 +211,8 @@ function simulateMatch(seed, maxSteps = 600) {
       pinAttempts += 1;
       const pin = startPin(state);
       for (const count of [1, 2, 3]) {
+        byWrestler[pin.pinningId].pinOffenseRolls++;
+        byWrestler[pin.pinnedId].pinDefenseRolls++;
         const result = resolvePinCount(state, {
           pinningId: pin.pinningId,
           count,
@@ -247,6 +269,8 @@ function simulateMatch(seed, maxSteps = 600) {
     }
 
     const move = chooseMove(rng, legal, state);
+    if(move.automatic)byWrestler[actor.id].setupActions++;
+    else byWrestler[actor.id].attackRolls++;
     const decision = resolveTargetDecision(move, perspectiveState(state));
     let target = null;
     if (decision.kind === 'choice') target = choose(rng, decision.values);
@@ -264,9 +288,11 @@ function simulateMatch(seed, maxSteps = 600) {
     crowdRollSpends += result.spentCrowd;
     if (result.success) {
       moveHits += 1;
+      if(!move.automatic)byWrestler[actor.id].attackHits++;
       if (result.damage?.marked) bodyMarksAdded += 1;
     } else {
       moveMisses += 1;
+      if(!move.automatic)byWrestler[actor.id].attackMisses++;
     }
     const nextHigh = Object.entries(state.roles).find(([, role]) => role === 'H')?.[0] || null;
     if (previousHigh && nextHigh && previousHigh !== nextHigh) controlChanges += 1;
@@ -294,6 +320,7 @@ function simulateMatch(seed, maxSteps = 600) {
     kickouts,
     holdPressures,holdEscapes,holdReleases,holdSwitches,groundResponses,submissions,
     kickoutCounts,
+    byWrestler,
     terminalPhase: state.phase,
     finalStoneMarks: totalBodyMarks(wrestler(state, 'stone')),
     finalViperMarks: totalBodyMarks(wrestler(state, 'viper'))
@@ -336,9 +363,54 @@ assert.ok(sum('pinAttempts') > 0 && sum('kickouts') > 0, 'Batch must include Pin
 assert.ok(sum('bodyMarksAdded') > 0, 'Batch must accumulate body marks');
 assert.ok(sum('crowdRollSpends') > 0 && sum('crowdStaminaSpends') > 0, 'Batch must exercise both crowd spend paths');
 assert.ok(sum('scrambles') > 0, 'Batch must exercise post-kickout Scramble Up');
+// Defensive rolls are made by the reaction wrestler, pinned wrestler, or
+// escaping wrestler. Unlike the neutral contest, none are implied by CON.
+const totals = Object.fromEntries(['stone','viper'].map(id=>[id, {
+  attack: results.reduce((n,r)=>n+r.byWrestler[id].attackRolls,0),
+  counter: results.reduce((n,r)=>n+r.byWrestler[id].reactionRolls,0),
+  holdEscape: results.reduce((n,r)=>n+r.byWrestler[id].holdEscapeRolls,0),
+  pinOffense: results.reduce((n,r)=>n+r.byWrestler[id].pinOffenseRolls,0),
+  pinDefense: results.reduce((n,r)=>n+r.byWrestler[id].pinDefenseRolls,0),
+  groundDefense: results.reduce((n,r)=>n+r.byWrestler[id].scrambleDefenseRolls,0),
+  neutral: results.reduce((n,r)=>n+r.byWrestler[id].neutralContestRolls,0)
+}]));
+for(const id of ['stone','viper']){
+  assert(totals[id].attack>0,`${id} never rolled offense in batch`);
+  assert(totals[id].counter>0,`${id} never rolled a counter in batch`);
+  assert(totals[id].holdEscape>0,`${id} never rolled a hold escape in batch`);
+  assert(totals[id].pinDefense>0,`${id} never rolled a pin defense in batch`);
+}
+assert.equal(totals.stone.pinOffense+totals.viper.pinOffense,
+             totals.stone.pinDefense+totals.viper.pinDefense,
+             'Every pinning d20 must have a defender d20');
+const hasOffense = (result,id) =>
+  result.byWrestler[id].attackRolls + result.byWrestler[id].pinOffenseRolls>0;
+const hasDefense = (result,id) => {
+  const x=result.byWrestler[id];
+  return x.reactionRolls+x.holdEscapeRolls+x.pinDefenseRolls+x.scrambleDefenseRolls>0;
+};
+const bothOffense=results.filter(r=>['stone','viper'].every(id=>hasOffense(r,id))).length;
+const bothDefense=results.filter(r=>['stone','viper'].every(id=>hasDefense(r,id))).length;
+const fullTwoWay=results.filter(r=>['stone','viper'].every(id=>hasOffense(r,id)&&hasDefense(r,id))).length;
+const winnerOnlyAttacks=results.filter(r=>!hasOffense(r,opponentId(r.winnerId))).length;
+const noActiveDefender=results.filter(r=>!['stone','viper'].some(id=>hasDefense(r,id))).length;
+const distribution=Object.fromEntries(['stone','viper'].map(id=>[id,{
+  matchesWithOffense:results.filter(r=>hasOffense(r,id)).length,
+  matchesWithDefense:results.filter(r=>hasDefense(r,id)).length,
+  matchesWithBoth:results.filter(r=>hasOffense(r,id)&&hasDefense(r,id)).length
+}]));
+
 assert.ok(kickoutCountTotals[1] > 0 && kickoutCountTotals[2] > 0 && kickoutCountTotals[3] > 0, 'Batch must include kickouts at counts 1, 2, and 3');
 
 console.log(`Full-match simulations passed: ${MATCHES}`);
+console.log('BILATERAL OFFENSE/DEFENSE AUDIT:');
+console.log(`Both wrestlers rolled offense: ${bothOffense}/${MATCHES} matches`);
+console.log(`Both wrestlers rolled active defense: ${bothDefense}/${MATCHES} matches`);
+console.log(`Both wrestlers had offense AND defense: ${fullTwoWay}/${MATCHES} matches`);
+console.log(`Opponent never rolled offense: ${winnerOnlyAttacks}/${MATCHES} matches`);
+console.log(`Neither wrestler rolled active defense: ${noActiveDefender}/${MATCHES} matches`);
+for(const id of ['stone','viper'])
+ console.log(`${id.toUpperCase()}: ${JSON.stringify({totals:totals[id],coverage:distribution[id]})}`);
 console.log(`Wins: Stone ${wins.stone || 0}, Viper ${wins.viper || 0}`);
 console.log(`Average steps: ${avg('steps').toFixed(1)} (max ${max('steps')})`);
 console.log(`Average pin attempts: ${avg('pinAttempts').toFixed(2)}`);
