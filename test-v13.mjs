@@ -87,7 +87,8 @@ assert.ok(state.wrestlers.stone.stamina < stoneStaminaBeforeViperHit);
 assert.equal(state.activeWrestlerId, 'viper');
 assert.equal(state.roles.viper, 'H');
 
-// Direct pin test: defender winning any opposed roll kicks out and gets next N/N action.
+// Narrow kickout wins a defensive count and retains the normal N/N follow-up.
+// A decisive +7 margin instead earns High control (covered separately).
 const pinState = cloneInitialState();
 resolveNeutralRoll(pinState, 20, 1);
 pinState.wrestlers.viper.posture = 'prone';
@@ -95,8 +96,9 @@ pinState.pinEligible = true;
 pinState.pinningWrestlerId = 'stone';
 const pin = startPin(pinState);
 assert.equal(pin.pinningId, 'stone');
-const kickout = resolvePinCount(pinState, { pinningId: 'stone', count: 1, pinningRoll: 5, pinnedRoll: 19 });
+const kickout = resolvePinCount(pinState, { pinningId: 'stone', count: 1, pinningRoll: 12, pinnedRoll: 14 });
 assert.equal(kickout.kickout, true);
+assert.equal(kickout.comeback,false);
 assert.equal(pinState.roles.stone, 'N');
 assert.equal(pinState.roles.viper, 'N');
 assert.equal(pinState.activeWrestlerId, 'viper');
