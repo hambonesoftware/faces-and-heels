@@ -38,8 +38,10 @@ function prepare(){
 {
  const state=prepare(),reply=resolveGroundDefense(state,{choice:'scramble',roll:20});
  assert(reply.ok&&reply.success);
- assert.equal(state.phase,'NEUTRAL_ROLL');assert.equal(state.roles.viper,'N');
- assert.equal(wrestler(state,'viper').posture,'kneeling');
+ assert(reply.comeback,'Excellent ground escape should earn control');
+ assert.equal(state.phase,'ACTION_SELECT');assert.equal(state.roles.viper,'H');
+ assert.equal(state.activeWrestlerId,'viper');
+ assert.equal(wrestler(state,'viper').posture,'standing');
  assert(!state.pinEligible);
 }
 {
