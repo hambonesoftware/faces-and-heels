@@ -20,7 +20,8 @@ for(const count of [1,2,3]){
  assert(result.kickout,'Defender kickout possible at all three counts');
  assert.equal(state.phase,'ACTION_SELECT');
  assert.equal(state.activeWrestlerId,'viper');
- assert.equal(state.roles.viper,'N');
+ assert.equal(state.roles.viper,'H');
+ assert(result.comeback,'Excellent kickout should earn the next offensive turn');
  assert(checkCombatFlow(state).ok);
 }
 {
