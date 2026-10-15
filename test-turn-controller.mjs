@@ -70,7 +70,7 @@ const expect=(state,phase,owner)=>{
  assert(!action(state,ACTION_IDS.COUNT_PIN,'stone').ok);
  assert(action(state,ACTION_IDS.COUNT_PIN,'viper').ok);
  assert.throws(()=>resolvePinCount(state,{pinningId:info.pinningId,count:2,pinningRoll:20,pinnedRoll:1}),/Pin counts must resolve in order/);
- const count=resolvePinCount(state,{pinningId:info.pinningId,count:1,pinningRoll:5,pinnedRoll:19});
+ const count=resolvePinCount(state,{pinningId:info.pinningId,count:1,pinningRoll:12,pinnedRoll:14});
  assert(count.kickout);
  expect(state,'ACTION_SELECT','viper');
  const recovery=getAvailableActions(state);
