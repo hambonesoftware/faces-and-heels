@@ -29,7 +29,8 @@ const counts=()=>({
 function play(seed){
  const rng=rngFactory(seed),state=cloneInitialState();
  const dice={stone:counts(),viper:counts()};
- let steps=0,controlSwings=0,lastController=null,finished=false;
+ let steps=0,controlSwings=0,lastController=null;
+ const earnedReversals={stone:{kickout:0,scramble:0},viper:{kickout:0,scramble:0}};
  for(;steps<650&&!state.winnerId;steps++){
    const phase=state.phase;
    const report=checkCombatFlow(state);
@@ -78,9 +79,10 @@ function play(seed){
      case 'pin-defense':{
        const p=state.pinningWrestlerId,defender=opponentId(p);
        dice[p].pinAttack++;dice[defender].pinDefense++;
-       resolvePinCount(state,{
+       const result=resolvePinCount(state,{
          pinningId:p,count:state.pinCount+1,pinningRoll:die(rng),pinnedRoll:die(rng)
        });
+       if(result.comeback)earnedReversals[defender].kickout++;
        break;
      }
      case 'escape-hold':{
@@ -95,7 +97,10 @@ function play(seed){
      case 'release-hold':assert(releaseHold(state).ok);break;
      case 'scramble-ground':{
        dice[actor].groundDefense++;
-       assert(resolveGroundDefense(state,{choice:'scramble',roll:die(rng)}).ok);break;
+       const result=resolveGroundDefense(state,{choice:'scramble',roll:die(rng)});
+       assert(result.ok);
+       if(result.comeback)earnedReversals[actor].scramble++;
+       break;
      }
      case 'cover-ground':assert(resolveGroundDefense(state,{choice:'cover'}).ok);break;
      case 'stand':assert(scrambleUp(state,actor).ok);break;
@@ -111,7 +116,7 @@ function play(seed){
  assert(state.phase==='MATCH_COMPLETE');
  const offensive=id=>dice[id].attack+dice[id].pinAttack;
  const defensive=id=>dice[id].reaction+dice[id].holdEscape+dice[id].groundDefense+dice[id].pinDefense;
- return {seed,winner:state.winnerId,method:state.winMethod,steps,controlSwings,dice,
+ return {seed,winner:state.winnerId,method:state.winMethod,steps,controlSwings,dice,earnedReversals,
    bothOffense:ids.every(id=>offensive(id)>0),
    bothDefense:ids.every(id=>defensive(id)>0),
    fullTwoWay:ids.every(id=>offensive(id)>0&&defensive(id)>0),
@@ -142,7 +147,11 @@ const flow={
   bothNeutral:total(b=>b.neutralEach),
   pinfall:total(b=>b.method==='pinfall'),
   submission:total(b=>b.method==='submission'),
-  stats,coverage
+  stats,coverage,
+  earnedReversals:Object.fromEntries(ids.map(id=>[id,{
+    kickout:bouts.reduce((sum,b)=>sum+b.earnedReversals[id].kickout,0),
+    scramble:bouts.reduce((sum,b)=>sum+b.earnedReversals[id].scramble,0)
+  }]))
 };
 // Wrestling can include occasional one-sided/squash bouts, but a healthy
 // match pool should provide meaningful d20 offense AND active defense to
@@ -153,6 +162,9 @@ assert(flow.bothOffenseAndDefense>=MATCHES*.90,'Two-way offense/defense coverage
 assert(flow.oneSidedWithoutLoserOffense<=MATCHES*.10,'Too many one-sided bouts');
 assert(flow.averageControlSwings>=3,'Insufficient back-and-forth changes of control');
 assert.equal(wins.stone+wins.viper,MATCHES);
+for(const id of ids)
+ assert(flow.earnedReversals[id].kickout+flow.earnedReversals[id].scramble>0,
+   `${id} never earned a defensive control reversal in the match batch`);
 assert(wins.stone>0&&wins.viper>0);
 assert.equal(stats.stone.pinAttack+stats.viper.pinAttack,
              stats.stone.pinDefense+stats.viper.pinDefense);
