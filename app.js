@@ -1,5 +1,6 @@
 import {ACTION_IDS} from './turn-controller.js?v=1.19.0';
 import {renderBroadcastDice} from './broadcast-dice.js?v=1.23.0';
+import {renderCombatDock,renderCombatPrompt,renderPinEnergy,moveFamilies} from './combat-dock.js?v=1.25.0';
 import {groundScrambleTarget,GROUND_SCRAMBLE_COST} from './ground-defense.js?v=1.19.0';
 import {DEFAULT_MATCH_SETUP,readMatchSetup,saveMatchSetup,aiWrestlerId,isAiDecision,chooseAiAction,choosePinCrowdSpend} from './solo-ai.js?v=1.24.0';
 import { animationByMove } from './combat-animation-map.js?v=1.21.0';
@@ -76,6 +77,8 @@ let ui = {
   event: null,
   filter: 'all',
   moreMoves: false,
+  actionFamily: null,
+  showMatchOptions: false,
   railOffset: 0,
   pinCount: 0,
   pinRolls: null,
@@ -266,204 +269,105 @@ function resolvedTargetLabel(move) {
 }
 
 function renderNeutral() {
-  const rolls = ui.neutralRolls;
-  return `
-    <section class="decision-panel decision-panel--neutral">
-      <div class="opportunity-copy"><small>OPENING / NEUTRAL</small><strong>Fight for control</strong><span>${escapeHtml(rivalryLead)} Both recover up to 10 stamina. Highest roll + Agility takes control.</span></div>
-      ${rolls ? `<div class="neutral-score"><span>STONE <b>${rolls.stoneTotal}</b></span><i>VS</i><span>VIPER <b>${rolls.viperTotal}</b></span></div>` : ''}
-      <button class="roll-button neutral-roll-button" data-neutral-roll><strong>FIGHT FOR CONTROL</strong><small>ROLL BIG GOLD DICE</small></button>
-    </section>`;
+ return renderCombatPrompt({
+  kind:'neutral',kicker:'CENTER OF THE RING',title:'FIGHT FOR CONTROL',
+  detail:'Opposed d20 + Agility decides who attacks first.',
+  actions:[{action:'data-neutral-roll',label:'LOCK UP · ROLL',note:'STONE VS VIPER',primary:true}]
+ });
 }
 
 function renderMoveCards() {
-  const actor = currentActor();
-  const defender = currentDefender();
-  if (!actor || !defender) return renderNeutral();
-  const turn=turnDecision();
-  const allLegal = getLegalMoves(state);
-  if (!allLegal.length) {
-    const canScramble = turn.actions.some(action=>action.id===ACTION_IDS.SCRAMBLE&&action.enabled);
-    return `
-      <section class="decision-panel decision-panel--recovery">
-        <div class="opportunity-copy"><small>${canScramble ? 'MAT SCRAMBLE' : 'NO LEGAL MOVE'}</small><strong>${escapeHtml(actor.name)} ${canScramble ? 'can get back to a base' : 'needs a reset'}</strong><span>${canScramble ? 'Kickouts leave both wrestlers prone. Stand up without surrendering the next-action right, then choose a legal move.' : 'Spend crowd energy for stamina if available, or Catch Breath to reset the match to Neutral.'}</span></div>
-        <div class="opportunity-actions">
-          ${canScramble ? '<button class="reaction-button" data-scramble-up>SCRAMBLE UP</button>' : ''}
-          ${actor.crowdResource > 0 && actor.stamina < actor.maxStamina ? `<button class="reaction-button" data-recover>+10 STA · 1 ${escapeHtml(actor.crowdResourceName)}</button>` : ''}
-          ${canScramble ? '' : '<button class="continue-button" data-catch-breath>CATCH BREATH → N/N</button>'}
-        </div>
-      </section>`;
-  }
-
-  // Only legal moves appear; the ribbon contains the entire contextual roster.
-  const categories = ['all','strike','grapple','setup','special'];
-  const labels = {all:'ALL',strike:'HITS',grapple:'GRABS',setup:'SETUP',special:'SIGNATURE'};
-  const present = categories.filter(category => category === 'all' || allLegal.some(move => move.category === category));
-  // A new posture can invalidate a previous category (for example, pickup
-  // ends the ground-attack list). Always show legal actions after the turn.
-  if(!present.includes(ui.filter)){ui.filter='all';ui.railOffset=0;}
-  const activeCategory = ui.filter;
-  const moves = activeCategory === 'all' ? allLegal : allLegal.filter(move => move.category === activeCategory);
-  const cards = moves.map((move, index) => {
-    const decision = resolveTargetDecision(move, perspectiveState(state));
-    const target = decision.kind === 'choice' ? 'CHOOSE TARGET' : resolvedTargetLabel(move);
-    const categoryName = move.legendary ? 'LEGENDARY' : (labels[move.category] || move.category.toUpperCase());
-    return `
-      <button class="action-slot action-slot--${escapeHtml(move.category)}" data-move="${escapeHtml(move.id)}" aria-label="${escapeHtml(move.name)}, costs ${move.staminaCost} stamina, removes up to ${move.staminaDamage} opponent stamina on success, ${escapeHtml(target)}" type="button" title="${escapeHtml(move.name)} · ${move.staminaCost} stamina cost · ${move.staminaDamage} opponent stamina loss">
-        <span class="action-slot-art">${moveArt(move.id)}</span>
-        <span class="action-slot-index" aria-hidden="true">${String(index+1).padStart(2,'0')}</span>
-        <span class="action-slot-heading"><strong>${escapeHtml(move.name)}</strong><small class="action-slot-category">${escapeHtml(categoryName)} · ${escapeHtml(target)}</small></span>
-        <span class="action-slot-foot"><span class="action-slot-cost">−${move.staminaCost} <small>STA</small></span><span class="action-slot-effect">−${move.staminaDamage} <small>OPP</small></span></span>
-      </button>`;
-  }).join('');
-
-  const recoverButton = turn.actions.some(action=>action.id===ACTION_IDS.RECOVER&&action.enabled) && actor.stamina <= actor.maxStamina - 5
-    ? `<button class="recover-mini" data-recover type="button">+10 STA · 1 ${escapeHtml(actor.crowdResourceName)}</button>` : '';
-  const standButton=turn.actions.some(action=>action.id===ACTION_IDS.SCRAMBLE&&action.enabled)
-    ? '<button class="recover-mini" data-scramble-up type="button">STAND UP</button>' : '';
-  const finishNotice = state.mustFinishTargetId === defender.id && defender.stamina <= 0
-    ? `<div class="finish-required">FINISH REQUIRED · ${escapeHtml(defender.name)} IS OUT OF STAMINA</div>` : '';
-
-  return `
-    <section class="decision-panel decision-panel--moves" aria-label="Ringside action bar">
-      ${finishNotice}
-      <div class="action-ribbon-heading">
-        <div class="action-ribbon-title">
-          <strong><span class="action-live-dot"></span>${escapeHtml(actor.name)} <span class="action-initiative">· ${roleFor(state,actor.id) === 'N' ? 'NEUTRAL' : 'IN CONTROL'}</span></strong>
-        </div>
-        <div class="action-ribbon-tools">${standButton}${recoverButton}<span class="action-available">${moves.length} MOVES</span></div>
-      </div>
-      <div class="action-ribbon-controls">
-        <div class="action-category-tabs" role="group" aria-label="Move type">
-          ${present.map(category => `<button type="button" class="action-category action-category--${category} ${activeCategory === category ? 'is-active' : ''}" data-filter="${category}" aria-pressed="${activeCategory === category}">${labels[category]}</button>`).join('')}
-        </div>
-        <div class="action-ribbon-navigation">
-          <output class="action-ribbon-count" data-rail-counter aria-live="off">01 / ${String(moves.length).padStart(2,'0')}</output>
-          <button type="button" class="action-ribbon-arrow" data-rail-step="-1" aria-label="Scroll to previous moves">‹</button>
-          <button type="button" class="action-ribbon-arrow" data-rail-step="1" aria-label="Scroll to next moves">›</button>
-        </div>
-      </div>
-      <div class="action-ribbon-window">
-        <div class="action-ribbon-track" data-action-rail tabindex="0" role="region" aria-label="Available wrestling moves. Swipe horizontally, or use left and right arrow keys.">
-          ${cards}
-        </div>
-      </div>
-      <div class="action-ribbon-footer">
-        <span class="action-ribbon-progress" aria-hidden="true"><i data-rail-progress></i></span>
-        <span>SWIPE MOVES → TAP TO ATTACK</span>
-      </div>
-    </section>`;
+ const actor=currentActor(),defender=currentDefender();
+ if(!actor||!defender)return renderNeutral();
+ const turn=turnDecision();
+ const allLegal=getLegalMoves(state);
+ const allowed=moveFamilies(allLegal);
+ if(ui.actionFamily&&!allowed.some(x=>x.id===ui.actionFamily))ui.actionFamily=null;
+ return renderCombatDock({
+  actor,defender,legalMoves:allLegal,family:ui.actionFamily,
+  canRecover:turn.actions.some(a=>a.id===ACTION_IDS.RECOVER&&a.enabled)&&actor.stamina<=actor.maxStamina-5,
+  canStand:turn.actions.some(a=>a.id===ACTION_IDS.SCRAMBLE&&a.enabled),
+  finishRequired:state.mustFinishTargetId===defender.id&&defender.stamina<=0
+ });
 }
 
 function renderTargetChoice() {
-  const move = ui.selectedMove;
-  const decision = resolveTargetDecision(move, perspectiveState(state));
-  return `
-    <section class="decision-panel decision-panel--selected">
-      <div class="selected-title"><button class="back-mini" data-back aria-label="Back">‹</button><div><small>${move.legendary?'LEGENDARY FINISHER · '+escapeHtml(currentActor().style.toUpperCase()):move.category.toUpperCase()}</small><strong>${escapeHtml(move.name)}</strong></div><span>CHOOSE TARGET</span></div>
-      <div class="choice-grid">${decision.values.map(target => `<button class="choice-button" data-target="${target}">${escapeHtml(bodyLabel(target).toUpperCase())}</button>`).join('')}</div>
-    </section>`;
+ const move=ui.selectedMove;
+ const decision=resolveTargetDecision(move,perspectiveState(state));
+ return renderCombatPrompt({
+  kind:'target',kicker:move.legendary?'LEGENDARY FINISHER':move.category.toUpperCase(),
+  title:move.name,detail:'CHOOSE BODY TARGET',
+  actions:decision.values.map(target=>({action:`data-target="${escapeHtml(target)}"`,label:bodyLabel(target).toUpperCase()}))
+ });
 }
 
 function renderSelectedMove() {
-  const move = ui.selectedMove;
-  if (move.automatic) {
-    return `
-      <section class="decision-panel decision-panel--selected">
-        <div class="selected-title"><button class="back-mini" data-back aria-label="Back">‹</button><div><small>POSITIONING / SETUP</small><strong>${escapeHtml(move.name)}</strong></div><span>${move.staminaCost} STA</span></div>
-        <div class="selected-illustration">${moveArt(move.id)}<p>${escapeHtml(move.description)}</p></div>
-        <div class="move-meta-line"><b>RETAINS HIGH CONTROL</b><i>·</i><span>NO BODY MARK</span><i>·</i><span>NO ATTACK ROLL</span></div>
-        <div class="move-resource-trade"><span>YOUR COST <b>−${move.staminaCost} STA</b></span><span>OPPONENT EXERTION <b>−${move.staminaDamage} STA</b></span></div>
-        <div class="primary-row"><button class="roll-button" data-roll><strong>PERFORM SETUP</strong><small>KEEP CONTROL · ${move.staminaCost} STA</small></button></div>
-      </section>`;
-  }
-  const actor = currentActor();
-  const defender = currentDefender();
-  const decision = resolveTargetDecision(move, perspectiveState(state));
-  const target = ui.selectedTarget || decision.values[0] || null;
-  const mod = statModifier(actor.stats[move.stat]);
-  const boost=attackBoostEligibility(state,move);
-  const probability=ui.spendCrowd&&boost.available?boost.boostChance:boost.baseChance;
-  const boostLabel=ui.spendCrowd?'CROWD CALLED':'CALL THE CROWD';
-  const boostAction=boost.eligible && actor.crowdResource>0
-    ? `<button class="boost-button crowd-moment ${ui.spendCrowd?'is-on':''}" data-boost aria-pressed="${Boolean(ui.spendCrowd)}"><strong>${boostLabel}</strong><small>${boost.reason==='signature'?'SIGNATURE MOMENT':'UPHILL ATTACK'} · 1 ${escapeHtml(actor.crowdResourceName)} / +1d6</small></button>`
-    : '';
-  return `
-    <section class="decision-panel decision-panel--selected">
-      <div class="selected-title"><button class="back-mini" data-back aria-label="Back">‹</button><div><small>${move.category.toUpperCase()}</small><strong>${escapeHtml(move.name)}</strong></div><span>${move.staminaCost} STA</span></div>
-      <div class="selected-illustration">${moveArt(move.id)}<p>${escapeHtml(move.description)}</p></div><div class="move-meta-line"><b>${target ? escapeHtml(bodyLabel(target).toUpperCase()) : 'AUTO'}</b><i>·</i><span>${escapeHtml(move.stat.toUpperCase())} ${mod >= 0 ? '+' : ''}${mod}</span><i>·</i><span>VS CON ${conditioning(defender)}</span><i>·</i><span>d${move.damageDie} DAMAGE</span></div>
-      <div class="move-resource-trade"><span>YOUR COST <b>−${move.staminaCost} STA</b></span><span>OPPONENT ON HIT <b>−${move.staminaDamage} STA</b></span></div><meter class="connect-meter" min="0" max="100" value="${probability}" aria-label="${probability}% chance to connect">${probability}%</meter><p class="probability-note">${probability}% to connect · damage threshold and pin counts resolve separately</p><div class="primary-row">${boostAction}<button class="roll-button" data-roll><strong>ATTEMPT MOVE</strong><small>ROLL d20 · ${escapeHtml(move.name)}</small></button></div>
-    </section>`;
+ const move=ui.selectedMove,actor=currentActor();
+ if(!move||!actor)return '';
+ const defender=currentDefender();
+ const target=ui.selectedTarget||resolveTargetDecision(move,perspectiveState(state)).values[0];
+ const boost=move.automatic?null:attackBoostEligibility(state,move);
+ const extras=boost?.available?`<button type="button" class="dock-crowd-moment ${ui.spendCrowd?'is-on':''}" data-boost aria-pressed="${Boolean(ui.spendCrowd)}">★ ${ui.spendCrowd?'CROWD CALLED':'CALL THE CROWD'} <small>1 ${escapeHtml(actor.crowdResourceName)} · +1d6</small></button>`:'';
+ const chance=boost?(ui.spendCrowd?boost.boostChance:boost.baseChance):null;
+ return renderCombatPrompt({
+  kind:'execute',kicker:move.legendary?'LEGENDARY':move.category.toUpperCase(),title:move.name,
+  detail:`−${move.staminaCost} STA${target?' · '+bodyLabel(target).toUpperCase():''}${chance!==null?' · '+chance+'% HIT':''}`,
+  actions:[
+   {action:'data-back',label:'BACK'},
+   {action:'data-roll',label:move.automatic?'PERFORM SETUP':'EXECUTE',note:move.automatic?'KEEP HIGH CONTROL':'ROLL d20',primary:true}
+  ],extras
+ });
 }
 
-function renderOpportunity() {
-  const pinning = wrestler(state, state.pinningWrestlerId);
-  const pinned = wrestler(state, opponentId(state.pinningWrestlerId));
-  const forced = pinned.stamina <= 0;
-  const available=Math.min(3,pinning.crowdResource);
-  const boostChoices=Array.from({length:available+1},(_,n)=>`<button type="button" class="boost-button ${ui.pinCrowdSpend===n?'is-on':''}" data-pin-crowd="${n}" aria-pressed="${ui.pinCrowdSpend===n}">${n}d6</button>`).join('');
-  return `
-    <section class="decision-panel decision-panel--opportunity">
-      <div class="opportunity-copy"><small>${forced ? 'FINISH REQUIRED' : 'PIN OPPORTUNITY'}</small><strong>${escapeHtml(pinned.name)} is prone</strong><span>${forced ? `${pinned.name} has 0 STA. The H wrestler must attempt a finish.` : 'Three opposed BGD counts. Body damage makes kickouts harder.'}</span></div>
-      <div class="pin-resource-choices" role="group" aria-label="Heat or Pop dice per pin count"><span>${escapeHtml(pinning.crowdResourceName)}: ${pinning.crowdResource} available</span>${boostChoices}<small>Choose how many d6 to spend per count during the cover.</small></div>
-      <div class="opportunity-actions"><button class="pin-button" data-pin>PIN NOW</button>${forced ? '' : '<button class="continue-button" data-continue>CONTINUE</button>'}</div>
-    </section>`;
+function renderOpportunity(){
+ const pinning=wrestler(state,state.pinningWrestlerId);
+ const pinned=wrestler(state,opponentId(state.pinningWrestlerId));
+ const forced=pinned.stamina<=0;
+ return renderCombatPrompt({
+  kind:'opportunity',kicker:'SHOULDERS DOWN',title:'PIN OPPORTUNITY',
+  detail:`${pinned.name} IS PRONE${forced?' · FINISH REQUIRED':''}`,
+  actions:[{action:'data-pin',label:'GO FOR PIN',note:'3 COUNT',primary:true},...(!forced?[{action:'data-continue',label:'CONTINUE OFFENSE'}]:[])],
+  extras:renderPinEnergy({resourceName:pinning.crowdResourceName,resource:pinning.crowdResource,chosen:ui.pinCrowdSpend})
+ });
 }
 
-function renderPinDefense() {
-  const turn=turnDecision(),pinned=wrestler(state,turn.actorId);
-  const pinning=turn.controlId?wrestler(state,turn.controlId):null;
-  const next=Math.min(3,(ui.pinInfo?.count||0)+1);
-  const last=ui.pinRolls;
-  const humanId=aiEnabled()?matchSetup.playerId:null;
-  const humanPinning=(!aiEnabled() || humanId===pinning?.id);
-  const humanPinned=(!aiEnabled() || humanId===pinned?.id);
-  const playerSide=humanPinned?pinned:humanPinning?pinning:null;
-  const available=Math.min(3,playerSide?.crowdResource||0);
-  const chosen=Math.min(ui.pinCrowdSpend,available);
-  const boostControls=playerSide?`<div class="pin-resource-choices" role="group" aria-label="Heat or Pop dice to spend on the next count"><span>${escapeHtml(playerSide.name)} · ${escapeHtml(playerSide.crowdResourceName)}: ${playerSide.crowdResource} available</span>${Array.from({length:available+1},(_,n)=>`<button type="button" class="boost-button ${chosen===n?'is-on':''}" data-pin-crowd="${n}" aria-pressed="${chosen===n}">${n}d6</button>`).join('')}<small>Spend on this count only. Each die adds 1–6 to your opposed d20 roll.</small></div>`:'';
-  return `
-    <section class="decision-panel decision-panel--pin-defense">
-      <div class="pin-defense-copy"><small>DEFENSIVE TURN · ${pinned?escapeHtml(pinned.name):'PINNED WRESTLER'}</small>
-        <strong>KICK OUT — COUNT ${next}</strong>
-        <span>${pinning?escapeHtml(pinning.name)+' controls the pin. ':''}Opposed d20 dice determine whether the shoulders stay down.</span>
-        ${last?`<span>PREVIOUS: ${last.pinnedTotal} vs ${last.pinningTotal} · Heat/Pop +${last.pinnedBonus||0}/+${last.pinningBonus||0}</span>`:''}
-        ${boostControls}
-      </div>
-      <button type="button" class="pin-defense-button" data-pin-defense>ROLL KICKOUT <small>BIG GOLD DICE · D20</small></button>
-    </section>`;
+function renderPinDefense(){
+ const turn=turnDecision(),pinned=wrestler(state,turn.actorId);
+ const pinning=turn.controlId?wrestler(state,turn.controlId):null;
+ const next=Math.min(3,(ui.pinInfo?.count||0)+1);
+ const humanId=aiEnabled()?matchSetup.playerId:null;
+ const playerSide=(!aiEnabled()||humanId===pinned?.id)?pinned:(!aiEnabled()||humanId===pinning?.id)?pinning:null;
+ return renderCombatPrompt({
+  kind:'pin-defense',kicker:'REFEREE COUNT · '+next,title:'KICK OUT!',
+  detail:`${pinned.name} VS ${pinning?.name||'OPPONENT'} · OPPOSED D20`,
+  actions:[{action:'data-pin-defense',label:'ROLL KICKOUT',note:'DEFEND THE PIN',primary:true,danger:true}],
+  extras:playerSide?renderPinEnergy({resourceName:playerSide.crowdResourceName,resource:playerSide.crowdResource,chosen:Math.min(ui.pinCrowdSpend,playerSide.crowdResource)}):''
+ });
 }
 
-function renderReaction() {
-  const pending=state.pendingFailure;
-  if(!pending)return renderMoveCards();
-  const reactor=wrestler(state,pending.defenderId),target=wrestler(state,pending.attackerId);
-  const moves=getAvailableReactions(state);
-  return `
-    <section class="decision-panel decision-panel--reaction">
-      <div class="opportunity-copy"><small>${escapeHtml(reactor.name)} · DEFENSIVE REACTION</small>
-        <strong>COUNTER THE MISSED ATTACK</strong><span>${escapeHtml(target.name)} missed. Choose a trained Common Move to reverse control, or pass.</span></div>
-      <div class="counter-move-options">
-      ${moves.map(move=>`<button type="button" data-reaction="${escapeHtml(move.id)}" class="counter-move">
-        <span class="counter-art">${moveArt(move.id)}</span>
-        <span><strong>${escapeHtml(move.name)}</strong><small>−${move.staminaCost} YOUR STA · −${move.staminaDamage} OPP</small></span>
-      </button>`).join('')}
-      <button class="continue-button counter-pass" data-pass-reaction>${moves.length?'PASS REACTION':'NO LEGAL COUNTER · PASS'}</button>
-      </div>
-    </section>`;
+function renderReaction(){
+ const pending=state.pendingFailure;
+ if(!pending)return renderMoveCards();
+ const reactor=wrestler(state,pending.defenderId);
+ const moves=getAvailableReactions(state);
+ return renderCombatPrompt({
+  kind:'reaction',kicker:`${reactor.name} · COUNTER WINDOW`,title:'TAKE CONTROL',
+  detail:'ONLY TRAINED COUNTERS ARE AVAILABLE',
+  actions:[...moves.map(m=>({action:`data-reaction="${escapeHtml(m.id)}"`,label:m.name,note:`−${m.staminaCost} STA`,primary:true})),
+    {action:'data-pass-reaction',label:'PASS'}]
+ });
 }
+
 function renderGroundDefense(){
  const turn=turnDecision(),defender=wrestler(state,turn.actorId);
- const attacker=turn.controlId?wrestler(state,turn.controlId):null;
- return `
-   <section class="decision-panel decision-panel--ground-defense" aria-label="Ground defense while opponent retains High control">
-     <div class="opportunity-copy"><small>${escapeHtml(defender.name)} · LOW DEFENSE</small>
-       <strong>GET OFF THE MAT</strong><span>${attacker?escapeHtml(attacker.name)+' remains in control. ':''}You can defend before the next attack.</span></div>
-     <div class="ground-response-actions">
-       <button class="ground-response-primary" data-ground-scramble>SCRAMBLE <small>d20 + AGI · −2 STA · rise to knees</small></button>
-       <button class="ground-response-secondary" data-ground-cover>COVER UP <small>Guard the next hit and protect body marks</small></button>
-       <button class="ground-response-pass" data-ground-pass>STAY DOWN <small>Hold position</small></button>
-     </div>
-   </section>`;
+ return renderCombatPrompt({
+  kind:'ground-defense',kicker:`${defender.name} · DEFENDING`,title:'GET OFF THE MAT',
+  actions:[
+    {action:'data-ground-scramble',label:'SCRAMBLE',note:'D20 + AGI',primary:true},
+    {action:'data-ground-cover',label:'COVER UP',note:'REDUCE NEXT HIT'},
+    {action:'data-ground-pass',label:'STAY DOWN'}
+  ]
+ });
 }
 
 function renderMatchIntro() {
@@ -565,40 +469,24 @@ function renderMatchComplete() {
     </section>`;
 }
 
-function renderHoldDock() {
-  const hold=state.activeHold;
-  if(!hold)return renderMoveCards();
-  const move=demoMoves.find(m=>m.id===hold.moveId);
-  if(!move||!move.sustained)return '';
-  const holder=wrestler(state,hold.holderId);
-  const trapped=wrestler(state,hold.defenderId);
-  const spec=move.sustained;
-  const defending=state.phase==='HOLD_ESCAPE';
-  const finalAttempt=Boolean(hold.finishPending);
-  const able=holder.stamina>=spec.tickCost;
-  const transitions=defending?[]:availableHoldTransitions(state);
-  return `
-    <section class="decision-panel decision-panel--hold ${defending?'is-escape':'is-holder'}" aria-label="Active wrestling submission">
-      <div class="hold-ribbon-head">
-        <span class="hold-live">● ${defending?(finalAttempt?'LAST-CHANCE ESCAPE':'ESCAPE WINDOW'):'SUBMISSION LOCKED'}</span>
-        <strong>${escapeHtml(move.name.toUpperCase())}</strong>
-        <span class="hold-count">${hold.ticks} PRESSURE ${hold.ticks===1?'TURN':'TURNS'}</span>
-      </div>
-      <div class="hold-ribbon-body">
-        <div class="hold-figure">${moveArt(move.id)}</div>
-        <div class="hold-ribbon-copy"><strong>${escapeHtml(holder.name)} ${defending?'MAINTAINS THE HOLD':'HAS CONTROL'}</strong>
-          <span>${defending?(finalAttempt?'FINAL ESCAPE: a failed roll means submission.':'ESCAPE NOW: roll Agility even while your opponent has High control.'):'Apply pressure to drain more stamina, or release to attempt a pin.'}</span>
-          <div class="hold-stat-line"><b>${escapeHtml(trapped.name)}: ${trapped.stamina} STA</b><span>${escapeHtml(holder.name)}: ${holder.stamina} STA</span></div>
-        </div>
-        <div class="hold-ribbon-actions">
-          ${defending
-            ?`<button type="button" class="hold-primary hold-escape" data-hold-escape>${finalAttempt?"FINAL ESCAPE":"ESCAPE"} <small>d20 + AGI · ${trapped.stamina===0?"NO STA AVAILABLE":`−${Math.min(spec.escapeCost,trapped.stamina)} STA`}</small></button>`
-            :`<button type="button" class="hold-primary" data-hold-squeeze ${able?'':'disabled'}>TIGHTEN <small>−${spec.tickCost} STA / −${spec.tickDamage} OPP</small></button>
-              ${transitions.map(t=>`<button type="button" class="hold-switch" data-hold-switch="${escapeHtml(t.id)}">SWITCH → ${escapeHtml(t.name.toUpperCase())}<small>−${t.cost} STA · −${t.damage} OPP · ESCAPE FOLLOWS</small></button>`).join('')}
-              <button type="button" class="hold-secondary" data-hold-release>RELEASE HOLD <small>${trapped.posture==='prone'?'PIN AVAILABLE':'KEEP CONTROL'}</small></button>`}
-        </div>
-      </div>
-    </section>`;
+function renderHoldDock(){
+ const hold=state.activeHold;
+ if(!hold)return renderMoveCards();
+ const move=demoMoves.find(m=>m.id===hold.moveId);
+ if(!move||!move.sustained)return '';
+ const holder=wrestler(state,hold.holderId),trapped=wrestler(state,hold.defenderId);
+ const defending=state.phase==='HOLD_ESCAPE',finalAttempt=Boolean(hold.finishPending);
+ const spec=move.sustained;
+ return renderCombatPrompt({
+  kind:defending?'hold-escape':'hold',kicker:`${move.name.toUpperCase()} · ${hold.ticks} PRESSURE`,
+  title:defending?(finalAttempt?'LAST-CHANCE ESCAPE':'BREAK THE HOLD'):'HOLD LOCKED',
+  detail:defending?`${trapped.name} MUST FIGHT FREE`:`${holder.name} HAS HIGH CONTROL`,
+  actions:defending?
+   [{action:'data-hold-escape',label:finalAttempt?'FINAL ESCAPE':'ESCAPE',note:'D20 + AGI',primary:true,danger:finalAttempt}]:
+   [{action:'data-hold-squeeze',label:'TIGHTEN',note:`−${spec.tickCost} STA`,primary:true,disabled:holder.stamina<spec.tickCost},
+    ...availableHoldTransitions(state).map(t=>({action:`data-hold-switch="${escapeHtml(t.id)}"`,label:'SWITCH: '+t.name,note:`−${t.cost} STA`})),
+    {action:'data-hold-release',label:'RELEASE HOLD'}]
+ });
 }
 
 function renderDecisionDock() {
@@ -1225,12 +1113,24 @@ app.addEventListener('click', event => {
   if (el.dataset.playerId !== undefined) {matchSetup=saveMatchSetup(localStorage,{...matchSetup,playerId:el.dataset.playerId});render();return;}
   if (el.dataset.difficulty !== undefined) {matchSetup=saveMatchSetup(localStorage,{...matchSetup,difficulty:el.dataset.difficulty});render();return;}
   if (el.dataset.toggleCoaching !== undefined) {matchSetup=saveMatchSetup(localStorage,{...matchSetup,tutorial:!matchSetup.tutorial});render();return;}
+  if (el.dataset.matchOptions !== undefined){ui.showMatchOptions=!ui.showMatchOptions;render();return;}
   if (el.dataset.startMatch !== undefined) { introOpen=false;matchSetup=saveMatchSetup(localStorage,matchSetup);audio.cue('bell');render();document.querySelector('[data-neutral-roll]')?.focus();return;}
   if (el.dataset.dismissGuide !== undefined){matchSetup=saveMatchSetup(localStorage,{...matchSetup,tutorial:false});ui.coachingDismissed=true;render();return;}
   // Human cannot click on the CPU's turn before its scheduled action runs.
   if(aiEnabled()&&(aiBusy||isAiDecision(state,matchSetup))&&!el.dataset.drawer&&!el.dataset.closeDrawer&&!el.dataset.renderer)return;
   if (el.dataset.neutralRoll !== undefined) { if(permitted(ACTION_IDS.NEUTRAL,null))rollNeutral(); return; }
-  if (el.dataset.move) { const move = demoMoves.find(m => m.id === el.dataset.move); if (move&&permitted(ACTION_IDS.MOVE,state.activeWrestlerId)) selectMove(move); return; }
+  if (el.dataset.dockFamily !== undefined) {
+    if(moveFamilies(getLegalMoves(state)).some(f=>f.id===el.dataset.dockFamily)){
+      ui.actionFamily=el.dataset.dockFamily;ui.railOffset=0;audio.cue('select');render();
+    }
+    return;
+  }
+  if (el.dataset.dockBack !== undefined){ui.actionFamily=null;ui.railOffset=0;render();return;}
+  if (el.dataset.move) {
+    const move=getLegalMoves(state).find(m=>m.id===el.dataset.move);
+    if(move&&permitted(ACTION_IDS.MOVE,state.activeWrestlerId))selectMove(move);
+    return;
+  }
   if (el.dataset.renderer) {rendererMode=el.dataset.renderer;try{localStorage.setItem('fh-renderer-v15',rendererMode)}catch{} render();return;}
   if (el.dataset.target) { ui.selectedTarget = el.dataset.target; log(`${currentActor().name} chose ${bodyLabel(ui.selectedTarget)} for ${ui.selectedMove.name}.`); ui.phase = 'SELECTED'; render(); return; }
   if (el.dataset.roll !== undefined) { if(permitted(ACTION_IDS.MOVE,state.activeWrestlerId)) rollMove(); return; }
@@ -1258,7 +1158,7 @@ app.addEventListener('click', event => {
   if (el.dataset.catchBreath !== undefined) { if(permitted(ACTION_IDS.BREATH,state.activeWrestlerId))catchBreath(); return; }
   if(el.dataset.toggleCareer!==undefined){progression.mode=progression.mode==='championship'?'quick':'championship';saveProgress(localStorage,progression);render();return;}
   if(el.dataset.resetProgress!==undefined){if(confirm('Reset all local championship results and rewards?')){progression=resetProgress(localStorage);render();}return;}
-  if (el.dataset.newMatch !== undefined) { location.href='./?fhbuild=1.19.0&t='+Date.now(); return; }
+  if (el.dataset.newMatch !== undefined) { location.href='./?fhbuild=1.25.0&t='+Date.now(); return; }
   if (el.dataset.railStep !== undefined) {
     const rail=app.querySelector('[data-action-rail]');
     const card=rail?.querySelector('[data-move]');
