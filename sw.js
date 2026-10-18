@@ -1,13 +1,15 @@
-const CACHE = 'faces-heels-v1.24.0-redline-chrome-crowd';
+const CACHE = 'faces-heels-v1.25.0-arcade-combat-dock';
 const CORE = [
-  './index.html?v=1.24.0',
+  './index.html?v=1.25.0',
   './styles.css?v=1.19.0',
   './broadcast.css?v=1.22.0',
   './broadcast-dice.css?v=1.23.0',
   './broadcast-opening.css?v=1.23.0',
   './redline-chrome.css?v=1.24.0',
+  './combat-dock.css?v=1.25.0',
+  './combat-dock.js?v=1.25.0',
   './broadcast-dice.js?v=1.23.0',
-  './app.js?v=1.24.0',
+  './app.js?v=1.25.0',
   './solo-ai.js?v=1.24.0',
   './solo-ai.js',
   './match-engine.js',
