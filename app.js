@@ -288,7 +288,8 @@ function renderMoveCards() {
   actor,defender,legalMoves:allLegal,family:ui.actionFamily,
   canRecover:turn.actions.some(a=>a.id===ACTION_IDS.RECOVER&&a.enabled)&&actor.stamina<=actor.maxStamina-5,
   canStand:turn.actions.some(a=>a.id===ACTION_IDS.SCRAMBLE&&a.enabled),
-  finishRequired:state.mustFinishTargetId===defender.id&&defender.stamina<=0
+  finishRequired:state.mustFinishTargetId===defender.id&&defender.stamina<=0,
+  helpAvailable:matchSetup.tutorial&&(!aiEnabled()||!isAiDecision(state,matchSetup))
  });
 }
 
@@ -457,11 +458,8 @@ function renderCoachHint(){
   return `<div class="ringside-coach"><span class="coach-tag">RINGSIDE COACH</span><span>${escapeHtml(note)}</span><button type="button" data-dismiss-guide aria-label="Turn off gameplay tips">×</button></div>`;
 }
 function renderAiThinking(){
-  const id=aiWrestlerId(matchSetup),who=id?wrestler(state,id):null;
-  return `<section class="decision-panel decision-panel--cpu" aria-label="Computer opponent thinking">
-    <span class="cpu-indicator" aria-hidden="true">◉</span><strong>${who?escapeHtml(who.name):'CPU'} · CPU TURN</strong>
-    <span>READING THE RING · CHOOSING AN ACTION</span>
-  </section>`;
+ const id=aiWrestlerId(matchSetup),name=id?wrestler(state,id).name:'CPU';
+ return renderCombatPrompt({kind:'cpu',kicker:'IN THE RING',title:name+' THINKING',detail:'READING THE OPPONENT',actions:[]});
 }
 function renderMatchComplete() {
   const winner = wrestler(state, state.winnerId);
