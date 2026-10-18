@@ -21,6 +21,7 @@ import {
   roleFor,
   statModifier,
   conditioning,
+  attackBoostEligibility,
   perspectiveState,
   resolveNeutralRoll,
   getLegalMoves,
@@ -380,13 +381,17 @@ function renderSelectedMove() {
   const decision = resolveTargetDecision(move, perspectiveState(state));
   const target = ui.selectedTarget || decision.values[0] || null;
   const mod = statModifier(actor.stats[move.stat]);
-  const probability=chanceToHit(mod,conditioning(defender),ui.spendCrowd);
-  const boostLabel = ui.spendCrowd ? `BOOST +${ui.spendCrowd}` : 'BOOST';
+  const boost=attackBoostEligibility(state,move);
+  const probability=ui.spendCrowd&&boost.available?boost.boostChance:boost.baseChance;
+  const boostLabel=ui.spendCrowd?'CROWD CALLED':'CALL THE CROWD';
+  const boostAction=boost.eligible && actor.crowdResource>0
+    ? `<button class="boost-button crowd-moment ${ui.spendCrowd?'is-on':''}" data-boost aria-pressed="${Boolean(ui.spendCrowd)}"><strong>${boostLabel}</strong><small>${boost.reason==='signature'?'SIGNATURE MOMENT':'UPHILL ATTACK'} · 1 ${escapeHtml(actor.crowdResourceName)} / +1d6</small></button>`
+    : '';
   return `
     <section class="decision-panel decision-panel--selected">
       <div class="selected-title"><button class="back-mini" data-back aria-label="Back">‹</button><div><small>${move.category.toUpperCase()}</small><strong>${escapeHtml(move.name)}</strong></div><span>${move.staminaCost} STA</span></div>
       <div class="selected-illustration">${moveArt(move.id)}<p>${escapeHtml(move.description)}</p></div><div class="move-meta-line"><b>${target ? escapeHtml(bodyLabel(target).toUpperCase()) : 'AUTO'}</b><i>·</i><span>${escapeHtml(move.stat.toUpperCase())} ${mod >= 0 ? '+' : ''}${mod}</span><i>·</i><span>VS CON ${conditioning(defender)}</span><i>·</i><span>d${move.damageDie} DAMAGE</span></div>
-      <div class="move-resource-trade"><span>YOUR COST <b>−${move.staminaCost} STA</b></span><span>OPPONENT ON HIT <b>−${move.staminaDamage} STA</b></span></div><meter class="connect-meter" min="0" max="100" value="${probability}" aria-label="${probability}% chance to connect">${probability}%</meter><p class="probability-note">${probability}% to connect · damage threshold and pin counts resolve separately</p><div class="primary-row"><button class="boost-button ${ui.spendCrowd ? 'is-on' : ''}" data-boost ${actor.crowdResource < 1 ? 'disabled' : ''}><strong>${boostLabel}</strong><small>${escapeHtml(actor.crowdResourceName)}</small></button><button class="roll-button" data-roll><strong>ATTEMPT MOVE</strong><small>ROLL d20 · ${escapeHtml(move.name)}</small></button></div>
+      <div class="move-resource-trade"><span>YOUR COST <b>−${move.staminaCost} STA</b></span><span>OPPONENT ON HIT <b>−${move.staminaDamage} STA</b></span></div><meter class="connect-meter" min="0" max="100" value="${probability}" aria-label="${probability}% chance to connect">${probability}%</meter><p class="probability-note">${probability}% to connect · damage threshold and pin counts resolve separately</p><div class="primary-row">${boostAction}<button class="roll-button" data-roll><strong>ATTEMPT MOVE</strong><small>ROLL d20 · ${escapeHtml(move.name)}</small></button></div>
     </section>`;
 }
 
@@ -897,10 +902,12 @@ async function rollMove() {
     target:conditioning(currentDefender()),leftMeta:'ATTACK D20',rightMeta:'STATIC CON',
     caption:'The defender uses passive Conditioning, not another d20.'
   });
-  const crowdRolls = ui.spendCrowd ? [rollDie(6)] : [];
-  const result = resolveMoveAttempt(state, { moveId: move.id, target: ui.selectedTarget, attackRoll, damageRoll, crowdSpend: ui.spendCrowd, crowdRolls });
+  const boostAllowed=attackBoostEligibility(state,move).available;
+  const crowdSpend=boostAllowed?ui.spendCrowd:0;
+  const crowdRolls=crowdSpend?[rollDie(6)]:[];
+  const result=resolveMoveAttempt(state,{moveId:move.id,target:ui.selectedTarget,attackRoll,damageRoll,crowdSpend,crowdRolls});
   await settleRollingVisual({leftTotal:result.total,rightTotal:result.targetNumber,
-    result:result.success?'MOVE CONNECTS':'ATTACK MISSES'});
+    result:`${result.success?'MOVE CONNECTS':'ATTACK MISSES'}${result.spentCrowd?' · CROWD +'+result.crowdBonus:''}`});
   log(`${wrestler(state,result.attackerId).name} ${move.name}: d20 ${attackRoll} ${result.modifier >= 0 ? '+' : ''}${result.modifier}${result.spentCrowd ? ` +${result.crowdBonus} Heat/Pop d6` : ''}${result.tieUpBonus ? ` +${result.tieUpBonus} tie-up control` : ''} = ${result.total} vs CON ${result.targetNumber}.`);
   if (!result.success) {
     log(`${move.name} missed. ${canReact(state) ? `${wrestler(state,result.defenderId).name} may react.` : 'No legal reaction; control state continues.'}`);
@@ -1227,7 +1234,11 @@ app.addEventListener('click', event => {
   if (el.dataset.renderer) {rendererMode=el.dataset.renderer;try{localStorage.setItem('fh-renderer-v15',rendererMode)}catch{} render();return;}
   if (el.dataset.target) { ui.selectedTarget = el.dataset.target; log(`${currentActor().name} chose ${bodyLabel(ui.selectedTarget)} for ${ui.selectedMove.name}.`); ui.phase = 'SELECTED'; render(); return; }
   if (el.dataset.roll !== undefined) { if(permitted(ACTION_IDS.MOVE,state.activeWrestlerId)) rollMove(); return; }
-  if (el.dataset.boost !== undefined) { const actor=currentActor(); ui.spendCrowd = ui.spendCrowd ? 0 : (actor?.crowdResource > 0 ? 1 : 0); render(); return; }
+  if (el.dataset.boost !== undefined) {
+    const permission=ui.selectedMove?attackBoostEligibility(state,ui.selectedMove):null;
+    ui.spendCrowd=permission?.available?(ui.spendCrowd?0:1):0;
+    render();return;
+  }
   if (el.dataset.back !== undefined) { resetSelection(); return; }
   if (el.dataset.holdSqueeze !== undefined) { if(permitted(ACTION_IDS.HOLD_SQUEEZE,state.activeHold?.holderId))performHoldPressure(); return; }
   if (el.dataset.holdSwitch !== undefined) {if(permitted(ACTION_IDS.HOLD_SWITCH,state.activeHold?.holderId))performHoldSwitch(el.dataset.holdSwitch);return;}
