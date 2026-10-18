@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {choosePinCrowdSpend} from './solo-ai.js';
-import {cloneInitialState,giveControl,wrestler,resolveMoveAttempt,startPin,resolvePinCount} from './match-engine.js';
+import {cloneInitialState,giveControl,wrestler,resolveMoveAttempt,startPin,resolvePinCount,attackBoostEligibility,getLegalMoves} from './match-engine.js';
 
 function readyPin() {
   const state=cloneInitialState();
@@ -35,6 +35,17 @@ function readyPin() {
   const state=cloneInitialState();
   giveControl(state,'stone');
   wrestler(state,'stone').crowdResource=1;
+  const move=getLegalMoves(state).find(m=>m.id==='running-clothesline');
+  assert(move,'Common clothesline must be legal in a standing opening');
+  assert.equal(attackBoostEligibility(state,move).eligible,false,'Routine attack should not offer boost');
+  const before=structuredClone(state);
+  assert.throws(()=>resolveMoveAttempt(state,{moveId:'running-clothesline',attackRoll:1,damageRoll:1,crowdSpend:1,crowdRolls:[6]}),/restricted to signatures and difficult attacks/);
+  assert.deepEqual(state,before,'Illegal boost must not consume resource, stamina, or a turn');
+  // A defender with exceptionally strong Conditioning makes this a legitimate
+  // difficult attack. The same move now qualifies on its actual hit odds.
+  wrestler(state,'viper').stats.Fortitude=24;
+  assert.equal(attackBoostEligibility(state,move).eligible,true);
+  assert(attackBoostEligibility(state,move).baseChance<=45);
   const result=resolveMoveAttempt(state,{moveId:'running-clothesline',attackRoll:1,damageRoll:1,crowdSpend:1,crowdRolls:[6]});
   assert.equal(result.spentCrowd,1);
   assert.equal(result.crowdBonus,6);
