@@ -246,6 +246,8 @@ function renderArena() {
       </div>
       <canvas id="match-canvas" aria-label="Animated wrestling match"></canvas>
       <div class="arena-vignette"></div>
+      <div class="broadcast-corner-bug" aria-hidden="true"><span class="live-dot"></span><b>LIVE</b><em>FACES &amp; HEELS</em></div>
+      <div class="broadcast-match-id" aria-hidden="true">MAIN EVENT · LV ${state.matchLevel}</div>
       ${renderArenaOverlay()}
     </main>`;
 }
