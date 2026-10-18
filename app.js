@@ -79,6 +79,7 @@ let ui = {
   moreMoves: false,
   actionFamily: null,
   showMatchOptions: false,
+  showCoach: false,
   railOffset: 0,
   pinCount: 0,
   pinRolls: null,
@@ -396,12 +397,17 @@ function renderMatchIntro() {
         <div class="show-lower-third"><span>MAIN EVENT</span><strong>STONE <em>VS</em> VIPER</strong><span>LIVE FROM THE F&amp;H ARENA</span></div>
         <div class="show-ticker" aria-hidden="true"><span>◆</span> EVERY ROLL COUNTS <span>◆</span> THE RING SETTLES IT <span>◆</span> CONTROL THE MAIN EVENT</div>
       </div>
-      <section class="show-setup" aria-label="Choose match rules and wrestler">
+      <section class="show-setup show-setup--compact" aria-label="Main event launch and match options">
         <div class="show-setup-heading">
-          <span class="show-setup-kicker">01 / MATCH PRODUCTION</span>
-          <strong>SET THE MATCH</strong>
+          <span class="show-setup-kicker">TONIGHT · MAIN EVENT</span>
+          <strong>READY TO RUMBLE?</strong>
           <small>${modeText}</small>
         </div>
+        <button type="button" class="roll-button setup-enter-button" data-start-match>
+          <strong>▶ PLAY</strong><small>ENTER THE RING</small>
+        </button>
+        <button type="button" class="show-options-toggle" data-match-options aria-expanded="${Boolean(typeof ui!=='undefined'&&ui.showMatchOptions)}" aria-controls="show-match-options">MATCH OPTIONS <span aria-hidden="true">⌄</span></button>
+        <div class="show-match-options" id="show-match-options" ${typeof ui!=='undefined'&&ui.showMatchOptions?'':'hidden'}>
         <div class="show-setting-group">
           <p class="show-setting-label">MATCH TYPE</p>
           <div class="match-setup-modes" role="group" aria-label="Choose match mode">
@@ -426,11 +432,8 @@ function renderMatchIntro() {
           </div>
           <button type="button" class="setup-guide-choice" data-toggle-coaching aria-pressed="${matchSetup.tutorial}">${matchSetup.tutorial?'✓':'○'} RINGSIDE COACH <small>${matchSetup.tutorial?'ON · Contextual tips':'OFF · No tips'}</small></button>
         `:`<div class="setup-local-note">Both corners are player controlled. Each wrestler rolls independently for every defensive opportunity, pin count and attack.</div>`}
-        <button type="button" class="roll-button setup-enter-button" data-start-match>
-          <strong>▶ ${solo?'ENTER THE RING':'START LOCAL MATCH'}</strong>
-          <small>STONE VS VIPER · LIVE MAIN EVENT</small>
-        </button>
-        <p class="intro-help">Original Faces &amp; Heels wrestlers · Actual match engine · All dice decide real outcomes</p>
+        </div>
+        <p class="intro-help">STONE VS VIPER · ORIGINAL WRESTLERS</p>
       </section>
     </div>
   </div>`;
@@ -554,7 +557,7 @@ function renderDrawer() {
 
 let previousDrawer = null;
 let returnFocus = null;
-function focusKey(el) { return el?.dataset ? Object.entries(el.dataset).find(([key])=>['move','target','drawer','body','boost','roll','neutralRoll','startMatch','renderer','setting','pin','moreMoves','filter','back'].includes(key)) : null; }
+function focusKey(el) { return el?.dataset ? Object.entries(el.dataset).find(([key])=>['dockFamily','dockBack','matchOptions','move','target','drawer','body','boost','roll','neutralRoll','startMatch','renderer','setting','pin','moreMoves','filter','back'].includes(key)) : null; }
 function render() {
   const focused = focusKey(document.activeElement);
   if (ui.drawer && !previousDrawer) returnFocus = focused;
@@ -565,7 +568,7 @@ function render() {
   const previousRail = app.querySelector('[data-action-rail]');
   if (previousRail && ui.phase === 'ACTION_SELECT') ui.railOffset = previousRail.scrollLeft;
   const oldCanvas = document.querySelector('#match-canvas');
-  app.innerHTML = `<div class="game-shell phase-${ui.phase.toLowerCase()} ${progression.theme==='championship'?'is-championship':''}">${renderHeader()}<div class="arena-combat-zone">${renderArena()}<div class="tactical-menu-anchor">${renderCoachHint()}${renderDecisionDock()}</div></div><footer><span>RINGSIDE LIVE · ${state.turnCounter} ACTIONS</span><button data-drawer="log">MATCH LOG</button></footer></div>${renderDrawer()}${introOpen ? renderMatchIntro() : ''}`;
+  app.innerHTML = `<div class="game-shell phase-${ui.phase.toLowerCase()} ${progression.theme==='championship'?'is-championship':''}">${renderHeader()}<div class="arena-combat-zone">${renderArena()}<div class="tactical-menu-anchor">${ui.showCoach?renderCoachHint():''}${renderDecisionDock()}</div></div><footer><span>RINGSIDE LIVE · ${state.turnCounter} ACTIONS</span><button data-drawer="log">MATCH LOG</button></footer></div>${renderDrawer()}${introOpen ? renderMatchIntro() : ''}`;
   const canvas = document.querySelector('#match-canvas');
   if (!stage) {
     stage = new IsoStage(canvas);
@@ -1113,9 +1116,10 @@ app.addEventListener('click', event => {
   if (el.dataset.playerId !== undefined) {matchSetup=saveMatchSetup(localStorage,{...matchSetup,playerId:el.dataset.playerId});render();return;}
   if (el.dataset.difficulty !== undefined) {matchSetup=saveMatchSetup(localStorage,{...matchSetup,difficulty:el.dataset.difficulty});render();return;}
   if (el.dataset.toggleCoaching !== undefined) {matchSetup=saveMatchSetup(localStorage,{...matchSetup,tutorial:!matchSetup.tutorial});render();return;}
-  if (el.dataset.matchOptions !== undefined){ui.showMatchOptions=!ui.showMatchOptions;render();return;}
-  if (el.dataset.startMatch !== undefined) { introOpen=false;matchSetup=saveMatchSetup(localStorage,matchSetup);audio.cue('bell');render();document.querySelector('[data-neutral-roll]')?.focus();return;}
-  if (el.dataset.dismissGuide !== undefined){matchSetup=saveMatchSetup(localStorage,{...matchSetup,tutorial:false});ui.coachingDismissed=true;render();return;}
+  if (el.dataset.matchOptions !== undefined){ui.showMatchOptions=!ui.showMatchOptions;render();document.querySelector('[data-match-options]')?.focus();return;}
+  if (el.dataset.coachHelp !== undefined){ui.showCoach=!ui.showCoach;render();return;}
+  if (el.dataset.startMatch !== undefined) { introOpen=false;ui.showMatchOptions=false;matchSetup=saveMatchSetup(localStorage,matchSetup);audio.cue('bell');render();document.querySelector('[data-neutral-roll]')?.focus();return;}
+  if (el.dataset.dismissGuide !== undefined){ui.showCoach=false;render();return;}
   // Human cannot click on the CPU's turn before its scheduled action runs.
   if(aiEnabled()&&(aiBusy||isAiDecision(state,matchSetup))&&!el.dataset.drawer&&!el.dataset.closeDrawer&&!el.dataset.renderer)return;
   if (el.dataset.neutralRoll !== undefined) { if(permitted(ACTION_IDS.NEUTRAL,null))rollNeutral(); return; }
