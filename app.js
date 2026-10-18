@@ -1,7 +1,7 @@
 import {ACTION_IDS} from './turn-controller.js?v=1.19.0';
 import {renderBroadcastDice} from './broadcast-dice.js?v=1.23.0';
 import {groundScrambleTarget,GROUND_SCRAMBLE_COST} from './ground-defense.js?v=1.19.0';
-import {DEFAULT_MATCH_SETUP,readMatchSetup,saveMatchSetup,aiWrestlerId,isAiDecision,chooseAiAction,choosePinCrowdSpend} from './solo-ai.js?v=1.19.2';
+import {DEFAULT_MATCH_SETUP,readMatchSetup,saveMatchSetup,aiWrestlerId,isAiDecision,chooseAiAction,choosePinCrowdSpend} from './solo-ai.js?v=1.24.0';
 import { animationByMove } from './combat-animation-map.js?v=1.21.0';
 import { portrait, moveArt, damageDiagram } from './ui-art.js?v=1.21.0';
 import { emptyProgress, loadProgress, saveProgress, recordResult, resetProgress } from './progression.js?v=1.19.0';
@@ -47,7 +47,7 @@ import {
   getAvailableActions,
   validateCombatAction,
   checkCombatFlow
-} from './match-engine.js?v=1.21.1';
+} from './match-engine.js?v=1.24.0';
 
 const app = document.querySelector('#app');
 let progression=loadProgress(localStorage);
