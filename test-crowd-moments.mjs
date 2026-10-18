@@ -58,8 +58,8 @@ assert(resolveMoveAttempt(plain,{moveId:routine.id,attackRoll:20,damageRoll:1}).
 
 const app=readFileSync('app.js','utf8');
 assert(app.includes('attackBoostEligibility(state,move)'));
-assert(app.includes("const boostAction=boost.eligible && actor.crowdResource>0"));
-assert(app.includes('>${boostAction}<button class="roll-button"'));
+assert(app.includes('boost?.available'),'Crowd moment only appears on eligible moves');
+assert(app.includes('dock-crowd-moment'),'Boost should be a small contextual crowd moment');
 assert(app.includes("boostAllowed?ui.spendCrowd:0"),'UI must discard any stale noneligible boost');
 assert(app.includes('CROWD CALLED')&&app.includes('CALL THE CROWD'));
 assert(!app.includes('>BOOST</strong>'),'Routine moves no longer prompt boost');
@@ -68,7 +68,7 @@ const sw=readFileSync('sw.js','utf8');
 const chrome=readFileSync('redline-chrome.css','utf8');
 assert(html.includes('redline-chrome.css?v=1.24.0'));
 assert(sw.includes("'./redline-chrome.css?v=1.24.0'"));
-assert(sw.includes('faces-heels-v1.24.0-redline-chrome-crowd'));
+assert(sw.includes('faces-heels-v1.25.0-arcade-combat-dock'));
 assert(html.indexOf('broadcast-opening.css')<html.indexOf('redline-chrome.css'));
 assert(chrome.includes('.show-open-program')&&chrome.includes('.show-lower-third'),'Chrome must include opening, not just the game');
 assert(chrome.includes('.broadcast-dice-console')&&chrome.includes('.broadcast-dice-result'),'Actual two-dice graphics must use chrome styling');
