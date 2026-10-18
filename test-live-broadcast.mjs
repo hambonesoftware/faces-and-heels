@@ -9,7 +9,7 @@ const css=readFileSync('broadcast-dice.css','utf8');
 const opening=readFileSync('broadcast-opening.css','utf8');
 const pkg=JSON.parse(readFileSync('package.json','utf8'));
 
-assert.equal(pkg.version,'1.24.0');
+assert.equal(pkg.version,'1.25.0');
 assert(html.includes('./broadcast-dice.css?v=1.23.0'));
 assert(html.includes('./broadcast-opening.css?v=1.23.0'));
 assert(html.indexOf('broadcast.css')<html.indexOf('broadcast-dice.css'));
@@ -17,7 +17,7 @@ assert(html.indexOf('broadcast-dice.css')<html.indexOf('broadcast-opening.css'))
 assert(sw.includes("'./broadcast-dice.js?v=1.23.0'"));
 assert(sw.includes("'./broadcast-dice.css?v=1.23.0'"));
 assert(sw.includes("'./broadcast-opening.css?v=1.23.0'"));
-assert(sw.includes('faces-heels-v1.24.0-redline-chrome-crowd'));
+assert(sw.includes('faces-heels-v1.25.0-arcade-combat-dock'));
 
 // True opposed dice: two d20s and the actual scores, NOT a made-up defense number.
 const opposed=renderBroadcastDice({title:'KICKOUT',mode:'opposed',leftLabel:'VIPER',leftValue:17,rightLabel:'STONE',rightValue:12,

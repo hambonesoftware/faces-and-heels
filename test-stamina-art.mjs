@@ -148,8 +148,8 @@ assert(demoMoves.find(move=>move.id==='pick-up-opponent').result.attackerPosture
 assert(demoMoves.find(move=>move.id==='forearm-smash').result.preserveDefenderPosture,'forearm must not levitate kneeling opponent');
 
 const app=readFileSync('app.js','utf8');
-assert(app.includes('action-slot-effect')&&app.includes('−${move.staminaDamage}'),'Compact action bar should reveal opponent stamina drain');
-assert(app.includes('OPPONENT ON HIT'),'Move inspection should reveal expected opponent drain');
-assert(app.includes('OPPONENT EXERTION'),'Setup screen should explain its stamina penalty');
+assert(app.includes('renderCombatDock({'),'The active match uses the compact arena-first combat dock');
+assert(app.includes('−${move.staminaDamage} OPP ON HIT'),'Move confirmation must show the actual opponent stamina penalty');
+assert(!app.includes('action-slot-art'),'No illustrated legacy move cards should obstruct the action');
 
 console.log('Balanced roster / animation art PASS: '+demoMoves.length+' moves, one counter, '+frames+' kneeling samples, legal posture consequences, real versus listed drain, accurate impact target, synchronized artwork.');
