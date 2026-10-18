@@ -1,8 +1,9 @@
-const CACHE = 'faces-heels-v1.21.1-earned-comebacks';
+const CACHE = 'faces-heels-v1.22.0-main-event-broadcast';
 const CORE = [
-  './index.html?v=1.21.1',
+  './index.html?v=1.22.0',
   './styles.css?v=1.19.0',
-  './app.js?v=1.21.1',
+  './broadcast.css?v=1.22.0',
+  './app.js?v=1.22.0',
   './solo-ai.js?v=1.19.2',
   './solo-ai.js',
   './match-engine.js',
@@ -26,7 +27,7 @@ const CORE = [
   './flow-engine.js?v=1.19.0',
   './match-engine.js?v=1.21.1',
   './sprite-stage.js?v=1.19.0',
-  './iso-stage.js?v=1.19.0',
+  './iso-stage.js?v=1.22.0',
   './block-model.js?v=1.19.0',
   './mesh-renderer.js?v=1.19.0',
   './choreography.js?v=1.19.0',
