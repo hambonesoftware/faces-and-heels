@@ -27,11 +27,15 @@ export function renderCombatDock({actor,defender,legalMoves=[],family=null,canRe
  if(!actor)return '';
  const groups=moveFamilies(legalMoves);
  const active=groups.find(group=>group.id===family);
+ const core=groups.filter(group=>group.id!=='setup');
+ const mainGroups=core.length?core:groups;
+ const setup=core.length?groups.find(group=>group.id==='setup'):null;
  const header=`<div class="combat-dock-head">
    <span class="combat-dock-status"><i aria-hidden="true"></i>${e(actor.name)} · ${active?'CHOOSE MOVE':'IN CONTROL'}</span>
    <span class="combat-dock-hint">${active?`${active.moves.length} TRAINED ${e(active.label)} MOVES`:'PICK YOUR ATTACK'}</span>
  </div>`;
- const tools=(canStand||canRecover||helpAvailable)?`<div class="combat-dock-utility">
+ const tools=(canStand||canRecover||helpAvailable||setup)?`<div class="combat-dock-utility">
+   ${setup?`<button type="button" class="dock-utility dock-utility--setup" data-dock-family="setup">↗ SETUP <small>${setup.moves.length} MOVES</small></button>`:''}
    ${helpAvailable?'<button type="button" class="dock-utility" data-coach-help aria-label="Show contextual controls help">? HELP</button>':''}
    ${canStand?'<button type="button" class="dock-utility" data-scramble-up>STAND UP</button>':''}
    ${canRecover?`<button type="button" class="dock-utility" data-recover>RECOVER +10 STA <small>1 ${e(actor.crowdResourceName)}</small></button>`:''}
@@ -49,7 +53,7 @@ export function renderCombatDock({actor,defender,legalMoves=[],family=null,canRe
    return `<section class="combat-dock combat-dock--families" aria-label="Choose wrestling attack category">
      ${notice}${header}
      <div class="combat-dock-families">
-       ${groups.map(g=>`<button type="button" data-dock-family="${g.id}" class="dock-family dock-family--${g.id}" aria-label="${g.label}, ${g.moves.length} available moves">
+       ${mainGroups.map(g=>`<button type="button" data-dock-family="${g.id}" class="dock-family dock-family--${g.id}" aria-label="${g.label}, ${g.moves.length} available moves">
          <span class="dock-family-symbol" aria-hidden="true">${g.symbol}</span>
          <strong>${g.label}</strong>
          <span class="dock-family-count">${g.moves.length}</span>
