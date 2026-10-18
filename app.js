@@ -555,6 +555,7 @@ function renderDrawer() {
 
 let previousDrawer = null;
 let returnFocus = null;
+let previousDockPhase = null;
 function focusKey(el) { return el?.dataset ? Object.entries(el.dataset).find(([key])=>['dockFamily','dockBack','matchOptions','move','target','drawer','body','boost','roll','neutralRoll','startMatch','renderer','setting','pin','moreMoves','filter','back'].includes(key)) : null; }
 function render() {
   const focused = focusKey(document.activeElement);
@@ -563,6 +564,14 @@ function render() {
   const openedDrawer = ui.drawer && ui.drawer !== previousDrawer;
   previousDrawer = ui.drawer;
   syncUiToEngine();
+  // Every fresh exchange reopens the three decisive attack families.
+  // Backing out of SELECTED/TARGET_CHOICE deliberately keeps the same move family.
+  if(ui.phase==='ACTION_SELECT' && previousDockPhase &&
+     !['ACTION_SELECT','SELECTED','TARGET_CHOICE'].includes(previousDockPhase)){
+    ui.actionFamily=null;
+    ui.railOffset=0;
+  }
+  previousDockPhase=ui.phase;
   const previousRail = app.querySelector('[data-action-rail]');
   if (previousRail && ui.phase === 'ACTION_SELECT') ui.railOffset = previousRail.scrollLeft;
   const oldCanvas = document.querySelector('#match-canvas');
