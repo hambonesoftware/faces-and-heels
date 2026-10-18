@@ -1,9 +1,12 @@
-const CACHE = 'faces-heels-v1.22.0-main-event-broadcast';
+const CACHE = 'faces-heels-v1.23.0-live-broadcast-production';
 const CORE = [
-  './index.html?v=1.22.0',
+  './index.html?v=1.23.0',
   './styles.css?v=1.19.0',
   './broadcast.css?v=1.22.0',
-  './app.js?v=1.22.0',
+  './broadcast-dice.css?v=1.23.0',
+  './broadcast-opening.css?v=1.23.0',
+  './broadcast-dice.js?v=1.23.0',
+  './app.js?v=1.23.0',
   './solo-ai.js?v=1.19.2',
   './solo-ai.js',
   './match-engine.js',
