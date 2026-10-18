@@ -260,6 +260,35 @@ function rollCrowdDice(count, suppliedRolls) {
   return rolls.reduce((sum, n) => sum + n, 0);
 }
 
+// Crowd energy is reserved for match-changing offense, never a routine +d6
+// purchase on every forearm. Central authority shared by human controls, CPU,
+// replays and direct engine calls. No wrestler gets preferential rules.
+export const CROWD_DIFFICULT_ATTACK_MAX_CHANCE = 45;
+export function attackBoostEligibility(state, move, actorId=state.activeWrestlerId) {
+  const actor=actorId&&state.wrestlers?.[actorId];
+  const defender=actorId&&state.wrestlers?.[opponentId(actorId)];
+  if(!actor||!defender||!move||move.automatic)
+    return {eligible:false,available:false,reason:null,baseChance:0,boostChance:0};
+  const modifier=statModifier(actor.stats[move.stat]);
+  const target=conditioning(defender);
+  const tieUp=state.standingTieUp?.holderId===actorId&&move.category==='grapple'?2:0;
+  let normal=0,boosted=0;
+  for(let d=1;d<=20;d++){
+    if(d+modifier+tieUp>=target)normal++;
+    for(let crowd=1;crowd<=6;crowd++)
+      if(d+modifier+tieUp+crowd>=target)boosted++;
+  }
+  const baseChance=normal*5,boostChance=Math.round(boosted/120*100);
+  const signature=Boolean(move.legendary||move.category==='special');
+  const difficult=baseChance<=CROWD_DIFFICULT_ATTACK_MAX_CHANCE;
+  const eligible=signature||difficult;
+  return {
+    eligible,available:eligible&&actor.crowdResource>0,
+    reason:signature?'signature':difficult?'difficult':null,
+    baseChance,boostChance
+  };
+}
+
 function applyCrowdSpend(wrestlerState, requested) {
   const spend = Math.max(0, Math.min(Number(requested || 0), 1, wrestlerState.crowdResource));
   wrestlerState.crowdResource -= spend;
@@ -311,6 +340,10 @@ export function resolveMoveAttempt(state, {
     throw new Error(`${move.name} requires a legal target choice.`);
   }
 
+  // Reject an illegal crowd spend BEFORE stamina, phase or turns are mutated.
+  // Pin defense and Heat/Pop stamina recovery are separate, unchanged rules.
+  if(Number(crowdSpend)>0 && !attackBoostEligibility(state,move,attackerId).available)
+    throw new Error('Heat/Pop boost is restricted to signatures and difficult attacks with crowd energy available');
   attacker.stamina = Math.max(0, attacker.stamina - move.staminaCost);
   const spentCrowd = applyCrowdSpend(attacker, crowdSpend);
   const modifier = statModifier(attacker.stats[move.stat]);
