@@ -709,17 +709,33 @@ async function rollNeutral() {
   stage?.setRestingState({ postures: { stone: wrestler(state,'stone').posture, viper: wrestler(state,'viper').posture } });
 }
 
-function selectMove(move) {
+function moveHasBoostChoice(move) {
+  // Only legitimate, funded Heat/Pop bonuses justify pausing for a confirmation.
+  // A routine move or an exhausted crowd resource should fire on selection.
+  return Boolean(move && !move.automatic && attackBoostEligibility(state,move).available);
+}
+
+function selectMove(move,{autoExecute=true}={}) {
   audio.cue('select');
-  ui.selectedMove = move;
-  ui.selectedTarget = null;
-  ui.spendCrowd = 0;
-  const target = resolveTargetDecision(move, perspectiveState(state));
-  if (target.kind === 'choice') ui.phase = 'TARGET_CHOICE';
-  else {
-    ui.selectedTarget = target.values[0] || null;
-    ui.phase = 'SELECTED';
-    if (ui.selectedTarget) log(`${currentActor().name} chose ${move.name}; ${bodyLabel(ui.selectedTarget)} auto-resolved.`);
+  ui.selectedMove=move;
+  ui.selectedTarget=null;
+  ui.spendCrowd=0;
+  const target=resolveTargetDecision(move,perspectiveState(state));
+  if(target.kind==='choice'){
+    // Choosing a body region is always required when the move has legal targets.
+    ui.phase='TARGET_CHOICE';
+    render();
+    return;
+  }
+  ui.selectedTarget=target.values[0]||null;
+  ui.phase='SELECTED';
+  if(ui.selectedTarget)log(`${currentActor().name} chose ${move.name}; ${bodyLabel(ui.selectedTarget)} auto-resolved.`);
+  // One tap: skip the redundant EXECUTE screen when no paid boost is possible.
+  // The CPU deliberately opts out so it can assign its own legitimate target
+  // and crowd spend before the same rollMove() pipeline executes once.
+  if(autoExecute&&!moveHasBoostChoice(move)){
+    void rollMove();
+    return;
   }
   render();
 }
@@ -1143,7 +1159,19 @@ app.addEventListener('click', event => {
     return;
   }
   if (el.dataset.renderer) {rendererMode=el.dataset.renderer;try{localStorage.setItem('fh-renderer-v15',rendererMode)}catch{} render();return;}
-  if (el.dataset.target) { ui.selectedTarget = el.dataset.target; log(`${currentActor().name} chose ${bodyLabel(ui.selectedTarget)} for ${ui.selectedMove.name}.`); ui.phase = 'SELECTED'; render(); return; }
+  if (el.dataset.target) {
+    if(ui.phase!=='TARGET_CHOICE'||!ui.selectedMove)return;
+    const choice=resolveTargetDecision(ui.selectedMove,perspectiveState(state));
+    if(choice.kind!=='choice'||!choice.values.includes(el.dataset.target))return;
+    ui.selectedTarget=el.dataset.target;
+    log(`${currentActor().name} chose ${bodyLabel(ui.selectedTarget)} for ${ui.selectedMove.name}.`);
+    ui.phase='SELECTED';
+    // Once any required target is chosen, run without another button unless
+    // the fighter can actually choose to spend Heat/Pop.
+    if(moveHasBoostChoice(ui.selectedMove))render();
+    else void rollMove();
+    return;
+  }
   if (el.dataset.roll !== undefined) { if(permitted(ACTION_IDS.MOVE,state.activeWrestlerId)) rollMove(); return; }
   if (el.dataset.boost !== undefined) {
     const permission=ui.selectedMove?attackBoostEligibility(state,ui.selectedMove):null;
@@ -1169,7 +1197,7 @@ app.addEventListener('click', event => {
   if (el.dataset.catchBreath !== undefined) { if(permitted(ACTION_IDS.BREATH,state.activeWrestlerId))catchBreath(); return; }
   if(el.dataset.toggleCareer!==undefined){progression.mode=progression.mode==='championship'?'quick':'championship';saveProgress(localStorage,progression);render();return;}
   if(el.dataset.resetProgress!==undefined){if(confirm('Reset all local championship results and rewards?')){progression=resetProgress(localStorage);render();}return;}
-  if (el.dataset.newMatch !== undefined) { location.href='./?fhbuild=1.25.0&t='+Date.now(); return; }
+  if (el.dataset.newMatch !== undefined) { location.href='./?fhbuild=1.25.2&t='+Date.now(); return; }
   if (el.dataset.railStep !== undefined) {
     const rail=app.querySelector('[data-action-rail]');
     const card=rail?.querySelector('[data-move]');
@@ -1232,7 +1260,7 @@ async function performAiTurn(){
     case 'move':{
       const move=getLegalMoves(state).find(m=>m.id===decision.moveId);
       if(!move)throw Error('CPU selected an unavailable move: '+decision.moveId);
-      selectMove(move);
+      selectMove(move,{autoExecute:false});
       // The player uses the target-choice screen; CPU chooses from the exact
       // same target list, then resolves the standard dice rolls.
       ui.selectedTarget=decision.target;

@@ -1,6 +1,6 @@
-const CACHE = 'faces-heels-v1.25.1-combat-dock-tap-fix';
+const CACHE = 'faces-heels-v1.25.2-one-tap-move-execution';
 const CORE = [
-  './index.html?v=1.25.1',
+  './index.html?v=1.25.2',
   './styles.css?v=1.19.0',
   './broadcast.css?v=1.22.0',
   './broadcast-dice.css?v=1.23.0',
@@ -9,7 +9,7 @@ const CORE = [
   './combat-dock.css?v=1.25.1',
   './combat-dock.js?v=1.25.0',
   './broadcast-dice.js?v=1.23.0',
-  './app.js?v=1.25.0',
+  './app.js?v=1.25.2',
   './solo-ai.js?v=1.24.0',
   './solo-ai.js',
   './match-engine.js',

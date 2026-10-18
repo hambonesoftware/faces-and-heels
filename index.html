@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="description" content="Faces & Heels — solo wrestling tactics with a fair CPU, animated moves and dice-powered wrestling." />
-  <meta name="fh-build" content="1.25.1-combat-dock-tap-fix" />
+  <meta name="fh-build" content="1.25.2-one-tap-move-execution" />
   <title>Faces & Heels — Arcade Combat</title>
   <link rel="manifest" href="./manifest.webmanifest?v=1.19.1" />
   <link rel="stylesheet" href="./styles.css?v=1.19.1" />
@@ -19,10 +19,10 @@
 </head>
 <body>
   <div id="app"></div>
-  <script type="module" src="./app.js?v=1.25.0"></script>
+  <script type="module" src="./app.js?v=1.25.2"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=1.25.1', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {}));
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=1.25.2', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {}));
     }
   </script>
 </body>
