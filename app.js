@@ -189,7 +189,7 @@ function renderFighterHud(w, side) {
 function renderHeader() {
   return `
     <header class="game-header">
-      <div class="brand"><span>FACES</span><b>&</b><strong>HEELS</strong><em>NEON SHOWDOWN</em></div>
+      <div class="brand"><span>FACES</span><b>&</b><strong>HEELS</strong><em>MAIN EVENT · LIVE</em></div>
       <button class="icon-button" data-drawer="menu" aria-label="Match menu">☰</button>
     </header>
     <section class="fighter-strip">
