@@ -162,3 +162,47 @@
 @media(prefers-reduced-motion:reduce){
   .broadcast-dice-console .broadcast-die{animation:none!important}
 }
+
+
+/* Broadcast inserts, not huge UI badges covering the fight. */
+.arena-shell .event-overlay{
+ z-index:12;left:14px;right:auto;bottom:16px;top:auto;
+ width:min(76%,465px);max-width:calc(100% - 28px);
+ transform:none;justify-items:start;text-align:left;gap:0;
+ border-left:5px solid #e2b960;border-top:1px solid #748799;
+ background:linear-gradient(100deg,#09121bf7,#1c2835e9 75%,#101925b0);
+ box-shadow:0 6px 24px #000b;filter:none;
+}
+.arena-shell .event-overlay small{
+ color:#ffc96b;border:0;background:transparent;
+ padding:7px 11px 1px;font:900 9px/1 system-ui,sans-serif;
+}
+.arena-shell .event-overlay strong{
+ margin:0;color:#fff2e0;font:italic 900 clamp(20px,3vw,38px)/1 Impact,"Arial Narrow",sans-serif;
+ text-shadow:1px 2px #000;letter-spacing:.05em;padding:3px 11px 1px;
+}
+.arena-shell .event-overlay span{
+ width:100%;color:#e1e9ef;background:#080f19a9;
+ text-align:left;font:800 10px/1.3 system-ui,sans-serif;
+ padding:6px 11px;border-top:1px solid #54697d55;
+}
+.arena-shell .event-overlay--danger{border-left-color:#ec5d6c}
+.arena-shell .event-overlay--spectacle{border-left-color:#ffd76c}
+.arena-shell .pin-overlay{
+ position:absolute;z-index:12;
+ left:auto;right:4%;top:19%;bottom:auto;width:auto;max-width:45%;
+ transform:none;justify-items:end;text-align:right;filter:drop-shadow(0 2px 8px #000);
+}
+.arena-shell .pin-overlay strong{
+ font-size:clamp(62px,13vw,125px);color:#fff4e7;
+ text-shadow:4px 4px #c42d4a,0 0 15px #f9556f7a;
+}
+.arena-shell .pin-overlay small,.arena-shell .pin-overlay span{font-size:10px}
+@media(max-width:540px){
+ .arena-shell .event-overlay{left:6px;bottom:7px;width:min(86%,310px)}
+ .arena-shell .event-overlay strong{font-size:22px}
+ .arena-shell .event-overlay small{font-size:8px}
+ .arena-shell .event-overlay span{font-size:9px}
+ .arena-shell .pin-overlay{top:20%;right:5%}
+ .arena-shell .pin-overlay strong{font-size:70px}
+}
