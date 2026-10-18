@@ -4,6 +4,12 @@
  * invents attacks, grapples, reversals, pin options, or new combat rules.
  */
 const e=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
+// Allow only our own existing button data attributes; escape dynamic values.
+const actionAttr=raw=>{
+ const m=/^(data-[a-z-]+)(?:="([^"]*)")?$/.exec(raw||'');
+ if(!m)throw new Error('Invalid combat action attribute');
+ return m[1]+(m[2]===undefined?'':'="'+e(m[2])+'"');
+};
 export const FAMILY_ORDER=Object.freeze(['strike','grapple','special','setup']);
 export const FAMILY_LABELS=Object.freeze({
  strike:'STRIKE',grapple:'GRAPPLE',special:'SPECIAL',setup:'SETUP'
@@ -70,7 +76,7 @@ export function renderCombatPrompt({kind='action',kicker='',title='',detail='',a
    <div class="combat-prompt-body"><div class="combat-prompt-copy"><strong>${e(title)}</strong>${detail?`<small>${e(detail)}</small>`:''}</div>
      <div class="combat-prompt-actions">
        ${actions.map(a=>`<button type="button" class="dock-action ${a.primary?'dock-action--primary':''} ${a.danger?'dock-action--danger':''}"
-         ${e(a.action)}${a.disabled?' disabled':''}>${e(a.label)}${a.note?`<small>${e(a.note)}</small>`:''}</button>`).join('')}
+         ${actionAttr(a.action)}${a.disabled?' disabled':''}>${e(a.label)}${a.note?`<small>${e(a.note)}</small>`:''}</button>`).join('')}
      </div>
    </div>${extras?`<div class="combat-prompt-extras">${extras}</div>`:''}
  </section>`;
