@@ -23,7 +23,7 @@ export function moveFamilies(legalMoves=[]){
    moves:legalMoves.filter(move=>move.category===id)
  })).filter(f=>f.moves.length);
 }
-export function renderCombatDock({actor,defender,legalMoves=[],family=null,canRecover=false,canStand=false,finishRequired=false}={}){
+export function renderCombatDock({actor,defender,legalMoves=[],family=null,canRecover=false,canStand=false,finishRequired=false,helpAvailable=false}={}){
  if(!actor)return '';
  const groups=moveFamilies(legalMoves);
  const active=groups.find(group=>group.id===family);
@@ -31,7 +31,8 @@ export function renderCombatDock({actor,defender,legalMoves=[],family=null,canRe
    <span class="combat-dock-status"><i aria-hidden="true"></i>${e(actor.name)} · ${active?'CHOOSE MOVE':'IN CONTROL'}</span>
    <span class="combat-dock-hint">${active?`${active.moves.length} TRAINED ${e(active.label)} MOVES`:'PICK YOUR ATTACK'}</span>
  </div>`;
- const tools=(canStand||canRecover)?`<div class="combat-dock-utility">
+ const tools=(canStand||canRecover||helpAvailable)?`<div class="combat-dock-utility">
+   ${helpAvailable?'<button type="button" class="dock-utility" data-coach-help aria-label="Show contextual controls help">? HELP</button>':''}
    ${canStand?'<button type="button" class="dock-utility" data-scramble-up>STAND UP</button>':''}
    ${canRecover?`<button type="button" class="dock-utility" data-recover>RECOVER +10 STA <small>1 ${e(actor.crowdResourceName)}</small></button>`:''}
  </div>`:'';
