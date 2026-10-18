@@ -7,18 +7,20 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="description" content="Faces & Heels — solo wrestling tactics with a fair CPU, animated moves and dice-powered wrestling." />
-  <meta name="fh-build" content="1.22.0-main-event-broadcast" />
-  <title>Faces & Heels — Main Event Broadcast</title>
+  <meta name="fh-build" content="1.23.0-live-broadcast-production" />
+  <title>Faces & Heels — Main Event: Live Broadcast</title>
   <link rel="manifest" href="./manifest.webmanifest?v=1.19.1" />
   <link rel="stylesheet" href="./styles.css?v=1.19.1" />
   <link rel="stylesheet" href="./broadcast.css?v=1.22.0" />
+  <link rel="stylesheet" href="./broadcast-dice.css?v=1.23.0" />
+  <link rel="stylesheet" href="./broadcast-opening.css?v=1.23.0" />
 </head>
 <body>
   <div id="app"></div>
-  <script type="module" src="./app.js?v=1.22.0"></script>
+  <script type="module" src="./app.js?v=1.23.0"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=1.22.0', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {}));
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=1.23.0', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {}));
     }
   </script>
 </body>

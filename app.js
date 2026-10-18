@@ -1,4 +1,6 @@
 import {ACTION_IDS} from './turn-controller.js?v=1.19.0';
+import {renderBroadcastDice} from './broadcast-dice.js?v=1.23.0';
+import {groundScrambleTarget,GROUND_SCRAMBLE_COST} from './ground-defense.js?v=1.19.0';
 import {DEFAULT_MATCH_SETUP,readMatchSetup,saveMatchSetup,aiWrestlerId,isAiDecision,chooseAiAction,choosePinCrowdSpend} from './solo-ai.js?v=1.19.2';
 import { animationByMove } from './combat-animation-map.js?v=1.21.0';
 import { portrait, moveArt, damageDiagram } from './ui-art.js?v=1.21.0';
@@ -69,6 +71,7 @@ let ui = {
   drawer: null,
   roll: null,
   rollLabel: '',
+  broadcastRoll: null,
   event: null,
   filter: 'all',
   moreMoves: false,
@@ -201,7 +204,9 @@ function renderHeader() {
 
 function renderArenaOverlay() {
   if (ui.phase === 'ROLLING') {
-    return `<div class="dice-overlay"><small>${escapeHtml(ui.rollLabel || ui.selectedMove?.name || 'ROLL')}</small><div class="die">${ui.roll ?? '•'}</div><strong>${ui.roll ? 'LOCKED' : 'ROLLING'}</strong></div>`;
+    // The broadcast dice live in the ringside lower third, not on top of the
+    // wrestler models. Keep the full ring visible during the complete roll.
+    return '<div class="turn-chip turn-chip--dice"><span>RINGSIDE DICE</span><strong>OFFICIAL ROLL</strong></div>';
   }
   if (ui.phase === 'PIN' || ui.phase === 'PIN_DEFENSE') {
     const detail = ui.pinRolls ? `${ui.pinRolls.pinningTotal} vs ${ui.pinRolls.pinnedTotal}` : 'OPPOSED BGD';
@@ -458,30 +463,66 @@ function renderGroundDefense(){
 
 function renderMatchIntro() {
   const solo=matchSetup.mode==='solo';
-  return `<div class="match-intro" role="dialog" aria-modal="true" aria-label="Set up your wrestling match">
-    <div class="intro-poster intro-poster--setup">
-      <p class="poster-kicker">FACES &amp; HEELS · MAIN EVENT</p>
-      <h1>ENTER THE<br>RING</h1>
-      <div class="match-setup-modes" role="group" aria-label="Choose match mode">
-        <button type="button" data-match-mode="solo" class="${solo?'is-selected':''}" aria-pressed="${solo}">SOLO vs CPU <small>YOUR wrestler against the game</small></button>
-        <button type="button" data-match-mode="local" class="${!solo?'is-selected':''}" aria-pressed="${!solo}">PASS &amp; PLAY <small>Control both wrestlers locally</small></button>
+  const modeText=solo?'ONE PLAYER · YOU VS CPU':'TWO PLAYERS · LOCAL';
+  const fighter=(id,role,tagline)=>`<div class="show-fighter show-fighter--${id}">
+    <div class="show-fighter-portrait" aria-hidden="true">${portrait(id)}</div>
+    <span class="show-fighter-tag">${role}</span>
+    <strong class="show-fighter-name">${id.toUpperCase()}</strong>
+    <span class="show-fighter-style">${tagline}</span>
+  </div>`;
+  return `<div class="match-intro broadcast-opening" role="dialog" aria-modal="true" aria-label="Faces and Heels main event match setup">
+    <div class="show-open-shell">
+      <div class="show-open-program" aria-label="Main event match card">
+        <div class="show-open-lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+        <header class="show-open-title">
+          <span class="show-on-air"><i></i> LIVE · FACES &amp; HEELS PRESENTS</span>
+          <h1><span>FACES</span><em>&amp;</em><span>HEELS</span></h1>
+          <p>THE MAIN EVENT</p>
+        </header>
+        <div class="show-matchup">
+          ${fighter('stone','THE FACE','POWERHOUSE · RED & GOLD')}
+          <div class="show-versus"><span>TONIGHT</span><b>VS</b><small>ONE FALL</small></div>
+          ${fighter('viper','THE HEEL','DAREDEVIL · BLACK & RED')}
+        </div>
+        <div class="show-lower-third"><span>MAIN EVENT</span><strong>STONE <em>VS</em> VIPER</strong><span>LIVE FROM THE F&amp;H ARENA</span></div>
+        <div class="show-ticker" aria-hidden="true"><span>◆</span> EVERY ROLL COUNTS <span>◆</span> THE RING SETTLES IT <span>◆</span> CONTROL THE MAIN EVENT</div>
       </div>
-      ${solo?`
-        <p class="setup-section-label">CHOOSE YOUR WRESTLER</p>
-        <div class="setup-fighter-choices">
-          ${['stone','viper'].map(id=>`<button type="button" data-player-id="${id}" class="${matchSetup.playerId===id?'is-selected':''}" aria-pressed="${matchSetup.playerId===id}">
-            <span class="setup-fighter-portrait">${portrait(id)}</span>
-            <strong>${id.toUpperCase()}</strong><small>${id==='stone'?'POWERHOUSE · FACE':'DAREDEVIL · HEEL'}</small>
-          </button>`).join('')}
+      <section class="show-setup" aria-label="Choose match rules and wrestler">
+        <div class="show-setup-heading">
+          <span class="show-setup-kicker">01 / MATCH PRODUCTION</span>
+          <strong>SET THE MATCH</strong>
+          <small>${modeText}</small>
         </div>
-        <div class="setup-difficulty">
-          <span>CPU DIFFICULTY</span>
-          <div role="group" aria-label="Opponent difficulty">${[['rookie','ROOKIE'],['standard','STANDARD'],['veteran','VETERAN']].map(([value,label])=>`<button type="button" data-difficulty="${value}" class="${matchSetup.difficulty===value?'is-selected':''}" aria-pressed="${matchSetup.difficulty===value}">${label}</button>`).join('')}</div>
+        <div class="show-setting-group">
+          <p class="show-setting-label">MATCH TYPE</p>
+          <div class="match-setup-modes" role="group" aria-label="Choose match mode">
+            <button type="button" data-match-mode="solo" class="${solo?'is-selected':''}" aria-pressed="${solo}">SOLO vs CPU <small>CHALLENGE THE RIVAL</small></button>
+            <button type="button" data-match-mode="local" class="${!solo?'is-selected':''}" aria-pressed="${!solo}">PASS &amp; PLAY <small>TAKE BOTH CORNERS</small></button>
+          </div>
         </div>
-        <button type="button" class="setup-guide-choice" data-toggle-coaching aria-pressed="${matchSetup.tutorial}">${matchSetup.tutorial?'✓':'○'} GUIDED FIRST MATCH <small>${matchSetup.tutorial?'Short tips appear only when needed':'No help overlays during play'}</small></button>
-      `:`<div class="setup-local-note">Two players share the same screen and take turns making decisions. Every move, pin, grapple and defensive roll stays manual.</div>`}
-      <button type="button" class="roll-button setup-enter-button" data-start-match><strong>${solo?'START SOLO MATCH':'START LOCAL MATCH'}</strong><small>STONE VS VIPER · 2016-STYLE ARCADE WRESTLING</small></button>
-      <p class="intro-help">${solo?'You control one wrestler. The CPU uses the same moves, stamina, dice and escape rules as you.':'Both corners are human-controlled, as in previous releases.'}</p>
+        ${solo?`
+          <div class="show-setting-group">
+            <p class="setup-section-label">YOUR CORNER</p>
+            <div class="setup-fighter-choices">
+              ${['stone','viper'].map(id=>`<button type="button" data-player-id="${id}" class="${matchSetup.playerId===id?'is-selected':''}" aria-pressed="${matchSetup.playerId===id}">
+                <span class="setup-fighter-portrait">${portrait(id)}</span>
+                <strong>${id.toUpperCase()}</strong><small>${id==='stone'?'POWERHOUSE · FACE':'DAREDEVIL · HEEL'}</small>
+              </button>`).join('')}
+            </div>
+          </div>
+          <div class="show-setting-group">
+            <div class="setup-difficulty"><span>CPU DIFFICULTY</span>
+              <div role="group" aria-label="Opponent difficulty">${[['rookie','ROOKIE'],['standard','STANDARD'],['veteran','VETERAN']].map(([value,label])=>`<button type="button" data-difficulty="${value}" class="${matchSetup.difficulty===value?'is-selected':''}" aria-pressed="${matchSetup.difficulty===value}">${label}</button>`).join('')}</div>
+            </div>
+          </div>
+          <button type="button" class="setup-guide-choice" data-toggle-coaching aria-pressed="${matchSetup.tutorial}">${matchSetup.tutorial?'✓':'○'} RINGSIDE COACH <small>${matchSetup.tutorial?'ON · Contextual tips':'OFF · No tips'}</small></button>
+        `:`<div class="setup-local-note">Both corners are player controlled. Each wrestler rolls independently for every defensive opportunity, pin count and attack.</div>`}
+        <button type="button" class="roll-button setup-enter-button" data-start-match>
+          <strong>▶ ${solo?'ENTER THE RING':'START LOCAL MATCH'}</strong>
+          <small>STONE VS VIPER · LIVE MAIN EVENT</small>
+        </button>
+        <p class="intro-help">Original Faces &amp; Heels wrestlers · Actual match engine · All dice decide real outcomes</p>
+      </section>
     </div>
   </div>`;
 }
@@ -556,6 +597,8 @@ function renderHoldDock() {
 }
 
 function renderDecisionDock() {
+  if (ui.phase === 'ROLLING' && ui.broadcastRoll)
+    return renderBroadcastDice(ui.broadcastRoll);
   if(aiEnabled()&&isAiDecision(state,matchSetup)&&!['ROLLING','ANIMATING'].includes(ui.phase))return renderAiThinking();
   if (ui.phase === 'NEUTRAL_ROLL') return renderNeutral();
   if (ui.phase === 'HOLD' || ui.phase === 'HOLD_ESCAPE') return renderHoldDock();
@@ -688,28 +731,66 @@ function announce(title, detail = '', kind = 'major', impact = false, ms = 1050)
   eventTimer = setTimeout(() => { ui.event = null; render(); }, ms);
 }
 
-async function rollingVisual(label, finalRoll) {
-  ui.phase = 'ROLLING';
-  ui.rollLabel = label;
-  ui.roll = null;
+async function readableDicePause(ms=1750) {
+  // The final values are a decision, not an animation frame. Never shorten
+  // this hold to 100ms in Reduced Motion; only explicit Fast mode can shorten it.
+  await new Promise(resolve=>setTimeout(resolve,settings.fast?Math.max(900,Math.round(ms*.58)):ms));
+}
+async function rollingVisual(label,finalRoll,{
+  mode='target',leftLabel=null,rightLabel='TARGET',rightRoll=null,
+  target=null,leftMeta='D20',rightMeta=null,caption=''
+}={}) {
+  ui.phase='ROLLING';
+  ui.rollLabel=label;
+  ui.roll=null;
+  ui.broadcastRoll={
+    title:label,mode,leftLabel:leftLabel||'YOUR ROLL',
+    leftValue:null,rightLabel,
+    rightValue:mode==='target'?target:null,
+    leftMeta,rightMeta:rightMeta||(mode==='target'?'STATIC DC':'D20'),
+    caption:caption||(mode==='opposed'?'Both wrestlers roll d20. Modifiers apply to the totals.':'Roll d20 against the displayed fixed target.'),
+    result:'',live:true
+  };
   render();
-  const ticks = [rollDie(20), rollDie(20), rollDie(20), finalRoll];
-  for (const value of ticks) {
-    await wait(75);
-    ui.roll = value;
-    render();
+  if(!settings.reducedMotion){
+    for(let i=0;i<3;i++){
+      await wait(115);
+      ui.broadcastRoll.leftValue=rollDie(20);
+      if(mode==='opposed')ui.broadcastRoll.rightValue=rollDie(20);
+      render();
+    }
   }
-  await wait(120);
+  ui.roll=finalRoll;
+  ui.broadcastRoll.leftValue=finalRoll;
+  ui.broadcastRoll.rightValue=mode==='opposed'?rightRoll:target;
+  ui.broadcastRoll.live=false;
+  render();
+  // A true ~1.75s settled view gives players time to read BOTH dice.
+  await readableDicePause(1750);
+}
+async function settleRollingVisual({leftTotal=null,rightTotal=null,result='' }={}){
+  if(ui.phase!=='ROLLING'||!ui.broadcastRoll)return;
+  if(leftTotal!==null)ui.broadcastRoll.leftMeta=`TOTAL ${leftTotal}`;
+  if(rightTotal!==null)ui.broadcastRoll.rightMeta=`TOTAL ${rightTotal}`;
+  ui.broadcastRoll.result=result;
+  render();
+  await readableDicePause(950);
 }
 
 async function rollNeutral() {
   audio.cue('bell');
   const stoneRoll = rollDie(20);
   const viperRoll = rollDie(20);
-  await rollingVisual('NEUTRAL · STONE BGD', stoneRoll);
+  await rollingVisual('FIGHT FOR CONTROL',stoneRoll,{
+    mode:'opposed',leftLabel:'STONE',rightLabel:'VIPER',rightRoll:viperRoll,
+    leftMeta:'D20 + AGILITY',rightMeta:'D20 + AGILITY',
+    caption:'Both wrestlers roll d20; the higher Agility-adjusted total wins control.'
+  });
+  const result = resolveNeutralRoll(state,stoneRoll,viperRoll);
+  await settleRollingVisual({leftTotal:result.stoneTotal,rightTotal:result.viperTotal,
+    result:result.tie?'TIE · ROLL AGAIN':`${wrestler(state,result.winnerId).name} WINS CONTROL`});
   ui.phase = 'ANIMATING'; render();
   await stage.playLockup();
-  const result = resolveNeutralRoll(state, stoneRoll, viperRoll);
   ui.neutralRolls = result;
   if (result.tie) {
     log(`Neutral tie: Stone ${result.stoneTotal}, Viper ${result.viperTotal}. Roll again.`);
@@ -811,9 +892,15 @@ async function rollMove() {
   }
   const attackRoll = rollDie(20);
   const damageRoll = rollDie(move.damageDie || 4);
-  await rollingVisual(`${currentActor().name} · ${move.name}`, attackRoll);
+  await rollingVisual(`${currentActor().name} · ${move.name}`,attackRoll,{
+    mode:'target',leftLabel:currentActor().name,rightLabel:`${currentDefender().name} · CON`,
+    target:conditioning(currentDefender()),leftMeta:'ATTACK D20',rightMeta:'STATIC CON',
+    caption:'The defender uses passive Conditioning, not another d20.'
+  });
   const crowdRolls = ui.spendCrowd ? [rollDie(6)] : [];
   const result = resolveMoveAttempt(state, { moveId: move.id, target: ui.selectedTarget, attackRoll, damageRoll, crowdSpend: ui.spendCrowd, crowdRolls });
+  await settleRollingVisual({leftTotal:result.total,rightTotal:result.targetNumber,
+    result:result.success?'MOVE CONNECTS':'ATTACK MISSES'});
   log(`${wrestler(state,result.attackerId).name} ${move.name}: d20 ${attackRoll} ${result.modifier >= 0 ? '+' : ''}${result.modifier}${result.spentCrowd ? ` +${result.crowdBonus} Heat/Pop d6` : ''}${result.tieUpBonus ? ` +${result.tieUpBonus} tie-up control` : ''} = ${result.total} vs CON ${result.targetNumber}.`);
   if (!result.success) {
     log(`${move.name} missed. ${canReact(state) ? `${wrestler(state,result.defenderId).name} may react.` : 'No legal reaction; control state continues.'}`);
@@ -878,8 +965,17 @@ function performHoldRelease(){
 async function performHoldEscape(){
   if(state.phase!=='HOLD_ESCAPE'||ui.phase!=='HOLD_ESCAPE')return;
   const defender=wrestler(state,state.activeHold.defenderId),roll=rollDie(20);
-  await rollingVisual(`${defender.name} · ESCAPE HOLD`,roll);
+  const hold=state.activeHold,holder=wrestler(state,hold.holderId),
+    holdSpec=demoMoves.find(m=>m.id===hold.moveId).sustained;
+  const dc=10+statModifier(holder.stats[holdSpec.holdStat])+Math.min(3,hold.ticks);
+  await rollingVisual(`${defender.name} · ESCAPE HOLD`,roll,{
+    mode:'target',leftLabel:defender.name,rightLabel:'HOLD ESCAPE DC',
+    target:dc,leftMeta:'D20 + AGILITY',rightMeta:'ESCAPE TARGET',
+    caption:'The trapped wrestler rolls. The opponent maintains the hold.'
+  });
   const result=escapeHold(state,{escapeRoll:roll});
+  if(result.ok)await settleRollingVisual({leftTotal:result.total,rightTotal:result.targetNumber,
+    result:result.ropeBreak?'ROPE BREAK':result.reversal?'ESCAPE & REVERSAL':result.success?'HOLD BROKEN':result.submitted?'SUBMISSION':'STILL TRAPPED'});
   if(!result.ok)return;
   const name=wrestler(state,result.defenderId).name;
   log(`${name} escape: d20 ${result.escapeRoll} ${result.modifier>=0?'+':''}${result.modifier} = ${result.total} vs ${result.targetNumber}. ${result.success?'Hold broken.':result.submitted?'Submission!':'Still trapped.'}`);
@@ -910,8 +1006,15 @@ async function runReaction(moveId) {
   if(!chosen)return;
   const reactorId=state.pendingFailure.defenderId;
   const reactionRoll=rollDie(20),damageRoll=rollDie(chosen.damageDie);
-  await rollingVisual(`${wrestler(state,reactorId).name} · ${chosen.name.toUpperCase()}`,reactionRoll);
+  await rollingVisual(`${wrestler(state,reactorId).name} · COUNTER`,reactionRoll,{
+    mode:'target',leftLabel:wrestler(state,reactorId).name,rightLabel:'ATTACKER CON',
+    target:conditioning(wrestler(state,state.pendingFailure.attackerId)),
+    leftMeta:'COUNTER D20',rightMeta:'STATIC CON',
+    caption:`${chosen.name} · The counter is a d20 attack against Conditioning.`
+  });
   const result=resolveReaction(state,{reactionMoveId:moveId,reactionRoll,damageRoll});
+  await settleRollingVisual({leftTotal:result.total,rightTotal:result.targetNumber,
+    result:result.success?'REVERSAL WON':'COUNTER MISSES'});
   log(`${wrestler(state,result.reactorId).name} ${chosen.name}: d20 ${result.reactionRoll} ${result.modifier>=0?'+':''}${result.modifier} = ${result.total} vs CON ${result.targetNumber}.`);
   if(!result.success){
     ui.phase=state.phase;
@@ -940,8 +1043,20 @@ async function performGroundDefense(choice){
   const actor=state.groundDefense?.defenderId;
   if(!act||!permitted(act,actor))return;
   const roll=choice==='scramble'?rollDie(20):undefined;
-  if(roll!==undefined)await rollingVisual(`${wrestler(state,actor).name} · SCRAMBLE`,roll);
+  if(roll!==undefined){
+    const w=wrestler(state,actor),c=wrestler(state,state.groundDefense.controllerId);
+    const target=groundScrambleTarget(c,{...w,stamina:Math.max(0,w.stamina-GROUND_SCRAMBLE_COST)});
+    await rollingVisual(`${w.name} · MAT SCRAMBLE`,roll,{
+      mode:'target',leftLabel:w.name,rightLabel:'SCRAMBLE DC',
+      target,leftMeta:'D20 + AGILITY',rightMeta:'ESCAPE TARGET',
+      caption:'Beat the grounded escape target to rise and challenge control.'
+    });
+  }
   const result=resolveGroundDefense(state,{choice,roll});
+  if(roll!==undefined&&result.ok)await settleRollingVisual({
+    leftTotal:result.total,rightTotal:result.targetNumber,
+    result:result.comeback?'SCRAMBLE REVERSAL':result.success?'SCRAMBLE SUCCESS':'STILL DOWN'
+  });
   if(!result.ok)return;
   log(`${wrestler(state,actor).name} chooses ${choice}.`+(roll!==undefined?` Roll ${roll} vs ${result.targetNumber}.`:''));
   if(choice==='scramble'){
@@ -991,8 +1106,14 @@ async function rollPinDefense(){
     return Array.from({length:Math.min(3,w.crowdResource,Math.max(0,n))},()=>rollDie(6));
   };
   const pinningCrowdRolls=crowdFor(pinning,false),pinnedCrowdRolls=crowdFor(pinned,true);
-  await rollingVisual(`${wrestler(state,pin.pinnedId).name} · KICK OUT ${count}`,pinnedRoll);
+  await rollingVisual(`REFEREE COUNT ${count} · KICKOUT`,pinnedRoll,{
+    mode:'opposed',leftLabel:`${pinned.name} · DEFENSE`,rightLabel:`${pinning.name} · PIN`,
+    rightRoll:pinningRoll,leftMeta:'DEFENSIVE D20',rightMeta:'PINNING D20',
+    caption:'Two real d20 rolls. Body penalties and Heat/Pop d6 modify the final totals.'
+  });
   const result=resolvePinCount(state,{pinningId:pin.pinningId,count,pinningRoll,pinnedRoll,pinningCrowdRolls,pinnedCrowdRolls});
+  await settleRollingVisual({leftTotal:result.pinnedTotal,rightTotal:result.pinningTotal,
+    result:result.kickout?(result.comeback?'KICKOUT REVERSAL':'KICKOUT!'):result.pinfall?'THREE · PINFALL':'SHOULDERS DOWN'});
   pin.count=count;ui.pinCount=count;ui.pinRolls=result;
   if(!aiEnabled()||matchSetup.playerId===pin.pinnedId)ui.pinCrowdSpend=0;
   audio.cue('count');

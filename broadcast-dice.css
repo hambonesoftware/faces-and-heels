@@ -1,0 +1,208 @@
+/* v1.23: real broadcaster-style dice lower third — no mock dice in the canvas.
+   Opposed d20: both figures are dice; CON/DC: second figure is a target plate.
+   Never obscure the animated wrestler models during a roll. */
+.tactical-menu-anchor>.broadcast-dice-console{
+  pointer-events:none;isolation:isolate;
+  width:100%;max-width:100%;
+  color:#fff5e6;
+  border:1px solid #66798b;border-top:3px solid #e4b95a;
+  border-radius:0 0 4px 4px;
+  background:
+    linear-gradient(118deg,#1a2636 0%,#090e16 30%,#161f2d 68%,#231a24 100%);
+  box-shadow:inset 0 1px 0 #ffffff22,0 8px 24px #0009;
+  padding:9px 16px 12px;
+  overflow:hidden;
+}
+.broadcast-dice-heading{
+  display:flex;gap:10px;align-items:baseline;justify-content:center;
+  border-bottom:1px solid #50607060;padding:0 0 6px;text-align:center;
+}
+.broadcast-dice-live{
+  flex:none;color:#e5bf77;
+  font:900 9px/1 system-ui,sans-serif;letter-spacing:.12em;
+}
+.broadcast-dice-heading>strong{
+  color:#fff2e4;
+  font:italic 900 clamp(15px,2.1vw,23px)/1 Impact,"Arial Narrow",system-ui,sans-serif;
+  letter-spacing:.08em;text-transform:uppercase;
+}
+.broadcast-dice-matchup{
+  display:grid;grid-template-columns:minmax(0,1fr) 46px minmax(0,1fr);
+  align-items:center;justify-content:center;
+  max-width:750px;margin:8px auto 0;gap:8px;
+}
+.broadcast-dice-player{
+  display:grid;grid-template-columns:minmax(0,1fr) 91px;
+  grid-template-rows:auto 1fr;grid-template-areas:"name die" "meta die";
+  align-items:center;gap:2px 10px;min-width:0;
+  justify-self:stretch;
+}
+.broadcast-dice-player--left{text-align:right;}
+.broadcast-dice-player--right{
+  grid-template-columns:91px minmax(0,1fr);
+  grid-template-areas:"die name" "die meta";
+  text-align:left;
+}
+.broadcast-dice-name{
+  grid-area:name;color:#fae5c4;font:900 clamp(13px,1.6vw,20px)/1 Impact,"Arial Narrow",sans-serif;
+  text-transform:uppercase;letter-spacing:.04em;overflow-wrap:anywhere;
+}
+.broadcast-dice-meta{grid-area:meta;color:#b8cbd6;font:900 10px/1.25 system-ui,sans-serif;letter-spacing:.03em;font-variant-numeric:tabular-nums;}
+.broadcast-die{
+  grid-area:die;position:relative;isolation:isolate;
+  width:86px;height:87px;display:grid;place-items:center;justify-self:center;
+  filter:drop-shadow(0 5px 5px #000c);
+}
+.broadcast-die--d20{
+  clip-path:polygon(50% 1%,84% 12%,99% 50%,82% 88%,50% 100%,17% 88%,1% 50%,16% 12%);
+  background:linear-gradient(137deg,#faf3df 0%,#c5a35b 14%,#7c552e 42%,#22182a 83%,#b9763f);
+  border:0;
+}
+.broadcast-die--d20:before{
+  content:'';position:absolute;inset:5px;
+  clip-path:polygon(50% 0%,100% 50%,50% 100%,0 50%);
+  background:linear-gradient(150deg,#273848 2%,#142537 45%,#0b1726 100%);
+}
+.broadcast-die--d20:after{
+  content:'';position:absolute;inset:6px;
+  clip-path:polygon(50% 0%,99% 48%,50% 99%,1% 48%);
+  background:linear-gradient(130deg,transparent 49%,#c1b5a354 49.7%,#d5baa57b 50.3%,transparent 51%),linear-gradient(35deg,transparent 49%,#f2c97854 50%,transparent 51%);
+}
+.broadcast-dice-player--left .broadcast-die--d20:before{background:linear-gradient(140deg,#526478,#20344b,#0b192b)}
+.broadcast-dice-player--right .broadcast-die--d20:before{background:linear-gradient(140deg,#74434d,#342432,#101725)}
+.broadcast-die--target{
+  width:88px;height:81px;
+  clip-path:polygon(20% 0,80% 0,100% 19%,100% 81%,80% 100%,20% 100%,0 81%,0 19%);
+  background:linear-gradient(150deg,#928a7c,#293746 28%,#101a27 75%,#9c9080);
+}
+.broadcast-die--target:before{
+  content:'';position:absolute;inset:5px;
+  clip-path:polygon(20% 0,80% 0,100% 19%,100% 81%,80% 100%,20% 100%,0 81%,0 19%);
+  background:linear-gradient(140deg,#273847,#0b1421);
+}
+.broadcast-die-face{
+  position:relative;z-index:2;color:#fffaf0;
+  font:900 38px/1 Impact,"Arial Narrow",system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;text-shadow:0 2px 3px #000d,0 0 14px #f8dfb83c;
+  transform:translateY(-4px);
+}
+.broadcast-die-type{
+  z-index:2;position:absolute;bottom:13px;left:50%;transform:translateX(-50%);
+  color:#ffd790;font:900 8px/1 system-ui,sans-serif;letter-spacing:.13em;
+}
+.broadcast-die--target .broadcast-die-type{bottom:11px;color:#b8c9da}
+.broadcast-die--target .broadcast-die-face{font-size:36px}
+.broadcast-dice-versus{
+  color:#efc777;font:italic 900 28px/1 Impact,"Arial Narrow",sans-serif;
+  text-align:center;text-shadow:0 2px #000c;
+}
+.broadcast-dice-caption{
+  margin:5px 0 0;text-align:center;
+  color:#bbcad2;font:600 11px/1.25 system-ui,sans-serif;
+}
+.broadcast-dice-result{
+  border-top:1px solid #977d5b66;margin:6px -16px -12px;
+  padding:8px 12px;text-align:center;
+  background:linear-gradient(90deg,#5a4127,#16232f 45%,#512733);
+  color:#fff0c7;font:900 clamp(15px,2.2vw,24px)/1 Impact,"Arial Narrow",sans-serif;
+  letter-spacing:.12em;min-height:37px;
+}
+.broadcast-dice-console.is-rolling .broadcast-die{
+  animation:broadcast-die-roll .24s ease-in-out infinite alternate;
+}
+.broadcast-dice-console.is-rolling .broadcast-die--target{animation:none}
+@keyframes broadcast-die-roll{
+  0%{transform:translateY(-3px) rotate(-3deg)}
+  100%{transform:translateY(2px) rotate(3deg)}
+}
+.arena-shell .turn-chip--dice{
+  bottom:10px;left:12px;
+  background:linear-gradient(90deg,#09131ddc,#151f2bbc);
+  border-left:3px solid #d6ab5d;
+  padding:5px 9px;
+}
+.arena-shell .turn-chip--dice strong{font-size:10px}
+.arena-shell .turn-chip--dice span{font-size:8px}
+@media(max-width:540px){
+  .tactical-menu-anchor>.broadcast-dice-console{padding:7px 5px 9px}
+  .broadcast-dice-heading{gap:5px;flex-wrap:wrap;padding-bottom:5px}
+  .broadcast-dice-live{font-size:7px}
+  .broadcast-dice-heading>strong{font-size:15px}
+  .broadcast-dice-matchup{grid-template-columns:minmax(0,1fr) 25px minmax(0,1fr);gap:2px;margin-top:5px}
+  .broadcast-dice-player{
+    grid-template-columns:1fr;grid-template-rows:auto 77px auto;
+    grid-template-areas:"name" "die" "meta";text-align:center;gap:3px;
+  }
+  .broadcast-dice-player--right{
+    grid-template-columns:1fr;grid-template-rows:auto 77px auto;
+    grid-template-areas:"name" "die" "meta";text-align:center;
+  }
+  .broadcast-dice-name{font-size:13px;min-height:14px;line-height:1.08}
+  .broadcast-dice-meta{font-size:9px;min-height:11px}
+  .broadcast-die{width:73px;height:76px}
+  .broadcast-die--target{width:72px;height:73px}
+  .broadcast-die-face{font-size:34px}
+  .broadcast-die--target .broadcast-die-face{font-size:31px}
+  .broadcast-die-type{bottom:10px;font-size:7px}
+  .broadcast-dice-versus{font-size:18px}
+  .broadcast-dice-caption{font-size:9px;padding:0 4px;margin-top:5px}
+  .broadcast-dice-result{margin:6px -5px -9px;font-size:18px;padding:6px;min-height:29px}
+}
+@media(max-width:360px){
+  .broadcast-dice-name{font-size:11px}
+  .broadcast-dice-heading>strong{font-size:13px}
+}
+@media(orientation:landscape) and (max-height:600px){
+  .broadcast-dice-matchup{margin-top:4px}
+  .broadcast-die{width:70px;height:72px}
+  .broadcast-dice-heading>strong{font-size:17px}
+  .broadcast-dice-player{grid-template-columns:minmax(0,1fr) 75px}
+  .broadcast-dice-player--right{grid-template-columns:75px minmax(0,1fr)}
+}
+@media(prefers-reduced-motion:reduce){
+  .broadcast-dice-console .broadcast-die{animation:none!important}
+}
+
+
+/* Broadcast inserts, not huge UI badges covering the fight. */
+.arena-shell .event-overlay{
+ z-index:12;left:14px;right:auto;bottom:16px;top:auto;
+ width:min(76%,465px);max-width:calc(100% - 28px);
+ transform:none;justify-items:start;text-align:left;gap:0;
+ border-left:5px solid #e2b960;border-top:1px solid #748799;
+ background:linear-gradient(100deg,#09121bf7,#1c2835e9 75%,#101925b0);
+ box-shadow:0 6px 24px #000b;filter:none;
+}
+.arena-shell .event-overlay small{
+ color:#ffc96b;border:0;background:transparent;
+ padding:7px 11px 1px;font:900 9px/1 system-ui,sans-serif;
+}
+.arena-shell .event-overlay strong{
+ margin:0;color:#fff2e0;font:italic 900 clamp(20px,3vw,38px)/1 Impact,"Arial Narrow",sans-serif;
+ text-shadow:1px 2px #000;letter-spacing:.05em;padding:3px 11px 1px;
+}
+.arena-shell .event-overlay span{
+ width:100%;color:#e1e9ef;background:#080f19a9;
+ text-align:left;font:800 10px/1.3 system-ui,sans-serif;
+ padding:6px 11px;border-top:1px solid #54697d55;
+}
+.arena-shell .event-overlay--danger{border-left-color:#ec5d6c}
+.arena-shell .event-overlay--spectacle{border-left-color:#ffd76c}
+.arena-shell .pin-overlay{
+ position:absolute;z-index:12;
+ left:auto;right:4%;top:19%;bottom:auto;width:auto;max-width:45%;
+ transform:none;justify-items:end;text-align:right;filter:drop-shadow(0 2px 8px #000);
+}
+.arena-shell .pin-overlay strong{
+ font-size:clamp(62px,13vw,125px);color:#fff4e7;
+ text-shadow:4px 4px #c42d4a,0 0 15px #f9556f7a;
+}
+.arena-shell .pin-overlay small,.arena-shell .pin-overlay span{font-size:10px}
+@media(max-width:540px){
+ .arena-shell .event-overlay{left:6px;bottom:7px;width:min(86%,310px)}
+ .arena-shell .event-overlay strong{font-size:22px}
+ .arena-shell .event-overlay small{font-size:8px}
+ .arena-shell .event-overlay span{font-size:9px}
+ .arena-shell .pin-overlay{top:20%;right:5%}
+ .arena-shell .pin-overlay strong{font-size:70px}
+}
