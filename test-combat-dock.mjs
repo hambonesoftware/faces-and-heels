@@ -29,7 +29,7 @@ assert(doc.indexOf('broadcast.css?v=1.22.0')<doc.indexOf('combat-dock.css?v=1.25
 assert(doc.includes('./combat-dock.css?v=1.25.1'),
   'Bust cached inert v1.25 CSS');
 assert(worker.includes("'./combat-dock.css?v=1.25.1'"),'Installed PWA must cache interactive CSS');
-assert(worker.includes('faces-heels-v1.25.1-combat-dock-tap-fix'));
+assert(worker.includes('faces-heels-v1.25.2-one-tap-move-execution'));
 assert(app.includes('event.target.closest(\'button,[data-close-drawer]\')'),'Tap delegation must cover buttons');
 assert(app.includes('if (el.dataset.dockFamily !== undefined)'),'Tap handler must have a category entry point');
 const actor={id:'stone',name:'STONE',crowdResource:2,crowdResourceName:'POP',stamina:44,maxStamina:64};
