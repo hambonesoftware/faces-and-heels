@@ -7,7 +7,7 @@ import { DEFAULT_PRESENTATION, readSettings, saveSettings, delayFor, tacticalLab
 import { demoMoves } from './moves.js?v=1.21.0';
 import { LEGENDARY_CATALOG,MAX_LEGENDARY_MOVES } from './legendary-catalog.js?v=1.19.0';
 import { bodyLabel, resolveTargetDecision } from './flow-engine.js?v=1.19.0';
-import { IsoStage } from './iso-stage.js?v=1.19.0';
+import { IsoStage } from './iso-stage.js?v=1.22.0';
 let rendererMode = 'iso';
 try { const saved=localStorage.getItem('fh-renderer-v15'); if(['iso','sprite','compare'].includes(saved)) rendererMode=saved; } catch {}
 const requestedRenderer=new URLSearchParams(location.search).get('renderer');
