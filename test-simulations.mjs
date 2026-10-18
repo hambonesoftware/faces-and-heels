@@ -8,6 +8,7 @@ import {
   getLegalMoves,
   checkCombatFlow,
   resolveMoveAttempt,
+  attackBoostEligibility,
   canReact,
   resolveReaction,
   declineReaction,
@@ -275,7 +276,7 @@ function simulateMatch(seed, maxSteps = 600) {
     let target = null;
     if (decision.kind === 'choice') target = choose(rng, decision.values);
     else target = decision.values[0] || null;
-    const crowdSpend = actor.crowdResource > 0 && rng() < 0.22 ? 1 : 0;
+    const crowdSpend = attackBoostEligibility(state,move).available && rng() < 0.22 ? 1 : 0;
     const previousHigh = Object.entries(state.roles).find(([, role]) => role === 'H')?.[0] || null;
     const result = resolveMoveAttempt(state, {
       moveId: move.id,
