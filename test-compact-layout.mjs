@@ -17,5 +17,5 @@ assert(stage.includes('this.scale=Math.min(width/10.8,height/9.8)*(width<680?.91
 assert(app.includes('new IsoStage(canvas)'),'Existing 3-D wrestler engine retained');
 assert(app.includes('ui.showCoach?renderCoachHint()'),'Tutorial overlays must be optional');
 assert(app.includes('renderCombatPrompt('),'Defensive and selected phases should share action dock');
-assert(html.includes('combat-dock.css?v=1.25.0'),'Load the override after older CSS');
+assert(html.includes('combat-dock.css?v=1.25.1'),'Load the override after older CSS');
 console.log('v1.25 compact arena-first layout PASS: fewer visuals, reduced chrome and all normal interaction inside thumb dock.');
