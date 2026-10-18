@@ -313,7 +313,7 @@ function renderSelectedMove() {
  const chance=boost?(ui.spendCrowd?boost.boostChance:boost.baseChance):null;
  return renderCombatPrompt({
   kind:'execute',kicker:move.legendary?'LEGENDARY':move.category.toUpperCase(),title:move.name,
-  detail:`−${move.staminaCost} STA${target?' · '+bodyLabel(target).toUpperCase():''}${chance!==null?' · '+chance+'% HIT':''}`,
+  detail:`−${move.staminaCost} STA · −${move.staminaDamage} OPP ON HIT${target?' · '+bodyLabel(target).toUpperCase():''}${chance!==null?' · '+chance+'% HIT':''}`,
   actions:[
    {action:'data-back',label:'BACK'},
    {action:'data-roll',label:move.automatic?'PERFORM SETUP':'EXECUTE',note:move.automatic?'KEEP HIGH CONTROL':'ROLL d20',primary:true}
