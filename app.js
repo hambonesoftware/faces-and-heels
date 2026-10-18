@@ -745,10 +745,16 @@ async function rollNeutral() {
   audio.cue('bell');
   const stoneRoll = rollDie(20);
   const viperRoll = rollDie(20);
-  await rollingVisual('NEUTRAL · STONE BGD', stoneRoll);
+  await rollingVisual('FIGHT FOR CONTROL',stoneRoll,{
+    mode:'opposed',leftLabel:'STONE',rightLabel:'VIPER',rightRoll:viperRoll,
+    leftMeta:'D20 + AGILITY',rightMeta:'D20 + AGILITY',
+    caption:'Both wrestlers roll d20; the higher Agility-adjusted total wins control.'
+  });
+  const result = resolveNeutralRoll(state,stoneRoll,viperRoll);
+  await settleRollingVisual({leftTotal:result.stoneTotal,rightTotal:result.viperTotal,
+    result:result.tie?'TIE · ROLL AGAIN':`${wrestler(state,result.winnerId).name} WINS CONTROL`});
   ui.phase = 'ANIMATING'; render();
   await stage.playLockup();
-  const result = resolveNeutralRoll(state, stoneRoll, viperRoll);
   ui.neutralRolls = result;
   if (result.tie) {
     log(`Neutral tie: Stone ${result.stoneTotal}, Viper ${result.viperTotal}. Roll again.`);
@@ -850,9 +856,15 @@ async function rollMove() {
   }
   const attackRoll = rollDie(20);
   const damageRoll = rollDie(move.damageDie || 4);
-  await rollingVisual(`${currentActor().name} · ${move.name}`, attackRoll);
+  await rollingVisual(`${currentActor().name} · ${move.name}`,attackRoll,{
+    mode:'target',leftLabel:currentActor().name,rightLabel:`${currentDefender().name} · CON`,
+    target:conditioning(currentDefender()),leftMeta:'ATTACK D20',rightMeta:'STATIC CON',
+    caption:'The defender uses passive Conditioning, not another d20.'
+  });
   const crowdRolls = ui.spendCrowd ? [rollDie(6)] : [];
   const result = resolveMoveAttempt(state, { moveId: move.id, target: ui.selectedTarget, attackRoll, damageRoll, crowdSpend: ui.spendCrowd, crowdRolls });
+  await settleRollingVisual({leftTotal:result.total,rightTotal:result.targetNumber,
+    result:result.success?'MOVE CONNECTS':'ATTACK MISSES'});
   log(`${wrestler(state,result.attackerId).name} ${move.name}: d20 ${attackRoll} ${result.modifier >= 0 ? '+' : ''}${result.modifier}${result.spentCrowd ? ` +${result.crowdBonus} Heat/Pop d6` : ''}${result.tieUpBonus ? ` +${result.tieUpBonus} tie-up control` : ''} = ${result.total} vs CON ${result.targetNumber}.`);
   if (!result.success) {
     log(`${move.name} missed. ${canReact(state) ? `${wrestler(state,result.defenderId).name} may react.` : 'No legal reaction; control state continues.'}`);
@@ -917,8 +929,17 @@ function performHoldRelease(){
 async function performHoldEscape(){
   if(state.phase!=='HOLD_ESCAPE'||ui.phase!=='HOLD_ESCAPE')return;
   const defender=wrestler(state,state.activeHold.defenderId),roll=rollDie(20);
-  await rollingVisual(`${defender.name} · ESCAPE HOLD`,roll);
+  const hold=state.activeHold,holder=wrestler(state,hold.holderId),
+    holdSpec=demoMoves.find(m=>m.id===hold.moveId).sustained;
+  const dc=10+statModifier(holder.stats[holdSpec.holdStat])+Math.min(3,hold.ticks);
+  await rollingVisual(`${defender.name} · ESCAPE HOLD`,roll,{
+    mode:'target',leftLabel:defender.name,rightLabel:'HOLD ESCAPE DC',
+    target:dc,leftMeta:'D20 + AGILITY',rightMeta:'ESCAPE TARGET',
+    caption:'The trapped wrestler rolls. The opponent maintains the hold.'
+  });
   const result=escapeHold(state,{escapeRoll:roll});
+  if(result.ok)await settleRollingVisual({leftTotal:result.total,rightTotal:result.targetNumber,
+    result:result.ropeBreak?'ROPE BREAK':result.reversal?'ESCAPE & REVERSAL':result.success?'HOLD BROKEN':result.submitted?'SUBMISSION':'STILL TRAPPED'});
   if(!result.ok)return;
   const name=wrestler(state,result.defenderId).name;
   log(`${name} escape: d20 ${result.escapeRoll} ${result.modifier>=0?'+':''}${result.modifier} = ${result.total} vs ${result.targetNumber}. ${result.success?'Hold broken.':result.submitted?'Submission!':'Still trapped.'}`);
@@ -949,8 +970,15 @@ async function runReaction(moveId) {
   if(!chosen)return;
   const reactorId=state.pendingFailure.defenderId;
   const reactionRoll=rollDie(20),damageRoll=rollDie(chosen.damageDie);
-  await rollingVisual(`${wrestler(state,reactorId).name} · ${chosen.name.toUpperCase()}`,reactionRoll);
+  await rollingVisual(`${wrestler(state,reactorId).name} · COUNTER`,reactionRoll,{
+    mode:'target',leftLabel:wrestler(state,reactorId).name,rightLabel:'ATTACKER CON',
+    target:conditioning(wrestler(state,state.pendingFailure.attackerId)),
+    leftMeta:'COUNTER D20',rightMeta:'STATIC CON',
+    caption:`${chosen.name} · The counter is a d20 attack against Conditioning.`
+  });
   const result=resolveReaction(state,{reactionMoveId:moveId,reactionRoll,damageRoll});
+  await settleRollingVisual({leftTotal:result.total,rightTotal:result.targetNumber,
+    result:result.success?'REVERSAL WON':'COUNTER MISSES'});
   log(`${wrestler(state,result.reactorId).name} ${chosen.name}: d20 ${result.reactionRoll} ${result.modifier>=0?'+':''}${result.modifier} = ${result.total} vs CON ${result.targetNumber}.`);
   if(!result.success){
     ui.phase=state.phase;
@@ -979,8 +1007,20 @@ async function performGroundDefense(choice){
   const actor=state.groundDefense?.defenderId;
   if(!act||!permitted(act,actor))return;
   const roll=choice==='scramble'?rollDie(20):undefined;
-  if(roll!==undefined)await rollingVisual(`${wrestler(state,actor).name} · SCRAMBLE`,roll);
+  if(roll!==undefined){
+    const w=wrestler(state,actor),c=wrestler(state,state.groundDefense.controllerId);
+    const target=groundScrambleTarget(c,{...w,stamina:Math.max(0,w.stamina-GROUND_SCRAMBLE_COST)});
+    await rollingVisual(`${w.name} · MAT SCRAMBLE`,roll,{
+      mode:'target',leftLabel:w.name,rightLabel:'SCRAMBLE DC',
+      target,leftMeta:'D20 + AGILITY',rightMeta:'ESCAPE TARGET',
+      caption:'Beat the grounded escape target to rise and challenge control.'
+    });
+  }
   const result=resolveGroundDefense(state,{choice,roll});
+  if(roll!==undefined&&result.ok)await settleRollingVisual({
+    leftTotal:result.total,rightTotal:result.targetNumber,
+    result:result.comeback?'SCRAMBLE REVERSAL':result.success?'SCRAMBLE SUCCESS':'STILL DOWN'
+  });
   if(!result.ok)return;
   log(`${wrestler(state,actor).name} chooses ${choice}.`+(roll!==undefined?` Roll ${roll} vs ${result.targetNumber}.`:''));
   if(choice==='scramble'){
@@ -1030,8 +1070,14 @@ async function rollPinDefense(){
     return Array.from({length:Math.min(3,w.crowdResource,Math.max(0,n))},()=>rollDie(6));
   };
   const pinningCrowdRolls=crowdFor(pinning,false),pinnedCrowdRolls=crowdFor(pinned,true);
-  await rollingVisual(`${wrestler(state,pin.pinnedId).name} · KICK OUT ${count}`,pinnedRoll);
+  await rollingVisual(`REFEREE COUNT ${count} · KICKOUT`,pinnedRoll,{
+    mode:'opposed',leftLabel:`${pinned.name} · DEFENSE`,rightLabel:`${pinning.name} · PIN`,
+    rightRoll:pinningRoll,leftMeta:'DEFENSIVE D20',rightMeta:'PINNING D20',
+    caption:'Two real d20 rolls. Body penalties and Heat/Pop d6 modify the final totals.'
+  });
   const result=resolvePinCount(state,{pinningId:pin.pinningId,count,pinningRoll,pinnedRoll,pinningCrowdRolls,pinnedCrowdRolls});
+  await settleRollingVisual({leftTotal:result.pinnedTotal,rightTotal:result.pinningTotal,
+    result:result.kickout?(result.comeback?'KICKOUT REVERSAL':'KICKOUT!'):result.pinfall?'THREE · PINFALL':'SHOULDERS DOWN'});
   pin.count=count;ui.pinCount=count;ui.pinRolls=result;
   if(!aiEnabled()||matchSetup.playerId===pin.pinnedId)ui.pinCrowdSpend=0;
   audio.cue('count');
