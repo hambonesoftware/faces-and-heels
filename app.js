@@ -1,4 +1,6 @@
 import {ACTION_IDS} from './turn-controller.js?v=1.19.0';
+import {renderBroadcastDice} from './broadcast-dice.js?v=1.23.0';
+import {groundScrambleTarget,GROUND_SCRAMBLE_COST} from './ground-defense.js?v=1.19.0';
 import {DEFAULT_MATCH_SETUP,readMatchSetup,saveMatchSetup,aiWrestlerId,isAiDecision,chooseAiAction,choosePinCrowdSpend} from './solo-ai.js?v=1.19.2';
 import { animationByMove } from './combat-animation-map.js?v=1.21.0';
 import { portrait, moveArt, damageDiagram } from './ui-art.js?v=1.21.0';
@@ -69,6 +71,7 @@ let ui = {
   drawer: null,
   roll: null,
   rollLabel: '',
+  broadcastRoll: null,
   event: null,
   filter: 'all',
   moreMoves: false,
@@ -201,7 +204,9 @@ function renderHeader() {
 
 function renderArenaOverlay() {
   if (ui.phase === 'ROLLING') {
-    return `<div class="dice-overlay"><small>${escapeHtml(ui.rollLabel || ui.selectedMove?.name || 'ROLL')}</small><div class="die">${ui.roll ?? '•'}</div><strong>${ui.roll ? 'LOCKED' : 'ROLLING'}</strong></div>`;
+    // The broadcast dice live in the ringside lower third, not on top of the
+    // wrestler models. Keep the full ring visible during the complete roll.
+    return '<div class="turn-chip turn-chip--dice"><span>RINGSIDE DICE</span><strong>OFFICIAL ROLL</strong></div>';
   }
   if (ui.phase === 'PIN' || ui.phase === 'PIN_DEFENSE') {
     const detail = ui.pinRolls ? `${ui.pinRolls.pinningTotal} vs ${ui.pinRolls.pinnedTotal}` : 'OPPOSED BGD';
@@ -556,6 +561,8 @@ function renderHoldDock() {
 }
 
 function renderDecisionDock() {
+  if (ui.phase === 'ROLLING' && ui.broadcastRoll)
+    return renderBroadcastDice(ui.broadcastRoll);
   if(aiEnabled()&&isAiDecision(state,matchSetup)&&!['ROLLING','ANIMATING'].includes(ui.phase))return renderAiThinking();
   if (ui.phase === 'NEUTRAL_ROLL') return renderNeutral();
   if (ui.phase === 'HOLD' || ui.phase === 'HOLD_ESCAPE') return renderHoldDock();
@@ -688,18 +695,50 @@ function announce(title, detail = '', kind = 'major', impact = false, ms = 1050)
   eventTimer = setTimeout(() => { ui.event = null; render(); }, ms);
 }
 
-async function rollingVisual(label, finalRoll) {
-  ui.phase = 'ROLLING';
-  ui.rollLabel = label;
-  ui.roll = null;
+async function readableDicePause(ms=1750) {
+  // The final values are a decision, not an animation frame. Never shorten
+  // this hold to 100ms in Reduced Motion; only explicit Fast mode can shorten it.
+  await new Promise(resolve=>setTimeout(resolve,settings.fast?Math.max(900,Math.round(ms*.58)):ms));
+}
+async function rollingVisual(label,finalRoll,{
+  mode='target',leftLabel=null,rightLabel='TARGET',rightRoll=null,
+  target=null,leftMeta='D20',rightMeta=null,caption=''
+}={}) {
+  ui.phase='ROLLING';
+  ui.rollLabel=label;
+  ui.roll=null;
+  ui.broadcastRoll={
+    title:label,mode,leftLabel:leftLabel||'YOUR ROLL',
+    leftValue:null,rightLabel,
+    rightValue:mode==='target'?target:null,
+    leftMeta,rightMeta:rightMeta||(mode==='target'?'STATIC DC':'D20'),
+    caption:caption||(mode==='opposed'?'Both wrestlers roll d20. Modifiers apply to the totals.':'Roll d20 against the displayed fixed target.'),
+    result:'',live:true
+  };
   render();
-  const ticks = [rollDie(20), rollDie(20), rollDie(20), finalRoll];
-  for (const value of ticks) {
-    await wait(75);
-    ui.roll = value;
-    render();
+  if(!settings.reducedMotion){
+    for(let i=0;i<3;i++){
+      await wait(115);
+      ui.broadcastRoll.leftValue=rollDie(20);
+      if(mode==='opposed')ui.broadcastRoll.rightValue=rollDie(20);
+      render();
+    }
   }
-  await wait(120);
+  ui.roll=finalRoll;
+  ui.broadcastRoll.leftValue=finalRoll;
+  ui.broadcastRoll.rightValue=mode==='opposed'?rightRoll:target;
+  ui.broadcastRoll.live=false;
+  render();
+  // A true ~1.75s settled view gives players time to read BOTH dice.
+  await readableDicePause(1750);
+}
+async function settleRollingVisual({leftTotal=null,rightTotal=null,result='' }={}){
+  if(ui.phase!=='ROLLING'||!ui.broadcastRoll)return;
+  if(leftTotal!==null)ui.broadcastRoll.leftMeta=`TOTAL ${leftTotal}`;
+  if(rightTotal!==null)ui.broadcastRoll.rightMeta=`TOTAL ${rightTotal}`;
+  ui.broadcastRoll.result=result;
+  render();
+  await readableDicePause(950);
 }
 
 async function rollNeutral() {
