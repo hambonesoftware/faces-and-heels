@@ -44,7 +44,12 @@
 .arena-shell .turn-chip--defense span:last-child{display:none}
 .arena-shell .turn-chip--defense strong{font-size:12px}
 .tactical-menu-anchor{align-self:end;width:100%;min-width:0}
+/* v1.25.1 FIX: old broadcast.css deliberately disables all pointer events on
+   .tactical-menu-anchor, re-enabling only its legacy .decision-panel children.
+   This NEW combat-dock must explicitly opt back in, or every visible category,
+   move, kickout, counter and execute control becomes inert on mobile and desktop. */
 .tactical-menu-anchor>.combat-dock{
+ pointer-events:auto;
  position:relative;width:100%;max-width:100%;
  padding:7px 11px 9px;
  background:
