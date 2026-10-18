@@ -3,8 +3,9 @@
  * The roll owner provides verified engine dice. This module NEVER rolls dice,
  * changes outcomes, or implies a passive CON/DC check is an opposed d20.
  */
-export function renderBroadcastDice({title='',mode='opposed',leftLabel='WRESTLER',leftValue=null,rightLabel='OPPONENT',rightValue=null,leftMeta='D20',rightMeta='D20',caption='',result='',live=false}={}){
+export function renderBroadcastDice({title='',mode='opposed',leftLabel='WRESTLER',leftValue=null,rightLabel='OPPONENT',rightValue=null,leftMeta='D20',rightMeta=null,caption='',result='',live=false}={}){
   if(!['opposed','target'].includes(mode))throw new Error('Invalid dice graphic type');
+  rightMeta ??= mode==='target'?'STATIC DC':'D20';
   const escape=s=>String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
   const face=(value,isTarget=false)=>{
     const known=Number.isInteger(value)&&value>=0&&value<=99;
