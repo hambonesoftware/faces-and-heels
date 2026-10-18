@@ -30,7 +30,8 @@ const used=resolveMoveAttempt(state,{
 });
 assert.equal(used.spentCrowd,1);
 assert.equal(used.crowdBonus,4);
-assert.equal(wrestler(state,'stone').crowdResource,2);
+assert.equal(used.crowdGained,1,'Successful signature replenishes one Pop according to the original rules');
+assert.equal(wrestler(state,'stone').crowdResource,3,'One Pop spent and one Pop earned on success');
 
 // Difficult attacks qualify based on real odds, not arbitrary move categories.
 const uphill=cloneInitialState();giveControl(uphill,'stone');
