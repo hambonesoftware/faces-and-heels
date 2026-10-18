@@ -1,13 +1,14 @@
-const CACHE = 'faces-heels-v1.23.0-live-broadcast-production';
+const CACHE = 'faces-heels-v1.24.0-redline-chrome-crowd';
 const CORE = [
-  './index.html?v=1.23.0',
+  './index.html?v=1.24.0',
   './styles.css?v=1.19.0',
   './broadcast.css?v=1.22.0',
   './broadcast-dice.css?v=1.23.0',
   './broadcast-opening.css?v=1.23.0',
+  './redline-chrome.css?v=1.24.0',
   './broadcast-dice.js?v=1.23.0',
-  './app.js?v=1.23.0',
-  './solo-ai.js?v=1.19.2',
+  './app.js?v=1.24.0',
+  './solo-ai.js?v=1.24.0',
   './solo-ai.js',
   './match-engine.js',
   './combat-animation-map.js?v=1.21.0',
@@ -28,7 +29,7 @@ const CORE = [
   './ui-art.js?v=1.21.0',
   './moves.js?v=1.21.0',
   './flow-engine.js?v=1.19.0',
-  './match-engine.js?v=1.21.1',
+  './match-engine.js?v=1.24.0',
   './sprite-stage.js?v=1.19.0',
   './iso-stage.js?v=1.22.0',
   './block-model.js?v=1.19.0',

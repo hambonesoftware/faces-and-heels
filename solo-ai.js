@@ -4,7 +4,7 @@
  * The caller performs the selected action with the regular match-engine API.
  */
 import {getLegalMoves,getAvailableActions,getAvailableReactions,availableHoldTransitions,
-  wrestler,opponentId,statModifier,conditioning} from './match-engine.js';
+  wrestler,opponentId,statModifier,conditioning,attackBoostEligibility} from './match-engine.js';
 import {resolveTargetDecision} from './flow-engine.js';
 
 export const AI_DIFFICULTIES=Object.freeze(['rookie','standard','veteran']);
@@ -208,7 +208,7 @@ export function chooseAiAction(state,{setup=DEFAULT_MATCH_SETUP,rng=Math.random}
    const move=chooseWeighted(scored,rng,difficulty);
    return {
      type:'move',moveId:move.id,target:chooseTarget(state,move,rng),
-     crowdSpend:!move.automatic&&ai.crowdResource>0&&ai.stamina>move.staminaCost+3
+     crowdSpend:attackBoostEligibility(state,move).available&&ai.stamina>move.staminaCost+3
        &&(difficulty==='veteran'||(difficulty==='standard'&&rng()<.25))?1:0
    };
  }
