@@ -11,6 +11,27 @@ const app=readFileSync('app.js','utf8');
 assert(app.includes("previousDockPhase=ui.phase"),'Combat category reset logic missing');
 for(const phase of ['NEUTRAL_ROLL','HOLD','HOLD_ESCAPE','TARGET_CHOICE','SELECTED','OPPORTUNITY','REACTION','GROUND_DEFENSE','PIN_DEFENSE'])
  assert(app.includes("ui.phase === '"+phase+"'")||app.includes("'"+phase+"'"),'Phase '+phase+' disappeared from dispatcher');
+const legacyCss=readFileSync('broadcast.css','utf8');
+const dockCss=readFileSync('combat-dock.css','utf8');
+const doc=readFileSync('index.html','utf8');
+const worker=readFileSync('sw.js','utf8');
+// Regression for the shipped v1.25 tap bug: the v1.22 broadcast wrapper
+// disables pointer events, but only the old .decision-panel was opted back in.
+// ALL v1.25 prompts and buttons sit inside .combat-dock instead.
+assert(/\.tactical-menu-anchor\s*\{[^}]*pointer-events\s*:\s*none/s.test(legacyCss),
+  'This test must cover the old broadcast layer which blocked touch events');
+const dockRule=dockCss.match(/\.tactical-menu-anchor\s*>\s*\.combat-dock\s*\{([^}]*)\}/s);
+assert(dockRule,'Combat dock requires a dedicated override for the legacy wrapper');
+assert(/pointer-events\s*:\s*auto\s*;/i.test(dockRule[1]),
+  'CRITICAL: dock must override inherited pointer-events:none for every category and defense');
+assert(doc.indexOf('broadcast.css?v=1.22.0')<doc.indexOf('combat-dock.css?v=1.25.1'),
+  'Interactive dock CSS must come AFTER old broadcast CSS');
+assert(doc.includes('./combat-dock.css?v=1.25.1'),
+  'Bust cached inert v1.25 CSS');
+assert(worker.includes("'./combat-dock.css?v=1.25.1'"),'Installed PWA must cache interactive CSS');
+assert(worker.includes('faces-heels-v1.25.1-combat-dock-tap-fix'));
+assert(app.includes('event.target.closest(\'button,[data-close-drawer]\')'),'Tap delegation must cover buttons');
+assert(app.includes('if (el.dataset.dockFamily !== undefined)'),'Tap handler must have a category entry point');
 const actor={id:'stone',name:'STONE',crowdResource:2,crowdResourceName:'POP',stamina:44,maxStamina:64};
 const defender={id:'viper',name:'VIPER',stamina:29};
 const groups=moveFamilies(demoMoves);
