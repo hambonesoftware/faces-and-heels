@@ -68,7 +68,7 @@ const sw=readFileSync('sw.js','utf8');
 const chrome=readFileSync('redline-chrome.css','utf8');
 assert(html.includes('redline-chrome.css?v=1.24.0'));
 assert(sw.includes("'./redline-chrome.css?v=1.24.0'"));
-assert(sw.includes('faces-heels-v1.25.0-arcade-combat-dock'));
+assert(sw.includes('faces-heels-v1.25.1-combat-dock-tap-fix'));
 assert(html.indexOf('broadcast-opening.css')<html.indexOf('redline-chrome.css'));
 assert(chrome.includes('.show-open-program')&&chrome.includes('.show-lower-third'),'Chrome must include opening, not just the game');
 assert(chrome.includes('.broadcast-dice-console')&&chrome.includes('.broadcast-dice-result'),'Actual two-dice graphics must use chrome styling');
