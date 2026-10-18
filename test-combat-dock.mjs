@@ -1,7 +1,16 @@
 import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {readFileSync} from 'node:fs';
 import {demoMoves} from './moves.js';
 import {renderCombatDock,renderCombatPrompt,renderPinEnergy,moveFamilies} from './combat-dock.js';
 
+// CI does not load browser app.js as a Node module; at minimum verify its
+// complete JavaScript syntax before shipping a new UI to GitHub Pages.
+execFileSync(process.execPath,['--check','app.js'],{stdio:'pipe'});
+const app=readFileSync('app.js','utf8');
+assert(app.includes("previousDockPhase=ui.phase"),'Combat category reset logic missing');
+for(const phase of ['NEUTRAL_ROLL','HOLD','HOLD_ESCAPE','TARGET_CHOICE','SELECTED','OPPORTUNITY','REACTION','GROUND_DEFENSE','PIN_DEFENSE'])
+ assert(app.includes("ui.phase === '"+phase+"'")||app.includes("'"+phase+"'"),'Phase '+phase+' disappeared from dispatcher');
 const actor={id:'stone',name:'STONE',crowdResource:2,crowdResourceName:'POP',stamina:44,maxStamina:64};
 const defender={id:'viper',name:'VIPER',stamina:29};
 const groups=moveFamilies(demoMoves);
