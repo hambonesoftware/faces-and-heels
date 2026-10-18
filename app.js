@@ -463,30 +463,66 @@ function renderGroundDefense(){
 
 function renderMatchIntro() {
   const solo=matchSetup.mode==='solo';
-  return `<div class="match-intro" role="dialog" aria-modal="true" aria-label="Set up your wrestling match">
-    <div class="intro-poster intro-poster--setup">
-      <p class="poster-kicker">FACES &amp; HEELS · MAIN EVENT</p>
-      <h1>ENTER THE<br>RING</h1>
-      <div class="match-setup-modes" role="group" aria-label="Choose match mode">
-        <button type="button" data-match-mode="solo" class="${solo?'is-selected':''}" aria-pressed="${solo}">SOLO vs CPU <small>YOUR wrestler against the game</small></button>
-        <button type="button" data-match-mode="local" class="${!solo?'is-selected':''}" aria-pressed="${!solo}">PASS &amp; PLAY <small>Control both wrestlers locally</small></button>
+  const modeText=solo?'ONE PLAYER · YOU VS CPU':'TWO PLAYERS · LOCAL';
+  const fighter=(id,role,tagline)=>`<div class="show-fighter show-fighter--${id}">
+    <div class="show-fighter-portrait" aria-hidden="true">${portrait(id)}</div>
+    <span class="show-fighter-tag">${role}</span>
+    <strong class="show-fighter-name">${id.toUpperCase()}</strong>
+    <span class="show-fighter-style">${tagline}</span>
+  </div>`;
+  return `<div class="match-intro broadcast-opening" role="dialog" aria-modal="true" aria-label="Faces and Heels main event match setup">
+    <div class="show-open-shell">
+      <div class="show-open-program" aria-label="Main event match card">
+        <div class="show-open-lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+        <header class="show-open-title">
+          <span class="show-on-air"><i></i> LIVE · FACES &amp; HEELS PRESENTS</span>
+          <h1><span>FACES</span><em>&amp;</em><span>HEELS</span></h1>
+          <p>THE MAIN EVENT</p>
+        </header>
+        <div class="show-matchup">
+          ${fighter('stone','THE FACE','POWERHOUSE · RED & GOLD')}
+          <div class="show-versus"><span>TONIGHT</span><b>VS</b><small>ONE FALL</small></div>
+          ${fighter('viper','THE HEEL','DAREDEVIL · BLACK & RED')}
+        </div>
+        <div class="show-lower-third"><span>MAIN EVENT</span><strong>STONE <em>VS</em> VIPER</strong><span>LIVE FROM THE F&amp;H ARENA</span></div>
+        <div class="show-ticker" aria-hidden="true"><span>◆</span> EVERY ROLL COUNTS <span>◆</span> THE RING SETTLES IT <span>◆</span> CONTROL THE MAIN EVENT</div>
       </div>
-      ${solo?`
-        <p class="setup-section-label">CHOOSE YOUR WRESTLER</p>
-        <div class="setup-fighter-choices">
-          ${['stone','viper'].map(id=>`<button type="button" data-player-id="${id}" class="${matchSetup.playerId===id?'is-selected':''}" aria-pressed="${matchSetup.playerId===id}">
-            <span class="setup-fighter-portrait">${portrait(id)}</span>
-            <strong>${id.toUpperCase()}</strong><small>${id==='stone'?'POWERHOUSE · FACE':'DAREDEVIL · HEEL'}</small>
-          </button>`).join('')}
+      <section class="show-setup" aria-label="Choose match rules and wrestler">
+        <div class="show-setup-heading">
+          <span class="show-setup-kicker">01 / MATCH PRODUCTION</span>
+          <strong>SET THE MATCH</strong>
+          <small>${modeText}</small>
         </div>
-        <div class="setup-difficulty">
-          <span>CPU DIFFICULTY</span>
-          <div role="group" aria-label="Opponent difficulty">${[['rookie','ROOKIE'],['standard','STANDARD'],['veteran','VETERAN']].map(([value,label])=>`<button type="button" data-difficulty="${value}" class="${matchSetup.difficulty===value?'is-selected':''}" aria-pressed="${matchSetup.difficulty===value}">${label}</button>`).join('')}</div>
+        <div class="show-setting-group">
+          <p class="show-setting-label">MATCH TYPE</p>
+          <div class="match-setup-modes" role="group" aria-label="Choose match mode">
+            <button type="button" data-match-mode="solo" class="${solo?'is-selected':''}" aria-pressed="${solo}">SOLO vs CPU <small>CHALLENGE THE RIVAL</small></button>
+            <button type="button" data-match-mode="local" class="${!solo?'is-selected':''}" aria-pressed="${!solo}">PASS &amp; PLAY <small>TAKE BOTH CORNERS</small></button>
+          </div>
         </div>
-        <button type="button" class="setup-guide-choice" data-toggle-coaching aria-pressed="${matchSetup.tutorial}">${matchSetup.tutorial?'✓':'○'} GUIDED FIRST MATCH <small>${matchSetup.tutorial?'Short tips appear only when needed':'No help overlays during play'}</small></button>
-      `:`<div class="setup-local-note">Two players share the same screen and take turns making decisions. Every move, pin, grapple and defensive roll stays manual.</div>`}
-      <button type="button" class="roll-button setup-enter-button" data-start-match><strong>${solo?'START SOLO MATCH':'START LOCAL MATCH'}</strong><small>STONE VS VIPER · 2016-STYLE ARCADE WRESTLING</small></button>
-      <p class="intro-help">${solo?'You control one wrestler. The CPU uses the same moves, stamina, dice and escape rules as you.':'Both corners are human-controlled, as in previous releases.'}</p>
+        ${solo?`
+          <div class="show-setting-group">
+            <p class="setup-section-label">YOUR CORNER</p>
+            <div class="setup-fighter-choices">
+              ${['stone','viper'].map(id=>`<button type="button" data-player-id="${id}" class="${matchSetup.playerId===id?'is-selected':''}" aria-pressed="${matchSetup.playerId===id}">
+                <span class="setup-fighter-portrait">${portrait(id)}</span>
+                <strong>${id.toUpperCase()}</strong><small>${id==='stone'?'POWERHOUSE · FACE':'DAREDEVIL · HEEL'}</small>
+              </button>`).join('')}
+            </div>
+          </div>
+          <div class="show-setting-group">
+            <div class="setup-difficulty"><span>CPU DIFFICULTY</span>
+              <div role="group" aria-label="Opponent difficulty">${[['rookie','ROOKIE'],['standard','STANDARD'],['veteran','VETERAN']].map(([value,label])=>`<button type="button" data-difficulty="${value}" class="${matchSetup.difficulty===value?'is-selected':''}" aria-pressed="${matchSetup.difficulty===value}">${label}</button>`).join('')}</div>
+            </div>
+          </div>
+          <button type="button" class="setup-guide-choice" data-toggle-coaching aria-pressed="${matchSetup.tutorial}">${matchSetup.tutorial?'✓':'○'} RINGSIDE COACH <small>${matchSetup.tutorial?'ON · Contextual tips':'OFF · No tips'}</small></button>
+        `:`<div class="setup-local-note">Both corners are player controlled. Each wrestler rolls independently for every defensive opportunity, pin count and attack.</div>`}
+        <button type="button" class="roll-button setup-enter-button" data-start-match>
+          <strong>▶ ${solo?'ENTER THE RING':'START LOCAL MATCH'}</strong>
+          <small>STONE VS VIPER · LIVE MAIN EVENT</small>
+        </button>
+        <p class="intro-help">Original Faces &amp; Heels wrestlers · Actual match engine · All dice decide real outcomes</p>
+      </section>
     </div>
   </div>`;
 }
