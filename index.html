@@ -3,21 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0b1020" />
+  <meta name="theme-color" content="#080c12" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="description" content="Faces & Heels — solo wrestling tactics with a fair CPU, animated moves and dice-powered wrestling." />
-  <meta name="fh-build" content="1.19.1-classic-match-psychology" />
-  <title>Faces & Heels v1.19.1 — Classic Match Pacing</title>
+  <meta name="fh-build" content="1.22.0-main-event-broadcast" />
+  <title>Faces & Heels — Main Event Broadcast</title>
   <link rel="manifest" href="./manifest.webmanifest?v=1.19.1" />
   <link rel="stylesheet" href="./styles.css?v=1.19.1" />
+  <link rel="stylesheet" href="./broadcast.css?v=1.22.0" />
 </head>
 <body>
   <div id="app"></div>
-  <script type="module" src="./app.js?v=1.21.1"></script>
+  <script type="module" src="./app.js?v=1.22.0"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=1.21.1', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {}));
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=1.22.0', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {}));
     }
   </script>
 </body>

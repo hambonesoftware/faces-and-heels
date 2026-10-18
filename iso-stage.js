@@ -78,6 +78,10 @@ export class IsoStage extends SpriteStage {
   paintIso(width,height,now){let ctx=this.ctx;// Compact ringside camera: leave breathing room around both performers and
     // keep their feet/ring visible above the separately docked action strip.
     this.scale=Math.min(width/10.8,height/9.8)*(width<680?.91:.95);
+    // Broadcast hard camera: modestly enlarge the EXISTING articulated 3-D
+    // figures, without modifying their shapes, rigs, collision or move poses.
+    // Conservative cap preserves rope/turnbuckle framing on narrow phones.
+    this.scale *= width<680?1.11:1.055;
     this.ox=width*.5;this.oy=height*.62;this.faces=[];this.ring();
     let p=this.playback,t=p?clamp((now-p.start)/p.duration):0;
     if(p?.freezeUntil&&now<p.freezeUntil)t=p.freezeProgress??(p.freezeFrame+.1)/p.frameCount;

@@ -7,7 +7,7 @@ import { DEFAULT_PRESENTATION, readSettings, saveSettings, delayFor, tacticalLab
 import { demoMoves } from './moves.js?v=1.21.0';
 import { LEGENDARY_CATALOG,MAX_LEGENDARY_MOVES } from './legendary-catalog.js?v=1.19.0';
 import { bodyLabel, resolveTargetDecision } from './flow-engine.js?v=1.19.0';
-import { IsoStage } from './iso-stage.js?v=1.19.0';
+import { IsoStage } from './iso-stage.js?v=1.22.0';
 let rendererMode = 'iso';
 try { const saved=localStorage.getItem('fh-renderer-v15'); if(['iso','sprite','compare'].includes(saved)) rendererMode=saved; } catch {}
 const requestedRenderer=new URLSearchParams(location.search).get('renderer');
@@ -189,7 +189,7 @@ function renderFighterHud(w, side) {
 function renderHeader() {
   return `
     <header class="game-header">
-      <div class="brand"><span>FACES</span><b>&</b><strong>HEELS</strong><em>NEON SHOWDOWN</em></div>
+      <div class="brand"><span>FACES</span><b>&</b><strong>HEELS</strong><em>MAIN EVENT · LIVE</em></div>
       <button class="icon-button" data-drawer="menu" aria-label="Match menu">☰</button>
     </header>
     <section class="fighter-strip">
@@ -246,6 +246,8 @@ function renderArena() {
       </div>
       <canvas id="match-canvas" aria-label="Animated wrestling match"></canvas>
       <div class="arena-vignette"></div>
+      <div class="broadcast-corner-bug" aria-hidden="true"><span class="live-dot"></span><b>LIVE</b><em>FACES &amp; HEELS</em></div>
+      <div class="broadcast-match-id" aria-hidden="true">MAIN EVENT · LV ${state.matchLevel}</div>
       ${renderArenaOverlay()}
     </main>`;
 }
