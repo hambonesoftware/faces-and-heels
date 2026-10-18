@@ -44,7 +44,7 @@ const high=resolveMoveAttempt(uphill,{
  moveId:routine.id,attackRoll:20,damageRoll:1,crowdSpend:1,crowdRolls:[6]
 });
 assert.equal(high.crowdBonus,6);
-assert.equal(wrestler(uphill,'stone').crowdResource,0);
+assert.equal(wrestler(uphill,'stone').crowdResource,1,'Successful clothesline earns 1 Pop after spending 1 Pop');
 assert.equal(conditioning(wrestler(uphill,'viper')),17);
 
 // No crowd energy means no discretionary extra die, even on signature moves.
