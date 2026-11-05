@@ -1,0 +1,56 @@
+name: Publish Faces and Heels with Hambone PLAY
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: faces-heels-pages
+  cancel-in-progress: true
+jobs:
+  game-hud:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify wrestling UI and shared HUD
+        run: |
+          npm run test:hud
+          node --check app.js
+      - name: Install browser test tooling
+        run: |
+          npm install --no-save --no-audit --no-fund @playwright/test@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Test phone wrestling and match-menu interactions
+        run: npx playwright test -c playwright.config.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: faces-play-mobile-screenshots
+          path: test-results/
+          if-no-files-found: ignore
+      - name: Stage playable game files
+        run: |
+          mkdir _site
+          cp index.html manifest.webmanifest .nojekyll _site/
+          cp ./*.js ./*.css _site/
+          cp -R assets vendor _site/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+  deploy:
+    needs: game-hud
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

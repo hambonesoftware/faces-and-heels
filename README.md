@@ -53,3 +53,11 @@ Match setup is saved under `fh-match-setup-v1` in local storage, progression und
 This is an early public playtest, not an online multiplayer game. The AI is a deterministic heuristic policy, not machine learning. The game currently does **not** save an unfinished match for resume. The 3D models use authored synchronized moves and conservative joint/core collision checks—not complete mesh-level rigid-body physics. Touch ergonomics, visual contact and performance need real-device playtesting.
 
 See the [100-match classic wrestling review](docs/classic-wrestling-100-match-review.md), [combat-flow audit](docs/combat-flow-audit.md) and [animation update](ANIMATION_UPDATE.md) for the state matrix and renderer limitations. All original tabletop content not explicitly established by the source mind map is a provisional digital design choice.
+
+## Hambone PLAY Broadcast HUD (v1.26)
+
+This version imports the framework-free Hambone PLAY core from the Hambone Arcade design system, pinned into vendor/hambone-play for offline play. It shows a small exchange/control indicator and reuses the existing match-menu button, while reducing redundant headers over the live ring.
+
+The combat dock, legal move selection, dice outcomes, pin mechanics, character art, 3D animations, and solo AI remain owned by the existing game engine. The HUD instance is mounted each time the match shell is rendered and destroyed before replacement, matching the game's established re-render lifecycle without taking control of the match state.
+
+The full HUD becomes active after the match-intro screen; the studio-style presentation remains distinct from Mechanical World's Workbench and Marble Merge's race Broadcast. Automated browser checks should cover mobile control visibility and menu interaction; physical iPhone and iPad testing is still recommended.

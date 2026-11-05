@@ -3,12 +3,12 @@ import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(p,'utf8');
 const html=read('index.html'),css=read('broadcast.css'),app=read('app.js'),stage=read('iso-stage.js'),sw=read('sw.js');
 const pkg=JSON.parse(read('package.json'));
-assert.equal(pkg.version,'1.25.2');
+assert.equal(pkg.version,'1.26.0');
 assert(/broadcast\.css\?v=1\.22\.0/.test(html),'Main Event stylesheet must be loaded by the actual game');
 assert(html.indexOf('styles.css')<html.indexOf('broadcast.css'),'Broadcast stylesheet must override the legacy UI');
 assert(sw.includes("'./broadcast.css?v=1.22.0'"),'PWA must cache the new design for offline play');
-assert(sw.includes('faces-heels-v1.25.2-one-tap-move-execution'),'Existing PWA installs must get the new design');
-assert(html.includes("app.js?v=1.25.2"),'Game module must bypass an old service-worker cache');
+assert(sw.includes('faces-heels-v1.26-hambone-play-broadcast'),'Existing PWA installs must get the new design');
+assert(html.includes("app.js?v=1.26.0"),'Game module must bypass an old service-worker cache');
 assert(app.includes("from './iso-stage.js?v=1.22.0'"),'The existing 3D wrestler renderer must refresh on deploy');
 assert(app.includes("new IsoStage(canvas)"),'Original playable match renderer must be retained');
 assert(app.includes('renderFighterHud(wrestler(state,\'stone\')')&&app.includes('renderFighterHud(wrestler(state,\'viper\')'),'Real wrestler portraits must be retained');
@@ -27,3 +27,12 @@ assert(css.includes('scroll-snap-type:x mandatory'),'Full legal move catalog mus
 assert(css.includes('@media(max-width:540px)')&&css.includes('@media(orientation:landscape)'),'Phone portrait and landscape require tailored presentation');
 assert(css.includes('@media(prefers-reduced-motion:reduce)'),'Reduced-motion presentation must remain available');
 console.log('Main Event broadcast UI PASS: actual wrestlers and phase-driven game preserved; responsive HUD, arena and action rail wired; PWA cache refreshed.');
+
+const playHud=read('play-broadcast.css');
+const shared=read('vendor/hambone-play/hambone-play.js');
+assert(html.includes('play-broadcast.css?v=1.0.0'),'Wrestling Broadcast HUD stylesheet must load after combat styling');
+assert(app.includes('mountBroadcastHud()')&&app.includes('playHud?.destroy()'),'Game must mount and tear down shared HUD per scene rebuild');
+assert(app.includes('hud.placeControl(menuButton,"utilities")'),'Original match menu must remain connected to click delegation');
+assert(shared.includes('export function createPlayHUD'),'Pinned UI core must be vendored for offline PWA');
+assert(playHud.includes('.game-header{display:none!important}'),'Duplicated branded header must not reduce the arena');
+assert(playHud.includes('.arena-shell .hb-play__scorebug'),'Ringside scorebug must be scoped to match arena');

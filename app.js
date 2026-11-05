@@ -1,5 +1,6 @@
 import {ACTION_IDS} from './turn-controller.js?v=1.19.0';
 import {renderBroadcastDice} from './broadcast-dice.js?v=1.23.0';
+import {createPlayHUD} from './vendor/hambone-play/hambone-play.js';
 import {renderCombatDock,renderCombatPrompt,renderPinEnergy,moveFamilies} from './combat-dock.js?v=1.25.0';
 import {groundScrambleTarget,GROUND_SCRAMBLE_COST} from './ground-defense.js?v=1.19.0';
 import {DEFAULT_MATCH_SETUP,readMatchSetup,saveMatchSetup,aiWrestlerId,isAiDecision,chooseAiAction,choosePinCrowdSpend} from './solo-ai.js?v=1.24.0';
@@ -553,12 +554,49 @@ function renderDrawer() {
   return '';
 }
 
+// The shell is rebuilt after wrestling exchanges. Mount the shared HUD into
+// the newly created arena and tear the previous instance down cleanly.
+let playHud = null;
+function mountBroadcastHud() {
+  const arena = app.querySelector(".arena-shell");
+  const menuButton = app.querySelector('.game-header [data-drawer="menu"]');
+  if (!arena || !menuButton) return;
+  const wrestlerInControl = currentActor();
+  const phaseLabels = {
+    NEUTRAL_ROLL:"TOSS", ACTION_SELECT:"ATTACK", SELECTED:"CONFIRM",
+    TARGET_CHOICE:"TARGET", PIN_DEFENSE:"KICKOUT", OPPORTUNITY:"PIN",
+    GROUND_DEFENSE:"DEFEND", HOLD_ESCAPE:"ESCAPE", HOLD:"HOLD",
+    REACTION:"COUNTER", MATCH_COMPLETE:"FINAL", ROLLING:"DICE", ANIMATING:"REPLAY"
+  };
+  const hud = createPlayHUD({
+    root:arena, viewport:arena, style:"broadcast", title:"F&H LIVE",
+    metrics:[
+      {id:"turn",label:"EXCHANGE",value:String(state.turnCounter)},
+      {id:"control",label:"CONTROL",value:wrestlerInControl?.name || "NEUTRAL"},
+      {id:"phase",label:"PHASE",value:phaseLabels[ui.phase] || "LIVE"}
+    ]
+  });
+  hud.placeControl(menuButton,"utilities");
+  menuButton.setAttribute("aria-label","Open match menu");
+  menuButton.title="Match menu";
+  hud.setStatus("");
+  const phase = state.winnerId || ui.phase === "MATCH_COMPLETE"
+    ? "result"
+    : ["NEUTRAL_ROLL","ACTION_SELECT","SELECTED","TARGET_CHOICE"].includes(ui.phase)
+      ? "playing"
+      : ["ANIMATING","ROLLING"].includes(ui.phase) ? "paused" : "playing";
+  hud.setPhase(phase);
+  hud.element.hidden = Boolean(introOpen);
+  return hud;
+}
 let previousDrawer = null;
 let returnFocus = null;
 let previousDockPhase = null;
 function focusKey(el) { return el?.dataset ? Object.entries(el.dataset).find(([key])=>['dockFamily','dockBack','matchOptions','move','target','drawer','body','boost','roll','neutralRoll','startMatch','renderer','setting','pin','moreMoves','filter','back'].includes(key)) : null; }
 function render() {
   const focused = focusKey(document.activeElement);
+  playHud?.destroy();
+  playHud = null;
   if (ui.drawer && !previousDrawer) returnFocus = focused;
   const closedDrawer = previousDrawer && !ui.drawer;
   const openedDrawer = ui.drawer && ui.drawer !== previousDrawer;
@@ -597,6 +635,7 @@ function render() {
   const rail=app.querySelector('[data-action-rail]');
   if(rail){rail.scrollLeft=ui.railOffset;updateActionRail(rail);}
   stage.mode=state.activeHold?'iso':rendererMode;stage.fast=settings.fast;stage.reducedMotion=settings.reducedMotion;stage.reducedFlash=settings.reducedFlash;
+  playHud = mountBroadcastHud();
   queueAiTurn();
 
 }

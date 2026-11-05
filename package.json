@@ -20,7 +20,8 @@
     "test:combat-flow": "node test-turn-controller.mjs && node test-pin-defense-extended.mjs && node test-ground-defense.mjs && node test-reaction-selection.mjs && node test-hold-transitions.mjs && node test-combat-state-graph.mjs && node test-sustained-holds.mjs && node test-simulations.mjs",
     "test:solo": "node test-solo-ai.mjs && node test-simulations.mjs",
     "test:classic": "node test-classic-wrestling.mjs && node test-classic-match-pacing.mjs",
-    "test:pacing": "node test-classic-match-pacing.mjs"
+    "test:pacing": "node test-classic-match-pacing.mjs",
+    "test:hud": "node test-broadcast-ui.mjs && node test-compact-layout.mjs && node test-combat-dock.mjs && node --test test-hambone-play.mjs"
   },
   "facesAndHeels": {
     "uxSpec": "docs/Faces_and_Heels_Match_UX_HUD_Spec_v1.0.md",

@@ -1,15 +1,18 @@
-const CACHE = 'faces-heels-v1.25.2-one-tap-move-execution';
+const CACHE = 'faces-heels-v1.26-hambone-play-broadcast';
 const CORE = [
-  './index.html?v=1.25.2',
+  './index.html?v=1.26.0',
   './styles.css?v=1.19.0',
   './broadcast.css?v=1.22.0',
   './broadcast-dice.css?v=1.23.0',
   './broadcast-opening.css?v=1.23.0',
   './redline-chrome.css?v=1.24.0',
   './combat-dock.css?v=1.25.1',
+  './play-broadcast.css?v=1.0.0',
+  './vendor/hambone-play/hambone-play.css?v=1.0.0',
+  './vendor/hambone-play/hambone-play.js',
   './combat-dock.js?v=1.25.0',
   './broadcast-dice.js?v=1.23.0',
-  './app.js?v=1.25.2',
+  './app.js?v=1.26.0',
   './solo-ai.js?v=1.24.0',
   './solo-ai.js',
   './match-engine.js',
@@ -113,7 +116,7 @@ self.addEventListener('fetch', event => {
 
   // Always prefer the running Docker build for page navigations.
   if (req.mode === 'navigate') {
-    const pageKey = url.pathname.endsWith('/motion-lab.html') ? './motion-lab.html' : './index.html?v=1.19.0';
+    const pageKey = url.pathname.endsWith('/motion-lab.html') ? './motion-lab.html' : './index.html?v=1.26.0';
     event.respondWith((async () => {
       try {
         const fresh = await fetch(req, { cache: 'no-store' });

@@ -22,7 +22,7 @@
   <script type="module" src="./app.js?v=1.25.2"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=1.25.2', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {}));
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=1.26.0', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {}));
     }
   </script>
 </body>

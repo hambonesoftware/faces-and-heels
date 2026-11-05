@@ -1,0 +1,85 @@
+/* Faces & Heels · Hambone PLAY Broadcast
+ * One ringside broadcast shell with the real engine's move dock.
+ * Never cover the ring with a new generic control panel.
+ */
+.game-shell{
+  grid-template-rows:0px 68px minmax(0,1fr) 16px!important;
+  gap:5px!important;
+  padding-top:max(4px,env(safe-area-inset-top,0px))!important;
+}
+.game-header{display:none!important}
+.arena-combat-zone>.arena-shell{
+  border-radius:5px 5px 0 0;
+  overflow:hidden;
+}
+.arena-shell .arena-led,.arena-shell .broadcast-corner-bug,
+.arena-shell .broadcast-match-id{display:none!important}
+.arena-shell>.hb-play{
+  --hb-ink:#fff9ea;
+  --hb-muted:#dbd1b5;
+  --hb-accent:#f3d18a;
+  --hb-surface:#1e2424df;
+  --hb-outline:#f4b36191;
+  --hb-top:0px;
+  --hb-bottom:0px;
+  z-index:17;
+}
+.arena-shell .hb-play__scorebug{
+  top:8px;left:8px;min-height:38px;
+  max-width:calc(100% - 70px);
+  background:linear-gradient(105deg,#232a2af0,#181b1ce0);
+  border:1px solid #f0c06e99;border-left:4px solid #d52b39;
+  border-radius:2px;padding:5px 8px;gap:8px;
+  box-shadow:0 3px 14px #0008
+}
+.arena-shell .hb-play__identity{
+  color:#fce0a2;font:900 10px/1.12 Impact,"Arial Narrow",system-ui,sans-serif;
+  letter-spacing:.04em;min-width:39px;max-width:55px
+}
+.arena-shell .hb-play__readout{gap:1px}
+.arena-shell .hb-play__readout-label{color:#bbbaa8;font:750 8px/1.1 system-ui,sans-serif;letter-spacing:0}
+.arena-shell .hb-play__readout-value{
+  font:900 15px/1.1 Impact,"Arial Narrow",system-ui,sans-serif;
+  letter-spacing:.01em
+}
+.arena-shell .hb-play__readouts{gap:9px}
+.arena-shell .hb-play__utilities{top:7px;right:8px}
+.arena-shell .hb-play__utilities [data-drawer="menu"]{
+  min-width:44px;width:44px;height:44px;min-height:44px;padding:0;
+  border:1px solid #dcb880;border-radius:3px;color:#fff1cb;
+  background:#24292bfa;font-size:20px;box-shadow:0 3px 10px #0008;
+  pointer-events:auto
+}
+.arena-shell .hb-play__actions{display:none}
+.arena-shell .hb-play__status{display:none}
+.arena-shell .hb-play__tray{display:none}
+.arena-combat-zone .tactical-menu-anchor{z-index:19}
+.tactical-menu-anchor>.combat-dock{border-top:3px solid #c39d5b}
+.fighter-strip{border-bottom:1px solid #cb9d4d63}
+.game-shell footer{opacity:.8}
+@media(max-width:850px){
+  .game-shell{grid-template-rows:0px 60px minmax(0,1fr) 14px!important}
+  .arena-combat-zone{grid-template-rows:minmax(280px,1fr) auto!important}
+  .arena-combat-zone>.arena-shell{min-height:280px!important}
+}
+@media(max-width:540px){
+  .game-shell{grid-template-rows:0px 54px minmax(0,1fr) 12px!important;padding:3px!important;gap:3px!important}
+  .arena-combat-zone{grid-template-rows:minmax(270px,1fr) auto!important}
+  .arena-combat-zone>.arena-shell{min-height:270px!important}
+  .arena-shell .hb-play__scorebug{max-width:calc(100% - 58px);gap:5px;padding:5px 6px}
+  .arena-shell .hb-play__readouts{gap:6px}
+  .arena-shell .hb-play__identity{font-size:9px;min-width:31px}
+  .arena-shell .hb-play__readout-value{font-size:13px}
+  .arena-shell .hb-play__readout-label{font-size:7px}
+}
+@media(max-width:345px){
+  .arena-shell .hb-play__readout[data-metric="control"]{display:none}
+}
+@media(orientation:landscape) and (max-height:600px){
+  .game-shell{grid-template-rows:0px 45px minmax(0,1fr) 10px!important}
+  .arena-combat-zone{grid-template-rows:minmax(195px,1fr) auto!important}
+  .arena-combat-zone>.arena-shell{min-height:195px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .arena-shell .hb-play *{animation:none!important;transition:none!important}
+}
