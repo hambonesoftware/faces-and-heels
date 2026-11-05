@@ -106,8 +106,8 @@ assert(app.includes('await rollMove();break;'),'CPU must still roll through the 
 // Cache-bust browser JS on installed GitHub Pages PWA.
 const html=readFileSync('index.html','utf8');
 const sw=readFileSync('sw.js','utf8');
-assert(html.includes('app.js?v=1.25.2'));
-assert(html.includes('sw.js?v=1.25.2'));
-assert(sw.includes("'./app.js?v=1.25.2'"));
-assert(sw.includes('faces-heels-v1.25.2-one-tap-move-execution'));
+assert(html.includes('app.js?v=1.26.0'));
+assert(html.includes('sw.js?v=1.26.0'));
+assert(sw.includes("'./app.js?v=1.26.0'"));
+assert(sw.includes('faces-heels-v1.26-hambone-play-broadcast'));
 console.log('One-tap move UX PASS: common/setup, zero-Pop finishers, targeted moves, boost choices, illegal targets, and single CPU execution.');
