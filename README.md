@@ -1,5 +1,7 @@
 # Faces & Heels — Solo Showdown (v1.19.1)
 
+**[Play the Unity WebGL edition](https://hambonesoftware.github.io/faces-and-heels/assets/unity/)** · [Unity project source](unity-project/)
+
 **[Play the wrestling game](https://hambonesoftware.github.io/faces-and-heels/)** · **[Motion Lab](https://hambonesoftware.github.io/faces-and-heels/motion-lab.html)**
 
 A colorful, 2016-inspired turn-based wrestling game and installable PWA. Under the hood it uses the Faces & Heels tabletop framework: Big Gold Dice (d20), High/Low control, stamina, damage marks, signature finishers, reactions, pins and sustained submissions.

@@ -1,0 +1,9 @@
+/Library/
+/Temp/
+/Logs/
+/UserSettings/
+/Build/
+/WebBuild/
+/obj/
+/Assets/StreamingAssets/FacesRules/node.exe*
+/Assets/StreamingAssets/FacesRules/Node-LICENSE.txt*
