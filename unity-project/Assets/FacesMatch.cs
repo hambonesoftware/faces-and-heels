@@ -67,9 +67,9 @@ public sealed partial class FacesMatch : MonoBehaviour
 
     static readonly Vector3[] CameraPositions =
     {
-        new Vector3(-3.1f, 6.25f, 14.6f),
-        new Vector3(5.8f, 6.5f, 13.4f),
-        new Vector3(-.8f, 5.2f, 14.1f)
+        new Vector3(-4.1f, 8.4f, 16.8f),
+        new Vector3(7.1f, 8.8f, 15.5f),
+        new Vector3(-1.1f, 7.2f, 16.6f)
     };
 
     void Start()
@@ -84,7 +84,7 @@ public sealed partial class FacesMatch : MonoBehaviour
         ringCamera = new GameObject("Ringside camera").AddComponent<Camera>();
         ringCamera.clearFlags = CameraClearFlags.SolidColor;
         ringCamera.backgroundColor = new Color(.045f,.055f,.10f);
-        ringCamera.fieldOfView = 34;
+        ringCamera.fieldOfView = 36;
         SetCamera();
         Connect();
     }
@@ -92,7 +92,7 @@ public sealed partial class FacesMatch : MonoBehaviour
     void SetCamera()
     {
         ringCamera.transform.position = CameraPositions[cameraAngle];
-        ringCamera.transform.LookAt(new Vector3(0,1.10f,0));
+        ringCamera.transform.LookAt(new Vector3(0,.65f,0));
     }
 
     void Connect()
@@ -400,21 +400,22 @@ public sealed partial class FacesMatch : MonoBehaviour
         var white = Surface(0xd9d5cf, .38f);
         var blue = Surface(0x334b99, .38f);
         Block("Arena floor", new Vector3(0, -.75f, 0), new Vector3(55, .2f, 55), Surface(0x121627));
-        Block("Ring apron", new Vector3(0, -.34f, 0), new Vector3(10.9f, .6f, 7.45f), apron);
-        Block("Canvas", new Vector3(0, -.06f, 0), new Vector3(10.7f, .12f, 7.30f), mat);
-        var corners = new[] { new Vector3(-5.25f, 0, -3.55f), new Vector3(-5.25f, 0, 3.55f),
-                              new Vector3(5.25f, 0, 3.55f), new Vector3(5.25f, 0, -3.55f) };
+        Block("Ring apron", new Vector3(0, -.34f, 0), new Vector3(12.35f, .6f, 11.55f), apron);
+        Block("Canvas", new Vector3(0, -.06f, 0), new Vector3(12.15f, .12f, 11.40f), mat);
+        var corners = new[] { new Vector3(-5.95f, 0, -5.60f), new Vector3(-5.95f, 0, 5.60f),
+                              new Vector3(5.95f, 0, 5.60f), new Vector3(5.95f, 0, -5.60f) };
+        var ropeHeights = new[] { .82f, 1.62f, 2.42f };
         foreach (var c in corners)
         {
-            Block("Ring post", c + Vector3.up * .84f, new Vector3(.24f, 2.1f, .24f), post);
-            foreach (float y in new[] { .55f, 1.05f, 1.55f })
+            Block("Ring post", c + Vector3.up * 1.23f, new Vector3(.24f, 2.88f, .24f), post);
+            foreach (float y in ropeHeights)
                 Block("Turnbuckle", c * .96f + Vector3.up * y, new Vector3(.37f, .23f, .37f), post);
         }
         for (int i = 0; i < corners.Length; i++)
         {
-            for (int lane = 0; lane < 3; lane++)
+            for (int lane = 0; lane < ropeHeights.Length; lane++)
             {
-                var y = Vector3.up * (.55f + .5f * lane);
+                var y = Vector3.up * ropeHeights[lane];
                 Rope(corners[i] + y, corners[(i + 1) % corners.Length] + y,
                     lane == 0 ? blue : lane == 1 ? white : red);
             }
@@ -424,7 +425,7 @@ public sealed partial class FacesMatch : MonoBehaviour
         var random = new System.Random(31);
         for (int row = 0; row < 6; row++)
         {
-            float z = -6.25f - row * 1.18f;
+            float z = -8.05f - row * 1.18f;
             float y = -.35f + row * .49f;
             Block("Bleachers", new Vector3(0, y - .35f, z), new Vector3(29, .6f, 1.13f), stand);
             for (int i = -20; i <= 20; i++)
