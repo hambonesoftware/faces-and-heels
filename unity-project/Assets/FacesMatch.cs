@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using Debug = UnityEngine.Debug;
 
-public sealed class FacesMatch : MonoBehaviour
+public sealed partial class FacesMatch : MonoBehaviour
 {
     [Serializable] sealed class Request
     {
@@ -15,7 +15,7 @@ public sealed class FacesMatch : MonoBehaviour
         public bool boost;
     }
 
-    [Serializable] sealed class Choice { public string id, label, moveId, target; public bool boost; }
+    [Serializable] sealed class Choice { public string id, label, moveId, target, kind; public bool boost; }
     [Serializable] sealed class Fighter { public string posture; public int stamina, maxStamina, crowdResource; }
     [Serializable] sealed class Reply
     {
@@ -64,8 +64,6 @@ public sealed class FacesMatch : MonoBehaviour
     bool busy, lab, halfSpeed;
     string player = "stone", mode = "solo", previewActor = "stone";
     string status = "Loading arena...";
-    Vector2 scroll;
-    GUIStyle title, small, caption, actionStyle;
 
     static readonly Vector3[] CameraPositions =
     {
@@ -94,7 +92,7 @@ public sealed class FacesMatch : MonoBehaviour
     void SetCamera()
     {
         ringCamera.transform.position = CameraPositions[cameraAngle];
-        ringCamera.transform.LookAt(new Vector3(0,1.35f,0));
+        ringCamera.transform.LookAt(new Vector3(0,1.10f,0));
     }
 
     void Connect()
@@ -156,7 +154,7 @@ public sealed class FacesMatch : MonoBehaviour
 
     void Restart()
     {
-        scroll = Vector2.zero;
+        ResetSelection();
         Send(new Request{id="start",actor=player,mode=mode});
     }
 
@@ -182,6 +180,7 @@ public sealed class FacesMatch : MonoBehaviour
                     continue;
                 }
                 match=reply;
+                awaitingAnimation=false;
                 status=reply.message;
 #if UNITY_WEBGL && !UNITY_EDITOR
                 int size=FacesWeb_ClipSize();
@@ -213,6 +212,7 @@ public sealed class FacesMatch : MonoBehaviour
             {
                 clip=null;
                 busy=false;
+                awaitingAnimation=false;
                 cpuAfter=Time.unscaledTime+.85f;
             }
             else if(t>=1)
@@ -337,109 +337,6 @@ public sealed class FacesMatch : MonoBehaviour
         catch(InvalidOperationException) {}
         bridge.Dispose();
 #endif
-    }
-
-    void EnsureStyles()
-    {
-        if(title!=null)return;
-        title=new GUIStyle(GUI.skin.label){fontSize=23,fontStyle=FontStyle.Bold};
-        title.normal.textColor=new Color(1,.83f,.37f);
-        small=new GUIStyle(GUI.skin.label){fontSize=13};
-        caption=new GUIStyle(GUI.skin.label){fontSize=16,fontStyle=FontStyle.Bold};
-        actionStyle=new GUIStyle(GUI.skin.button){fontSize=14,alignment=TextAnchor.MiddleLeft,padding=new RectOffset(12,8,3,3)};
-    }
-
-    void OnGUI()
-    {
-        EnsureStyles();
-        float width=Mathf.Clamp(Screen.width*.285f,280,365);
-        GUI.Box(new Rect(10,10,width,Screen.height-20),GUIContent.none);
-        GUILayout.BeginArea(new Rect(22,16,width-24,Screen.height-34));
-        GUILayout.Label("FACES & HEELS",title);
-        GUILayout.Label(lab?"UNITY  /  MOTION LAB":"UNITY  /  LIVE MATCH",small);
-        GUILayout.Space(7);
-        if(match!=null)
-        {
-            GUILayout.Label("STONE",caption);
-            FighterHud(match.stone);
-            GUILayout.Label("VIPER",caption);
-            FighterHud(match.viper);
-            GUILayout.Space(8);
-        }
-        GUI.enabled=!busy && match!=null;
-        GUILayout.BeginHorizontal();
-        if(GUILayout.Button(lab?"Back to match":"Motion Lab",GUILayout.Height(29)))
-        {
-            lab=!lab;
-            scroll=Vector2.zero;
-            if(!lab) Send(new Request{id="resume"});
-        }
-        if(GUILayout.Button("Camera",GUILayout.Height(29)))
-        {
-            cameraAngle=(cameraAngle+1)%CameraPositions.Length;
-            SetCamera();
-        }
-        GUILayout.EndHorizontal();
-        if(lab)
-        {
-            GUILayout.BeginHorizontal();
-            if(GUILayout.Button(previewActor=="stone"?"Attacker: Stone":"Attacker: Viper"))
-                previewActor=previewActor=="stone"?"viper":"stone";
-            if(GUILayout.Button(halfSpeed?"Half speed":"Full speed"))halfSpeed=!halfSpeed;
-            GUILayout.EndHorizontal();
-        }
-        else
-        {
-            GUILayout.BeginHorizontal();
-            if(GUILayout.Button(mode=="solo"?"Solo vs CPU":"Pass & Play"))
-            {
-                mode=mode=="solo"?"local":"solo";
-                Restart();
-            }
-            if(mode=="solo" && GUILayout.Button(player=="stone"?"Play as Stone":"Play as Viper"))
-            {
-                player=player=="stone"?"viper":"stone";
-                Restart();
-            }
-            GUILayout.EndHorizontal();
-        }
-        GUILayout.Space(5);
-        GUI.enabled=true;
-        string context=match==null?"STARTING":lab?"SELECT AN ANIMATION":
-            !string.IsNullOrEmpty(match.winner)?match.winner.ToUpperInvariant()+" WINS":
-            (match.cpu?"CPU / ":"")+(string.IsNullOrEmpty(match.actor)?"":match.actor.ToUpperInvariant()+" / ")+match.phase.Replace('_',' ');
-        GUILayout.Label(context,caption);
-        GUILayout.Label(status,new GUIStyle(small){wordWrap=true},GUILayout.MinHeight(34));
-        scroll=GUILayout.BeginScrollView(scroll,false,false);
-        GUI.enabled=!busy && match!=null && (lab || !match.cpu);
-        var choices=match==null?null:lab?match.previews:match.actions;
-        if(choices!=null)
-        {
-            foreach(var choice in choices)
-            {
-                if(GUILayout.Button(choice.label,actionStyle,GUILayout.Height(32)))
-                    Send(lab?new Request{id="preview",moveId=choice.id,actor=previewActor}:
-                        new Request{id=choice.id,moveId=choice.moveId,target=choice.target,boost=choice.boost});
-            }
-        }
-        GUILayout.EndScrollView();
-        GUI.enabled=!busy && match!=null;
-        if(!lab && GUILayout.Button("New match",GUILayout.Height(28)))Restart();
-        GUI.enabled=true;
-        GUILayout.EndArea();
-    }
-
-    void FighterHud(Fighter fighter)
-    {
-        GUILayout.Label(fighter.stamina+" / "+fighter.maxStamina+" STA    |    "+fighter.crowdResource+" CROWD    |    "+fighter.posture,small);
-        var bar=GUILayoutUtility.GetRect(30,5,GUILayout.ExpandWidth(true));
-        var old=GUI.color;
-        GUI.color=new Color(.18f,.22f,.31f);
-        GUI.DrawTexture(bar,Texture2D.whiteTexture);
-        bar.width*=Mathf.Clamp01(fighter.stamina/(float)fighter.maxStamina);
-        GUI.color=new Color(.93f,.60f,.16f);
-        GUI.DrawTexture(bar,Texture2D.whiteTexture);
-        GUI.color=old;
     }
 
     static Material Surface(int rgb, float gloss = 0.16f)

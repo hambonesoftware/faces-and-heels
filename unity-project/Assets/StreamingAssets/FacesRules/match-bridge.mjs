@@ -125,7 +125,12 @@ function animation(move, actor, postures, preview=false) {
 function actions() {
     const turn=rules.getAvailableActions(state);
     const result=[];
-    const add = (id,label,moveId='',target='',boost=false)=>result.push({id,label,moveId,target,boost});
+    const add = (id,label,moveId='',target='',boost=false)=>{
+        const kind=id==='react' ? 'defense' : animationByMove[moveId]?.kind ??
+            (id.startsWith('hold-') ? 'grapple' : id.includes('pin') ? 'pin' :
+                id.includes('ground') || id.includes('reaction') ? 'defense' : 'setup');
+        result.push({id,label,moveId,target,boost,kind});
+    };
     for (const action of turn.actions.filter(item=>item.enabled)) {
         if(action.id==='select-move'){
             for(const move of rules.getLegalMoves(state)){
@@ -217,9 +222,9 @@ function action(request){
     return { message, clip:animation(motion,actor??'stone',previous) };
 }
 
-const previews=Object.entries(animationByMove).map(([id,value])=>({id:value.choreography,label:moveName(id)}));
+const previews=Object.entries(animationByMove).map(([id,value])=>({id:value.choreography,label:moveName(id),kind:value.kind}));
 previews.find(item=>item.id==='shove_counter').label='Shove Counter';
-previews.push({id:'pin',label:'Pin'},{id:'kickout',label:'Kickout'});
+previews.push({id:'pin',label:'Pin',kind:'pin'},{id:'kickout',label:'Kickout',kind:'defense'});
 export function handle(request){
     let result;
     if(request.id==='start'){
