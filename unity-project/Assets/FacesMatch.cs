@@ -404,10 +404,10 @@ public sealed partial class FacesMatch : MonoBehaviour
         Block("Canvas", new Vector3(0, -.06f, 0), new Vector3(12.15f, .12f, 11.40f), mat);
         var corners = new[] { new Vector3(-5.95f, 0, -5.60f), new Vector3(-5.95f, 0, 5.60f),
                               new Vector3(5.95f, 0, 5.60f), new Vector3(5.95f, 0, -5.60f) };
-        var ropeHeights = new[] { .82f, 1.62f, 2.42f };
+        var ropeHeights = new[] { 1.02f, 2.02f, 3.02f };
         foreach (var c in corners)
         {
-            Block("Ring post", c + Vector3.up * 1.23f, new Vector3(.24f, 2.88f, .24f), post);
+            Block("Ring post", c + Vector3.up * 1.53f, new Vector3(.24f, 3.48f, .24f), post);
             foreach (float y in ropeHeights)
                 Block("Turnbuckle", c * .96f + Vector3.up * y, new Vector3(.37f, .23f, .37f), post);
         }
