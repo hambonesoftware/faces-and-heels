@@ -7,7 +7,7 @@ const CORE = [
   './broadcast-opening.css?v=1.23.0',
   './redline-chrome.css?v=1.24.0',
   './combat-dock.css?v=1.25.1',
-  './play-broadcast.css?v=1.0.0',
+  './play-broadcast.css?v=1.0.1',
   './vendor/hambone-play/hambone-play.css?v=1.0.0',
   './vendor/hambone-play/hambone-play.js',
   './combat-dock.js?v=1.25.0',

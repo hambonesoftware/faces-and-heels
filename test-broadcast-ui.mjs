@@ -30,7 +30,7 @@ console.log('Main Event broadcast UI PASS: actual wrestlers and phase-driven gam
 
 const playHud=read('play-broadcast.css');
 const shared=read('vendor/hambone-play/hambone-play.js');
-assert(html.includes('play-broadcast.css?v=1.0.0'),'Wrestling Broadcast HUD stylesheet must load after combat styling');
+assert(html.includes('play-broadcast.css?v=1.0.1'),'Wrestling Broadcast HUD stylesheet must load after combat styling');
 assert(app.includes('mountBroadcastHud()')&&app.includes('playHud?.destroy()'),'Game must mount and tear down shared HUD per scene rebuild');
 assert(app.includes('hud.placeControl(menuButton,"utilities")'),'Original match menu must remain connected to click delegation');
 assert(shared.includes('export function createPlayHUD'),'Pinned UI core must be vendored for offline PWA');

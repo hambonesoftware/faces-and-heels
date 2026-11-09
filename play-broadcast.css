@@ -83,3 +83,78 @@
 @media(prefers-reduced-motion:reduce){
   .arena-shell .hb-play *{animation:none!important;transition:none!important}
 }
+
+/* Ringside graphics share the same beveled plates across the broadcast. */
+.tactical-menu-anchor>.combat-dock{
+  background:linear-gradient(112deg,#273747,#101722 36%,#101722 71%,#34232d);
+  border-color:#7a715e;border-top-color:#e9bc65;
+}
+.dock-family{
+  background:
+    repeating-linear-gradient(135deg,#ffffff0d 0 1px,transparent 1px 8px),
+    linear-gradient(144deg,#d94459,#851a32 60%,#3e172a);
+}
+.dock-family--grapple{
+  background:
+    repeating-linear-gradient(135deg,#ffffff0e 0 1px,transparent 1px 8px),
+    linear-gradient(144deg,#427587,#255167 55%,#172d48);
+}
+.dock-family--special{
+  background:
+    repeating-linear-gradient(135deg,#5a320f12 0 1px,transparent 1px 8px),
+    linear-gradient(144deg,#fff1b2,#edba55 58%,#c68a37);
+}
+.dock-family--setup{background:linear-gradient(144deg,#647484,#263444 72%)}
+.dock-family-symbol{
+  display:grid;place-items:center;width:28px;height:28px;
+  background:#1017224a;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
+}
+.dock-family--special .dock-family-symbol{background:#79410c25}
+.dock-family:focus-visible,.dock-move:focus-visible,.dock-action:focus-visible{
+  outline:2px solid #fff3cf;outline-offset:-5px;
+}
+.tactical-menu-anchor>.broadcast-dice-console{
+  border-top-color:#ffc975;
+  background:
+    repeating-linear-gradient(135deg,#fff08a0b 0 1px,transparent 1px 9px),
+    linear-gradient(112deg,#222f44,#101722 35%,#101722 65%,#432135);
+}
+.broadcast-dice-live{
+  padding:5px 10px;background:#713747;color:#fff6e6;
+  clip-path:polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%);
+}
+.broadcast-dice-result{
+  background:linear-gradient(105deg,#7d4628,#332437 48%,#632138);
+  box-shadow:inset 0 -2px #ffca7370;
+  line-height:1.2;
+}
+
+.arena-shell .event-overlay{
+  --call-accent:#ffc975;
+  border-left-color:var(--call-accent);
+  border-top-color:var(--call-accent);
+  background:
+    repeating-linear-gradient(135deg,transparent 0 6px,#fff5 6px 7px) right 7px top 7px/26px 8px no-repeat,
+    linear-gradient(106deg,#22344b,#151c2a 72%,#332638);
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%);
+}
+.arena-shell .event-overlay--danger{--call-accent:#ff8090}
+.arena-shell .event-overlay--spectacle{--call-accent:#ffdf94}
+.arena-shell .event-overlay small{color:var(--call-accent)}
+.arena-shell .event-overlay small:empty{display:none}
+.arena-shell .event-overlay strong{padding-right:28px}
+.arena-shell .event-overlay--spectacle strong{color:#fff0b8}
+.arena-shell .pin-overlay{
+  top:auto;right:8px;bottom:8px;max-width:40%;
+  display:grid;grid-template-columns:auto auto;align-items:center;column-gap:8px;
+  padding:5px 10px;text-align:left;justify-items:start;
+  border-right:3px solid #fa667e;
+  background:linear-gradient(112deg,#1b2538,#462134);
+}
+.arena-shell .pin-overlay strong{
+  grid-column:2;grid-row:1 / 3;align-self:center;
+  font-size:clamp(30px,6vw,52px);text-shadow:2px 2px #912443;
+}
+.arena-shell .pin-overlay small,.arena-shell .pin-overlay span{
+  background:transparent;padding:1px 0;letter-spacing:.05em;
+}
