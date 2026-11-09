@@ -1,4 +1,17 @@
 mergeInto(LibraryManager.library, {
+    FacesWeb_PixelScale: function () {
+        var canvas = Module.canvas;
+        return canvas && canvas.clientWidth ? canvas.width / canvas.clientWidth : 1;
+    },
+    FacesWeb_Announce: function (message) {
+        var status = document.getElementById("faces-announcement");
+        if (status) status.textContent = UTF8ToString(message);
+    },
+    FacesWeb_ToggleFullscreen: function () {
+        var container = document.getElementById("unity-container");
+        if (document.fullscreenElement) document.exitFullscreen().catch(function () {});
+        else if (container && container.requestFullscreen) container.requestFullscreen().catch(function () {});
+    },
     FacesWeb_Connect: function () {
         var state = { reply: null, clip: null, worker: null };
         Module.facesBridge = state;

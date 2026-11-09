@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{{{ PRODUCT_NAME }}}</title>
+  <style>
+    html, body { margin: 0; background: #0a111f; color: #f3f7fc; font: 16px system-ui, sans-serif; }
+    #unity-container {
+      position: fixed; inset: 0; display: grid; background: #0a111f;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right)
+               env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    #unity-canvas { width: 100%; height: 100%; min-width: 0; min-height: 0; display: block; }
+    #unity-loading-bar, #unity-warning {
+      position: absolute; z-index: 1; max-width: 85%; padding: 14px; background: #19263a;
+      border: 1px solid #ffcb5d; justify-self: center; align-self: center;
+    }
+    #unity-loading-bar { text-align: center; }
+    #unity-loading-bar progress { display: block; margin: 10px auto 0; accent-color: #ffcb5d; }
+    #faces-announcement { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  </style>
+</head>
+<body>
+  <main id="unity-container">
+    <canvas id="unity-canvas" width="{{{ WIDTH }}}" height="{{{ HEIGHT }}}" tabindex="0" aria-label="Faces and Heels wrestling game"></canvas>
+    <div id="unity-loading-bar" role="status">
+      <strong>Loading Faces &amp; Heels</strong>
+      <progress max="1" value="0" aria-label="Game loading"></progress>
+    </div>
+    <div id="unity-warning" role="alert" hidden></div>
+    <div id="faces-announcement" role="status" aria-atomic="true"></div>
+  </main>
+  <script>
+    const canvas = document.getElementById("unity-canvas");
+    const loading = document.getElementById("unity-loading-bar");
+    const progressBar = loading.querySelector("progress");
+    const warning = document.getElementById("unity-warning");
+    function showBanner(message, type) {
+      if (type !== "error") return;
+      loading.hidden = true;
+      warning.textContent = message;
+      warning.hidden = false;
+    }
+    const config = {
+      dataUrl: "Build/{{{ DATA_FILENAME }}}",
+      frameworkUrl: "Build/{{{ FRAMEWORK_FILENAME }}}",
+      codeUrl: "Build/{{{ CODE_FILENAME }}}",
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+      productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+      productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+      devicePixelRatio: Math.min(window.devicePixelRatio || 1, 1.75),
+      showBanner
+    };
+    const script = document.createElement("script");
+    script.src = "Build/{{{ LOADER_FILENAME }}}";
+    script.onload = () => createUnityInstance(canvas, config, progress => {
+      progressBar.value = progress;
+    }).then(() => {
+      loading.hidden = true;
+    }).catch(message => showBanner(message, "error"));
+    script.onerror = () => showBanner("The Unity player could not load. Refresh the page to retry.", "error");
+    document.body.append(script);
+  </script>
+</body>
+</html>

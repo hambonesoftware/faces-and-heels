@@ -5,7 +5,6 @@ using UnityEngine;
 public sealed partial class FacesMatch
 {
     const int CardsPerPage=4;
-    const float DesignWidth=960, DesignHeight=600;
     static readonly Color Ink=new Color32(10,17,31,255);
     static readonly Color Slate=new Color32(25,38,58,255);
     static readonly Color Silver=new Color32(177,193,213,255);
@@ -21,7 +20,13 @@ public sealed partial class FacesMatch
     int selectedChoice=-1, page;
     string pressed;
     bool awaitingAnimation;
-    Texture2D dockShade;
+    readonly List<string> history=new();
+    int historyPage;
+    bool settingsOpen, logOpen;
+    Action confirmBout;
+    Rect safePixels, arena, header, dock, call;
+    float pixelScale;
+    bool compactDeck;
 
     static Vector2[] Polygon(params float[] coordinates)
     {
@@ -134,7 +139,7 @@ public sealed partial class FacesMatch
     {
         Event current=Event.current;
         Vector2 mouse=current.mousePosition;
-        bool over=rect.Contains(mouse)&&Inside(new Vector2((mouse.x-rect.x)/rect.width,(mouse.y-rect.y)/rect.height),Outlines[shape]);
+        bool over=rect.Contains(mouse);
         bool held=pressed==key;
         Color border=enabled?Tint(accent,active||over?1:.67f):Tint(Silver,.27f);
         Color fill=enabled
@@ -163,12 +168,44 @@ public sealed partial class FacesMatch
         pressed=null;
     }
 
+    void RefreshLayout(bool force=false)
+    {
+        float scale=1;
+#if UNITY_WEBGL && !UNITY_EDITOR
+        scale=Mathf.Max(.5f,FacesWeb_PixelScale());
+#endif
+        Rect safe=Screen.safeArea;
+        if(!force&&safe==safePixels&&Mathf.Approximately(scale,pixelScale))return;
+        safePixels=safe;
+        pixelScale=scale;
+        pressed=null;
+        float width=safe.width/scale,height=safe.height/scale;
+        bool sideRail=width>=540&&width/height>=1.15f;
+        compactDeck=!sideRail||height<490;
+        const float gap=8;
+        float innerWidth=width-2*gap;
+        header=new Rect(gap,gap,innerWidth,62);
+        float top=header.yMax+gap;
+        float railWidth=sideRail?Mathf.Clamp(width*.29f,compactDeck?Mathf.Min(318,width*.48f):250,395):innerWidth;
+        float railHeight=sideRail?height-top-gap:254;
+        dock=new Rect(sideRail?width-gap-railWidth:gap,sideRail?top:height-gap-railHeight,railWidth,railHeight);
+        float arenaWidth=sideRail?dock.x-2*gap:innerWidth;
+        float arenaEnd=sideRail?height-gap:dock.y-gap;
+        float callHeight=width<450?61:53;
+        call=new Rect(gap,arenaEnd-callHeight,arenaWidth,callHeight);
+        arena=new Rect(gap,top,arenaWidth,Mathf.Max(1,call.y-top));
+        ringCamera.pixelRect=new Rect(safe.x+arena.x*scale,safe.yMax-arena.yMax*scale,arena.width*scale,arena.height*scale);
+        ringCamera.aspect=arena.width/arena.height;
+        SetCamera();
+    }
+
     void OnGUI()
     {
+        if(pixelScale<=0)return;
         var previous=GUI.matrix;
-        float scale=Mathf.Min(Screen.width/DesignWidth,Screen.height/DesignHeight);
-        var margin=new Vector3((Screen.width-DesignWidth*scale)*.5f,(Screen.height-DesignHeight*scale)*.5f,0);
-        GUI.matrix=Matrix4x4.TRS(margin,Quaternion.identity,new Vector3(scale,scale,1));
+        var margin=new Vector3(safePixels.x,Screen.height-safePixels.yMax,0);
+        GUI.matrix=Matrix4x4.TRS(margin,Quaternion.identity,new Vector3(pixelScale,pixelScale,1));
+        DrawSurround();
         bool available=!busy&&match!=null;
         Choice[] choices=match==null?Array.Empty<Choice>():lab?match.previews:match.actions;
         choices??=Array.Empty<Choice>();
@@ -176,46 +213,78 @@ public sealed partial class FacesMatch
         page=Mathf.Clamp(page,0,pages-1);
         if(selectedChoice>=choices.Length)selectedChoice=-1;
         bool canAct=available&&(lab||!match.cpu);
-        string context=match==null?"LOADING ARENA":
-            lab?"MOTION LAB":
-            !string.IsNullOrEmpty(match.winner)?match.winner.ToUpperInvariant()+" WINS":
-            match.phase=="NEUTRAL_ROLL"?"CONTEST FOR HIGH CONTROL":
-            ((match.cpu?"CPU  /  ":"")+(string.IsNullOrEmpty(match.actor)?"":match.actor.ToUpperInvariant()+"  /  ")+match.phase.Replace('_',' '));
-        DrawHud();
-        DrawToolbar(available);
-        DrawDock(context,choices,pages,canAct);
-        HandleKeys(choices,pages,canAct);
+        DrawHud(available);
+        DrawCall();
+        DrawDock(choices,pages,canAct,available);
+        if(Event.current.type==EventType.KeyDown)
+        {
+            if(Event.current.keyCode==KeyCode.Escape)
+            {
+                if(settingsOpen||logOpen)ClosePanels();
+                else settingsOpen=true;
+                Event.current.Use();
+            }
+            else if(Event.current.keyCode==KeyCode.L)
+            {
+                ToggleLog();
+                Event.current.Use();
+            }
+        }
+        HandleKeys(choices,pages,canAct&&!settingsOpen&&!logOpen);
         if(Event.current.type==EventType.MouseUp)pressed=null;
         GUI.matrix=previous;
     }
 
-    void DrawHud()
+    void DrawSurround()
     {
-        DrawFighter(new Rect(21,16,270,72),"STONE","S","POWERHOUSE",match?.stone,Red,false);
-        DrawFighter(new Rect(669,16,270,72),"VIPER","V","DAREDEVIL",match?.viper,Aqua,true);
-        var logo=new Rect(331,10,298,62);
-        Panel(logo,Shape.Slash,Tint(Ink,.94f),Tint(Gold,.75f));
-        Type(new Rect(347,14,266,28),"FACES & HEELS",25,Gold,TextAnchor.MiddleCenter,true);
-        Type(new Rect(347,43,266,16),lab?"TRAINING FLOOR":"THE MAIN EVENT",11,Paper,TextAnchor.MiddleCenter,true);
+        float width=safePixels.width/pixelScale,height=safePixels.height/pixelScale;
+        Draw(new Rect(0,0,width,arena.y),Texture2D.whiteTexture,Ink);
+        Draw(new Rect(0,arena.y,arena.x,arena.height),Texture2D.whiteTexture,Ink);
+        Draw(new Rect(arena.xMax,arena.y,width-arena.xMax,arena.height),Texture2D.whiteTexture,Ink);
+        Draw(new Rect(0,arena.yMax,width,height-arena.yMax),Texture2D.whiteTexture,Ink);
     }
 
-    void DrawFighter(Rect rect,string name,string initial,string style,Fighter fighter,Color accent,bool right)
+    void DrawHud(bool available)
     {
-        Panel(MoveRect(rect,0,4),Shape.Plate,Tint(Color.black,.52f),Tint(Color.black,.52f),0);
-        Panel(rect,Shape.Plate,Tint(Ink,.94f),Tint(accent,.84f));
-        float x=right?rect.x+13:rect.x+70;
-        var crest=new Rect(right?rect.xMax-60:rect.x+10,rect.y+10,49,49);
-        Panel(crest,Shape.Badge,Color.Lerp(Ink,accent,.31f),accent,2);
-        Type(crest,initial,26,accent,TextAnchor.MiddleCenter,true);
-        Type(new Rect(x,rect.y+6,122,24),name,22,Paper,TextAnchor.MiddleLeft,true);
-        Type(new Rect(x+119,rect.y+10,73,18),style,8,accent,TextAnchor.MiddleRight,true);
+        float titleWidth=header.width>=710?180:0;
+        float fighterWidth=(header.width-titleWidth-60)/2;
+        DrawFighter(new Rect(header.x,header.y,fighterWidth,header.height),"stone",match?.stone,Red);
+        DrawFighter(new Rect(header.x+fighterWidth+titleWidth+6,header.y,fighterWidth,header.height),"viper",match?.viper,Aqua);
+        if(titleWidth>0)
+        {
+            var logo=new Rect(header.x+fighterWidth+6,header.y+5,titleWidth-6,52);
+            Panel(logo,Shape.Slash,Slate,Tint(Gold,.70f));
+            Type(logo,"FACES & HEELS",19,Gold,TextAnchor.MiddleCenter,true);
+        }
+        Chip("settings",new Rect(header.xMax-46,header.y+8,46,46),settingsOpen?"CLOSE":"MENU",Gold,true,()=>{
+            bool open=!settingsOpen;
+            ClosePanels();
+            settingsOpen=open;
+        });
+    }
+
+    void DrawFighter(Rect rect,string id,Fighter fighter,Color accent)
+    {
+        bool controls=!lab&&match?.control==id;
+        Panel(rect,Shape.Plate,Slate,controls?Gold:Tint(accent,.65f));
+        float x=rect.x+10,width=rect.width-20;
+        string marker=controls?"CONTROL":mode=="solo"&&!lab?(player==id?"YOU":"CPU"):"";
+        bool narrow=rect.width<140;
+        float nameWidth=narrow?width-49:width;
+        Type(new Rect(x,rect.y+5,nameWidth,22),id.ToUpperInvariant(),narrow?14:17,Paper,TextAnchor.MiddleLeft,true);
+        float markerWidth=narrow?46:width;
+        Type(new Rect(x+width-markerWidth,rect.y+7,markerWidth,16),marker,narrow?9:10,
+            controls?Gold:Silver,TextAnchor.MiddleRight,true);
         if(fighter==null)return;
-        var bar=new Rect(x,rect.y+34,185,8);
+        var bar=new Rect(x,rect.y+(narrow?26:30),width,5);
         Draw(bar,ShapeTexture(Shape.Slash),new Color32(62,75,94,255));
-        float fraction=Mathf.Clamp01(fighter.stamina/(float)fighter.maxStamina);
+        float fraction=Mathf.Clamp01(fighter.stamina/(float)Mathf.Max(1,fighter.maxStamina));
         if(fraction>0)Draw(new Rect(bar.x,bar.y,bar.width*fraction,bar.height),ShapeTexture(Shape.Slash),accent);
-        string score=fighter.stamina+" / "+fighter.maxStamina+" STA   |   "+fighter.crowdResource+" CROWD";
-        Type(new Rect(x,rect.y+46,185,15),score,10,Silver,TextAnchor.MiddleLeft,true);
+        string stamina=fighter.stamina+"/"+fighter.maxStamina+" STA";
+        string crowd=fighter.crowdResource+" CROWD";
+        Type(new Rect(x,rect.y+(narrow?31:38),width,narrow?14:18),
+            narrow?stamina:stamina+"   "+crowd,11,Silver,TextAnchor.MiddleLeft,true);
+        if(narrow)Type(new Rect(x,rect.y+43,width,16),crowd,10,Silver,TextAnchor.MiddleLeft,true);
     }
 
     void Chip(string id,Rect rect,string value,Color color,bool enabled,Action action)
@@ -225,104 +294,179 @@ public sealed partial class FacesMatch
         if(click)action();
     }
 
-    void DrawToolbar(bool available)
+    void ClosePanels()
     {
-        Chip("mode-lab",new Rect(279,89,107,28),lab?"BACK TO MATCH":"MOTION LAB",Gold,available,()=>{
-            lab=!lab;
-            ResetSelection();
-            if(!lab)Send(new Request{id="resume"});
-        });
-        Chip("camera",new Rect(384,89,88,28),"CAM 0"+(cameraAngle+1),Aqua,true,()=>{
+        settingsOpen=false;
+        logOpen=false;
+        confirmBout=null;
+    }
+
+    void ToggleLog()
+    {
+        bool open=!logOpen;
+        ClosePanels();
+        logOpen=open;
+    }
+
+    void DrawCall()
+    {
+        Draw(call,Texture2D.whiteTexture,Slate);
+        Color accent=statusError?Red:Gold;
+        Draw(new Rect(call.x,call.y,3,call.height),Texture2D.whiteTexture,accent);
+        float width=call.width-22;
+        string label=statusError?"MATCH ERROR":lab?"MOTION LAB":"MATCH CALL";
+        string line=lab&&!statusError?previewStatus:status;
+        Type(new Rect(call.x+11,call.y+3,width,15),label,11,accent,TextAnchor.MiddleLeft,true);
+        Type(new Rect(call.x+11,call.y+19,width,call.height-22),line,14,Paper,TextAnchor.UpperLeft,true,true);
+    }
+
+    string TurnLabel()
+    {
+        if(busy)return awaitingAnimation?"PREPARING EXCHANGE":"EXCHANGE IN PROGRESS";
+        if(match==null)return "LOADING ARENA";
+        if(lab)return "CHOOSE AN ANIMATION";
+        if(!string.IsNullOrEmpty(match.winner))return match.winner.ToUpperInvariant()+" WINS";
+        if(match.cpu)return match.actor.ToUpperInvariant()+" · CPU TURN";
+        string prompt=match.phase switch
+        {
+            "NEUTRAL_ROLL"=>"ROLL FOR CONTROL",
+            "REACTION"=>"CHOOSE A COUNTER",
+            "GROUND_DEFENSE"=>"DEFEND ON THE MAT",
+            "HOLD_ESCAPE"=>"ESCAPE THE HOLD",
+            "HOLD"=>"WORK THE HOLD",
+            "PIN"=>"RESOLVE THE PIN COUNT",
+            "PIN_OPPORTUNITY"=>"PIN OR STAY ON OFFENSE",
+            _=>"CHOOSE A MOVE"
+        };
+        if(match.phase=="NEUTRAL_ROLL")return prompt;
+        string owner=mode=="local"?match.actor.ToUpperInvariant():"YOUR TURN";
+        return owner+" · "+prompt;
+    }
+
+    void DrawDock(Choice[] choices,int pages,bool canAct,bool available)
+    {
+        Draw(dock,Texture2D.whiteTexture,Slate);
+        float x=dock.x+8,y=dock.y+6,width=dock.width-16;
+        if(settingsOpen){DrawSettings(x,y,width,available);return;}
+        if(logOpen){DrawLog(x,y,width);return;}
+        Type(new Rect(x+2,y,width-76,44),TurnLabel(),14,Gold,TextAnchor.MiddleLeft,true,true);
+        Chip("match-log",new Rect(x+width-68,y,68,44),"LOG",Aqua,true,ToggleLog);
+
+        float footerY=dock.yMax-62;
+        int columns=compactDeck?2:1;
+        int first=page*CardsPerPage,last=Mathf.Min(choices.Length,first+CardsPerPage);
+        int rows=(CardsPerPage+columns-1)/columns;
+        float cardTop=y+48;
+        float cardWidth=(width-6*(columns-1))/columns;
+        float cardHeight=Mathf.Min(compactDeck?65:84,(footerY-cardTop-8-6*(rows-1))/rows);
+        for(int i=first;i<last;i++)
+        {
+            int slot=i-first;
+            var card=new Rect(x+slot%columns*(cardWidth+6),cardTop+slot/columns*(cardHeight+6),cardWidth,cardHeight);
+            if(DrawMove(card,choices[i],slot,i==selectedChoice||choices.Length==1,canAct))
+                selectedChoice=i;
+        }
+
+        bool finished=!lab&&!string.IsNullOrEmpty(match?.winner);
+        int chosen=choices.Length==1?0:selectedChoice;
+        Choice primary=chosen>=0&&chosen<choices.Length?choices[chosen]:null;
+        if(pages>1)
+        {
+            Chip("previous-page",new Rect(x,footerY+6,46,44),"<",Aqua,page>0&&canAct,()=>TurnPage(-1,pages));
+            Type(new Rect(x+46,footerY+6,46,44),(page+1)+"/"+pages,12,Silver,TextAnchor.MiddleCenter,true);
+            Chip("next-page",new Rect(x+92,footerY+6,46,44),">",Aqua,page+1<pages&&canAct,()=>TurnPage(1,pages));
+        }
+        else
+        {
+            string hint=busy?"Watch the exchange":finished?(Input.touchSupported?"Bout complete":"Enter for rematch"):
+                primary==null?"Select a card":Input.touchSupported?"Ready to confirm":"Enter to confirm";
+            Type(new Rect(x+4,footerY,width-137,54),hint,12,Silver,TextAnchor.MiddleLeft,false,true);
+        }
+
+        bool primaryEnabled=finished?available:canAct&&primary!=null;
+        var die=new Rect(dock.xMax-134,footerY,126,54);
+        if(ShapeButton("execute",die,Shape.Die,Gold,primaryEnabled,primaryEnabled))
+        {
+            if(finished)Restart();
+            else ExecuteChoice(primary);
+        }
+        var badge=new Rect(die.x+17,die.y+12,29,29);
+        Color accent=primaryEnabled?Gold:Silver;
+        Panel(badge,Shape.Die,Ink,accent,1);
+        Type(badge,"20",13,accent,TextAnchor.MiddleCenter,true);
+        string label=finished?"REMATCH":busy?"WAIT":lab?"PLAY":primary?.id=="neutral-roll"?"ROLL":
+            primary?.id=="pin-count"?"COUNT":"CONFIRM";
+        Type(new Rect(die.x+45,die.y+3,68,48),label,11,primaryEnabled?Paper:Silver,TextAnchor.MiddleCenter,true);
+    }
+
+    void DrawSettings(float x,float y,float width,bool available)
+    {
+        Type(new Rect(x+4,y,width,26),confirmBout==null?"BOUT MENU":"START A NEW BOUT?",15,Gold,TextAnchor.MiddleLeft,true);
+        if(confirmBout!=null)
+        {
+            Type(new Rect(x+4,y+28,width-8,46),"This will end the current bout.",14,Paper,TextAnchor.MiddleLeft,false,true);
+            Chip("bout-confirm",new Rect(x,y+78,width,44),"START NEW BOUT",Gold,available,()=>{
+                var action=confirmBout;
+                ClosePanels();
+                action();
+            });
+            Chip("bout-cancel",new Rect(x,y+126,width,44),"BACK",Silver,true,()=>confirmBout=null);
+            return;
+        }
+        int row=0;
+        Rect Next()=>new Rect(x,y+23+row++*45,width,44);
+        Rect cameraRow=Next();
+#if UNITY_WEBGL && !UNITY_EDITOR
+        cameraRow.width=(width-6)/2;
+        Chip("fullscreen",MoveRect(cameraRow,cameraRow.width+6,0),"FULLSCREEN",Silver,true,FacesWeb_ToggleFullscreen);
+#endif
+        Chip("camera",cameraRow,"CAMERA "+(cameraAngle+1),Aqua,true,()=>{
             cameraAngle=(cameraAngle+1)%CameraPositions.Length;
             SetCamera();
         });
+        Chip("mode-lab",Next(),lab?"BACK TO MATCH":"MOTION LAB",Gold,available,()=>{
+            lab=!lab;
+            previewStatus="";
+            ResetSelection();
+            ClosePanels();
+            if(!lab)Send(new Request{id="resume"});
+        });
         if(lab)
         {
-            Chip("preview-actor",new Rect(470,89,111,28),previewActor=="stone"?"ATTACKER  S":"ATTACKER  V",Red,available,
+            Chip("preview-actor",Next(),previewActor=="stone"?"ATTACKER · STONE":"ATTACKER · VIPER",Red,available,
                 ()=>previewActor=previewActor=="stone"?"viper":"stone");
-            Chip("speed",new Rect(579,89,106,28),halfSpeed?"HALF SPEED":"FULL SPEED",Aqua,available,()=>halfSpeed=!halfSpeed);
+            Chip("speed",Next(),halfSpeed?"HALF SPEED":"FULL SPEED",Aqua,available,()=>halfSpeed=!halfSpeed);
         }
         else
         {
-            Chip("mode",new Rect(470,89,111,28),mode=="solo"?"SOLO vs CPU":"PASS & PLAY",Aqua,available,()=>{
-                mode=mode=="solo"?"local":"solo";
-                Restart();
-            });
-            Chip("player",new Rect(579,89,106,28),player=="stone"?"PLAY AS STONE":"PLAY AS VIPER",Red,available&&mode=="solo",()=>{
-                player=player=="stone"?"viper":"stone";
-                Restart();
-            });
-            Chip("reset",new Rect(684,89,76,28),"NEW BOUT",Silver,available,Restart);
+            Chip("mode",Next(),mode=="solo"?"SWITCH TO PASS & PLAY":"SWITCH TO SOLO VS CPU",Aqua,available,()=>
+                confirmBout=()=>{mode=mode=="solo"?"local":"solo";Restart();});
+            Chip("player",Next(),player=="stone"?"SWITCH TO VIPER":"SWITCH TO STONE",Red,available&&mode=="solo",()=>
+                confirmBout=()=>{player=player=="stone"?"viper":"stone";Restart();});
+            Chip("reset",Next(),"NEW BOUT",Silver,available,()=>confirmBout=Restart);
         }
     }
 
-    Texture2D DockShade()
+    void DrawLog(float x,float y,float width)
     {
-        if(dockShade!=null)return dockShade;
-        dockShade=new Texture2D(1,80,TextureFormat.RGBA32,false);
-        for(int y=0;y<80;y++)
+        Type(new Rect(x+4,y,width-78,44),"MATCH LOG",15,Gold,TextAnchor.MiddleLeft,true);
+        Chip("close-log",new Rect(x+width-72,y,72,44),"CLOSE",Aqua,true,ClosePanels);
+        const float lineHeight=50;
+        int perPage=Mathf.Max(1,Mathf.FloorToInt((dock.height-108)/lineHeight));
+        int pages=Mathf.Max(1,(history.Count+perPage-1)/perPage);
+        historyPage=Mathf.Clamp(historyPage,0,pages-1);
+        if(history.Count==0)Type(new Rect(x+4,y+49,width-8,44),"The first result will appear here.",14,Silver);
+        for(int i=0;i<perPage&&historyPage*perPage+i<history.Count;i++)
         {
-            float alpha=Mathf.SmoothStep(.99f,.08f,y/79f);
-            dockShade.SetPixel(0,y,new Color(1,1,1,alpha));
+            float rowY=y+46+i*lineHeight;
+            Draw(new Rect(x,rowY,width,1),Texture2D.whiteTexture,Tint(Silver,.3f));
+            Type(new Rect(x+4,rowY+4,width-8,44),history[historyPage*perPage+i],13,Paper,TextAnchor.UpperLeft,false,true);
         }
-        dockShade.Apply(false,true);
-        return dockShade;
+        if(pages<=1)return;
+        float bottom=dock.yMax-50;
+        Chip("newer",new Rect(x,bottom,80,44),"NEWER",Aqua,historyPage>0,()=>historyPage--);
+        Chip("older",new Rect(x+width-80,bottom,80,44),"OLDER",Aqua,historyPage+1<pages,()=>historyPage++);
     }
-
-    void DrawDock(string context,Choice[] choices,int pages,bool canAct)
-    {
-        Draw(new Rect(0,399,960,201),DockShade(),Ink);
-        Draw(new Rect(21,451,917,1),Texture2D.whiteTexture,Tint(Silver,.40f));
-        Type(new Rect(22,415,365,28),context,19,Gold,TextAnchor.MiddleLeft,true);
-        Type(new Rect(390,417,544,24),busy&&awaitingAnimation?"PREPARING MOVE...":status,13,Paper,TextAnchor.MiddleRight,true);
-        int first=page*CardsPerPage,last=Mathf.Min(choices.Length,first+CardsPerPage);
-        int count=last-first;
-        if(count==0)
-            Type(new Rect(38,477,710,74),match?.winner?.Length>0?"NEW BOUT IS AVAILABLE ABOVE":"WAITING FOR THE NEXT EXCHANGE",16,Silver,TextAnchor.MiddleCenter,true);
-        else
-        {
-            float tileWidth=count==1?296:count==2?253:171;
-            float tileStart=count==1?198:count==2?99:31;
-            for(int i=first;i<last;i++)
-            {
-                var tile=new Rect(tileStart+(i-first)*(tileWidth+7),466,tileWidth,88);
-                var choice=choices[i];
-                if(DrawMove(tile,choice,i-first,i==selectedChoice||choices.Length==1,canAct))
-                    selectedChoice=i;
-            }
-        }
-
-        if(pages>1)
-        {
-            Chip("previous-page",new Rect(27,560,69,25),"< PREV",Aqua,page>0&&canAct,()=>TurnPage(-1,pages));
-            Type(new Rect(104,560,100,25),(page+1)+" / "+pages,11,Silver,TextAnchor.MiddleLeft,true);
-            Chip("next-page",new Rect(203,560,69,25),"NEXT >",Aqua,page+1<pages&&canAct,()=>TurnPage(1,pages));
-        }
-        Type(new Rect(317,559,417,24),"SELECT A MOVE   /   1-4 SELECT   /   ENTER CONFIRMS",10,Silver,TextAnchor.MiddleRight,true);
-
-        int chosen=choices.Length==1?0:selectedChoice;
-        Choice primary=chosen>=0&&chosen<choices.Length?choices[chosen]:null;
-        bool primaryEnabled=canAct&&primary!=null;
-        var die=new Rect(793,442,137,136);
-        if(ShapeButton("execute",die,Shape.Die,Gold,primaryEnabled,primaryEnabled))
-            ExecuteChoice(primary);
-        DrawDie(die,primaryEnabled);
-        string call=lab?"PLAY":primary?.id=="neutral-roll"?"ROLL":
-            primary?.id=="select-move"||primary?.id=="react"?"EXECUTE":"CONFIRM";
-        if(busy)call=awaitingAnimation?"LOAD":"LIVE";
-        Type(new Rect(die.x+15,die.y+63,die.width-30,24),call,17,primaryEnabled?Paper:Silver,TextAnchor.MiddleCenter,true);
-        Type(new Rect(die.x+16,die.y+87,die.width-32,17),primaryEnabled?"ENTER":busy?"IN PROGRESS":"SELECT MOVE",8,primaryEnabled?Gold:Silver,TextAnchor.MiddleCenter,true);
-    }
-
-    void DrawDie(Rect die,bool enabled)
-    {
-        Color color=enabled?Gold:Tint(Silver,.45f);
-        var frame=new Rect(die.center.x-24,die.y+13,48,48);
-        Panel(frame,Shape.Die,Tint(Ink,.85f),color,1.7f);
-        Draw(new Rect(frame.x+8,frame.y+8,32,32),ShapeTexture(Shape.Die),Tint(color,.16f));
-        Type(frame,"20",22,color,TextAnchor.MiddleCenter,true);
-    }
-
     static Color MoveColor(string kind)=>kind switch
     {
         "strike"=>Red,"slam"=>Gold,"grapple"=>Aqua,"defense"=>new Color32(158,152,251,255),
@@ -338,18 +482,24 @@ public sealed partial class FacesMatch
     {
         Color accent=MoveColor(choice.kind);
         bool click=ShapeButton("move-"+slot,rect,Shape.Plate,accent,canAct,active&&canAct);
-        var icon=new Rect(rect.x+12,rect.y+11,24,24);
-        Draw(icon,ShapeTexture(Shape.Badge),Tint(accent,canAct ? .20f : .10f));
-        Draw(new Rect(icon.x+5,icon.y+5,14,14),Glyph(choice.kind),canAct?accent:Silver);
-        Type(new Rect(rect.x+42,rect.y+11,rect.width-68,21),MoveType(choice.kind),10,accent,TextAnchor.MiddleLeft,true);
-        Type(new Rect(rect.xMax-23,rect.y+9,13,18),(slot+1).ToString(),10,Silver,TextAnchor.MiddleCenter,true);
-        string name=choice.label, detail=active?"READY":"SELECT";
+        Type(new Rect(rect.xMax-23,rect.y+5,13,16),(slot+1).ToString(),10,Silver,TextAnchor.MiddleCenter,true);
+        string name=choice.label, detail=active?"SELECTED":"";
         int cost=name.IndexOf("  [",StringComparison.Ordinal);
-        if(cost>=0){detail=name.Substring(cost+2).Replace("[","").Replace("]","").Replace("crowd ","");name=name.Substring(0,cost);}
-        if(choice.boost)detail="BOOST  /  "+detail;
-        int nameSize=name.Length>28?11:name.Length>17?13:15;
-        Type(new Rect(rect.x+12,rect.y+36,rect.width-24,34),name,nameSize,canAct?Paper:Silver,TextAnchor.UpperLeft,true,true);
-        Type(new Rect(rect.x+12,rect.y+70,rect.width-24,13),detail,10,active?accent:Silver,TextAnchor.MiddleLeft,true);
+        if(cost>=0)
+        {
+            detail=name.Substring(cost+2).Replace("[","").Replace("]","");
+            name=name.Substring(0,cost);
+        }
+        if(active&&cost>=0)detail="✓  "+detail;
+        int nameSize=rect.width<180?13:15;
+        var badge=new Rect(rect.x+8,rect.y+5,18,18);
+        Draw(badge,ShapeTexture(Shape.Badge),Tint(accent,.20f));
+        Draw(new Rect(badge.x+4,badge.y+4,10,10),Glyph(choice.kind),accent);
+        Type(new Rect(rect.x+30,rect.y+5,rect.width-56,18),MoveType(choice.kind),10,accent,TextAnchor.MiddleLeft,true);
+        Type(new Rect(rect.x+9,rect.y+21,rect.width-18,rect.height-22-(detail.Length>0?12:0)),
+            name,nameSize,canAct?Paper:Silver,TextAnchor.UpperLeft,true,true);
+        if(detail.Length>0)
+            Type(new Rect(rect.x+9,rect.yMax-16,rect.width-18,14),detail,10,active?Gold:Silver,TextAnchor.MiddleLeft,true);
         return click;
     }
 
@@ -374,6 +524,12 @@ public sealed partial class FacesMatch
         else if(current.keyCode==KeyCode.RightArrow){TurnPage(1,pages);current.Use();}
         else if(current.keyCode==KeyCode.Return||current.keyCode==KeyCode.KeypadEnter)
         {
+            if(!lab&&!string.IsNullOrEmpty(match?.winner))
+            {
+                Restart();
+                current.Use();
+                return;
+            }
             int chosen=choices.Length==1?0:selectedChoice;
             if(chosen>=0&&chosen<choices.Length){ExecuteChoice(choices[chosen]);current.Use();}
         }

@@ -219,7 +219,9 @@ function action(request){
     case 'catch-breath': rules.catchBreathToNeutral(state,actor); message=who(actor)+' catches their breath'; break;
     default: throw Error('Unknown match action.');
     }
-    return { message, clip:animation(motion,actor??'stone',previous) };
+    const impact = motion ? MOVE_TIMING[motion].impact : null;
+    const resultAt = impact == null ? 0 : .22 + MOVE_TIMING[motion].duration * impact / 1000;
+    return { message, resultAt, clip:animation(motion,actor??'stone',previous) };
 }
 
 const previews=Object.entries(animationByMove).map(([id,value])=>({id:value.choreography,label:moveName(id),kind:value.kind}));
@@ -240,7 +242,7 @@ export function handle(request){
         result={message:'Match resumed',clip:animation(null,'stone',{})};
     }else result=action(request);
     const turn=rules.getAvailableActions(state);
-    return {...result,phase:turn.phase,actor:turn.actorId??'',winner:state.winnerId??'',
+    return {...result,phase:turn.phase,actor:turn.actorId??'',winner:state.winnerId??'',control:turn.controlId??'',
         stone:state.wrestlers.stone,viper:state.wrestlers.viper,actions:actions(),previews,
         cpu:turn.phase!=='NEUTRAL_ROLL' && isAiDecision(state,setup)};
 }

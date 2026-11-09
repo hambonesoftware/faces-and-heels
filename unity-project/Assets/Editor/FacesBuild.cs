@@ -29,7 +29,7 @@ public static class FacesBuild
             {
                 PlayerSettings.WebGL.compressionFormat=WebGLCompressionFormat.Gzip;
                 PlayerSettings.WebGL.decompressionFallback=true;
-                PlayerSettings.WebGL.template="APPLICATION:Default";
+                PlayerSettings.WebGL.template="PROJECT:Faces";
             }
             Directory.CreateDirectory(target==BuildTarget.WebGL ? location : Path.GetDirectoryName(location));
             var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{

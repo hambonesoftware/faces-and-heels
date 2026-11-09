@@ -19,7 +19,8 @@ public sealed partial class FacesMatch : MonoBehaviour
     [Serializable] sealed class Fighter { public string posture; public int stamina, maxStamina, crowdResource; }
     [Serializable] sealed class Reply
     {
-        public string error, clip, message, phase, actor, winner;
+        public string error, clip, message, phase, actor, winner, control;
+        public float resultAt;
         public bool cpu;
         public Fighter stone, viper;
         public Choice[] actions, previews;
@@ -51,19 +52,24 @@ public sealed partial class FacesMatch : MonoBehaviour
     [DllImport("__Internal")] static extern IntPtr FacesWeb_TakeClip();
     [DllImport("__Internal")] static extern void FacesWeb_Free(IntPtr pointer);
     [DllImport("__Internal")] static extern void FacesWeb_Disconnect();
+    [DllImport("__Internal")] static extern float FacesWeb_PixelScale();
+    [DllImport("__Internal")] static extern void FacesWeb_Announce(string message);
+    [DllImport("__Internal")] static extern void FacesWeb_ToggleFullscreen();
 #else
     Process bridge;
 #endif
     Camera ringCamera;
-    Reply match;
+    Reply match, pendingReply;
     Segment[] clip;
     WrestlerPart[] parts = Array.Empty<WrestlerPart>();
-    float elapsed, cpuAfter;
+    float elapsed, cpuAfter, exchangeElapsed;
     int playing, cameraAngle;
     float lastFrame = -1;
     bool busy, lab, halfSpeed;
     string player = "stone", mode = "solo", previewActor = "stone";
-    string status = "Loading arena...";
+    string status = "Loading arena...", previewStatus = "";
+    string requestId;
+    bool resultShown, statusError;
 
     static readonly Vector3[] CameraPositions =
     {
@@ -85,15 +91,32 @@ public sealed partial class FacesMatch : MonoBehaviour
         ringCamera.clearFlags = CameraClearFlags.SolidColor;
         ringCamera.backgroundColor = new Color(.045f,.055f,.10f);
         ringCamera.fieldOfView = 36;
-        SetCamera();
+        RefreshLayout(true);
         Connect();
     }
 
     void SetCamera()
     {
-        ringCamera.transform.position = CameraPositions[cameraAngle];
-        ringCamera.transform.LookAt(new Vector3(0,.65f,0));
+        Vector3 aim = new(0,.9f,0);
+        Vector3 toward = (aim-CameraPositions[cameraAngle]).normalized;
+        Quaternion rotation = Quaternion.LookRotation(toward);
+        float tangent = Mathf.Tan(ringCamera.fieldOfView*Mathf.Deg2Rad*.5f)*.93f;
+        float aspect = arena.width/arena.height;
+        float distance = 0;
+        foreach(var point in CameraBounds)
+        {
+            Vector3 offset=Quaternion.Inverse(rotation)*(point-aim);
+            distance=Mathf.Max(distance,Mathf.Max(Mathf.Abs(offset.x)/(tangent*aspect),Mathf.Abs(offset.y)/tangent)-offset.z);
+        }
+        ringCamera.transform.SetPositionAndRotation(aim-toward*distance,rotation);
     }
+
+    static readonly Vector3[] CameraBounds =
+    {
+        new(-6.2f,-.58f,-5.8f),new(-6.2f,-.58f,5.8f),new(6.2f,-.58f,-5.8f),new(6.2f,-.58f,5.8f),
+        new(-6.1f,3.3f,-5.75f),new(-6.1f,3.3f,5.75f),new(6.1f,3.3f,-5.75f),new(6.1f,3.3f,5.75f),
+        new(-2.4f,6.8f,0),new(2.4f,6.8f,0)
+    };
 
     void Connect()
     {
@@ -129,7 +152,7 @@ public sealed partial class FacesMatch : MonoBehaviour
         }
         catch(Exception error)
         {
-            status = error.Message;
+            ReportError(error.Message);
             Debug.LogException(error);
         }
 #endif
@@ -138,6 +161,7 @@ public sealed partial class FacesMatch : MonoBehaviour
     void Send(Request request)
     {
         if(busy) return;
+        requestId=request.id;
 #if UNITY_WEBGL && !UNITY_EDITOR
         FacesWeb_Send(JsonUtility.ToJson(request));
         busy=true;
@@ -148,7 +172,7 @@ public sealed partial class FacesMatch : MonoBehaviour
             bridge.StandardInput.WriteLine(JsonUtility.ToJson(request));
             busy = true;
         }
-        catch(Exception error) { status = error.Message; }
+        catch(Exception error) { ReportError(error.Message); }
 #endif
     }
 
@@ -160,6 +184,7 @@ public sealed partial class FacesMatch : MonoBehaviour
 
     void Update()
     {
+        RefreshLayout();
 #if UNITY_WEBGL && !UNITY_EDITOR
         IntPtr message=FacesWeb_Receive();
         if(message!=IntPtr.Zero)
@@ -175,13 +200,10 @@ public sealed partial class FacesMatch : MonoBehaviour
                 var reply = JsonUtility.FromJson<Reply>(line);
                 if(!string.IsNullOrEmpty(reply.error))
                 {
-                    status=reply.error;
-                    busy=false;
+                    ReportError(reply.error);
                     continue;
                 }
-                match=reply;
                 awaitingAnimation=false;
-                status=reply.message;
 #if UNITY_WEBGL && !UNITY_EDITOR
                 int size=FacesWeb_ClipSize();
                 IntPtr bytes=FacesWeb_TakeClip();
@@ -193,11 +215,13 @@ public sealed partial class FacesMatch : MonoBehaviour
 #else
                 LoadClip(File.OpenRead(reply.clip));
 #endif
+                pendingReply=reply;
+                exchangeElapsed=0;
+                resultShown=false;
             }
             catch(Exception error)
             {
-                status=error.Message;
-                busy=false;
+                ReportError(error.Message);
                 Debug.LogException(error);
             }
         }
@@ -205,7 +229,11 @@ public sealed partial class FacesMatch : MonoBehaviour
         if(clip!=null)
         {
             var segment=clip[playing];
-            elapsed+=Time.unscaledDeltaTime*(lab && halfSpeed ? .5f : 1f);
+            float delta=Time.unscaledDeltaTime*(lab && halfSpeed ? .5f : 1f);
+            elapsed+=delta;
+            exchangeElapsed+=delta;
+            if(!resultShown&&pendingReply.resultAt>0&&exchangeElapsed>=pendingReply.resultAt)
+                ShowResult();
             float t=segment.duration>0?Mathf.Min(elapsed/segment.duration,1):1;
             DrawFrame(segment,t);
             if(t>=1 && ++playing>=clip.Length)
@@ -213,6 +241,9 @@ public sealed partial class FacesMatch : MonoBehaviour
                 clip=null;
                 busy=false;
                 awaitingAnimation=false;
+                if(!resultShown)ShowResult();
+                if(requestId!="preview")match=pendingReply;
+                pendingReply=null;
                 cpuAfter=Time.unscaledTime+.85f;
             }
             else if(t>=1)
@@ -223,6 +254,60 @@ public sealed partial class FacesMatch : MonoBehaviour
         }
         if(!lab && !busy && match!=null && match.cpu && Time.unscaledTime>=cpuAfter)
             Send(new Request{id="cpu"});
+    }
+
+    void ReportError(string message)
+    {
+        pendingReply=null;
+        clip=null;
+        busy=false;
+        awaitingAnimation=false;
+        statusError=true;
+        status=message;
+        Announce(message);
+    }
+
+    void ShowResult()
+    {
+        resultShown=true;
+        statusError=false;
+        if(requestId=="preview")
+        {
+            previewStatus=pendingReply.message;
+            Announce(previewStatus);
+            return;
+        }
+        if(requestId=="resume")return;
+        if(requestId=="start")
+        {
+            history.Clear();
+            historyPage=0;
+            status="Bout ready";
+        }
+        else
+        {
+            status=pendingReply.message;
+            string change=StaminaChange("Stone",match?.stone,pendingReply.stone)+
+                StaminaChange("Viper",match?.viper,pendingReply.viper);
+            history.Insert(0,status+change);
+            if(history.Count>48)history.RemoveAt(48);
+            historyPage=0;
+        }
+        Announce(status);
+    }
+
+    static string StaminaChange(string name,Fighter before,Fighter after)
+    {
+        if(before==null||after==null||before.stamina==after.stamina)return "";
+        int change=after.stamina-before.stamina;
+        return "  ·  "+name+" "+change.ToString("+0;-0")+" STA";
+    }
+
+    static void Announce(string message)
+    {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        FacesWeb_Announce(message);
+#endif
     }
 
     void LoadClip(Stream stream)
